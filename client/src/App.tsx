@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/layouts/MainLayout';
+import DocumentPortal from './pages/DocumentsPortal';
 
 // Simple placeholder components
 const Dashboard = () => <div>Dashboard Content</div>;
@@ -14,7 +15,7 @@ function App() {
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/documents/*" element={<Documents />} />
+          <Route path="/documents/*" element={<DocumentPortal />} />
           <Route path="/itr-generation/*" element={<ITRGeneration />} />
           <Route path="/review" element={<Review />} />
         </Route>

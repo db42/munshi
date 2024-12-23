@@ -1,44 +1,88 @@
 import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import winston from 'winston';
+import documentRoutes from './routes/documents';
+import { ensureUploadDir } from './utils/ensureUploadDir';
+import { logger } from './utils/logger';
 
-// Load environment variables
-dotenv.config();
+const createServer = () => {
+  const app = express();
+  const port = process.env.PORT || 3000;
 
-// Configure logger
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.json()
-  ),
-  transports: [
-    new winston.transports.Console(),
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' })
-  ]
-});
+  const setupMiddleware = async () => {
+    app.use(express.json());
+  };
 
-// Create Express app
-const app = express();
+  const setupRoutes = async () => {
+    app.use('/api/documents', documentRoutes);
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+    // Basic route for testing
+    app.get('/', (req, res) => {
+      res.json({ message: 'Welcome to Munshi Tax Filing Server' });
+    });
+    
+    // Health check endpoint
+    app.get('/health', (req, res) => {
+      res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    });
+  };
 
-// Basic route for testing
-app.get('/', (req, res) => {
-  res.json({ message: 'Welcome to Munshi Tax Filing Server' });
-});
+  const setupErrorHandling = () => {
+    app.use((req, res) => {
+      res.status(404).json({ message: 'Not Found' });
+    });
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
+    // app.use((err, req, res, next) => {
+      // logger.error('Unhandled error:', err);
+    //   res.status(500).json({ message: 'Internal Server Error' });
+    // });
+  };
 
-// Start server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
-});
+  const setupProcessHandlers = (cleanup: () => Promise<void>) => {
+    process.on('uncaughtException', (error) => {
+      logger.error('Uncaught Exception:', error);
+      process.exit(1);
+    });
+
+    process.on('unhandledRejection', (reason, promise) => {
+      logger.error('Unhandled Rejection:', reason);
+    });
+
+    ['SIGTERM', 'SIGINT'].forEach((signal) => {
+      process.on(signal, async () => {
+        logger.info(`${signal} received. Shutting down gracefully...`);
+        await cleanup();
+        process.exit(0);
+      });
+    });
+  };
+
+  const cleanup = async () => {
+    // Add cleanup logic here (close database connections, etc)
+    logger.info('Cleanup completed');
+  };
+
+  const start = async () => {
+    try {
+      await ensureUploadDir();
+      await setupMiddleware();
+      await setupRoutes();
+      // setupErrorHandling();
+      setupProcessHandlers(cleanup);
+
+      return new Promise<void>((resolve) => {
+        app.listen(port, () => {
+          console.log(`Server is running on port ${port}`);
+          resolve();
+        });
+      });
+    } catch (error) {
+      console.log('Failed to start server:', error);
+      throw error;
+    }
+  };
+
+  return { start };
+};
+
+// Start the server
+const server = createServer();
+server.start().catch(() => process.exit(1));
