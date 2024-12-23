@@ -64,6 +64,14 @@ munshi
 * client
 * server
 
+# Todo
+
+- Generate ITR - define schema, validate - DONE
+- parse form 16 form
+- fill from information parsed from form 16, 
+- Document Portal - link upload doc
+- Document Portal - view docs
+
 
 # Resources
 - schema and validation rules - https://www.incometax.gov.in/iec/foportal/downloads#itr-2 

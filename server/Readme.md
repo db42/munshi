@@ -27,6 +27,8 @@ server/
 ```bash
 cd server
 npm install
+npm run generate-itr-types
+npm run db-init
 ```
 
 2. Set up environment variables:
