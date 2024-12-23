@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS documents (
     document_type VARCHAR(50),
     state VARCHAR(20) NOT NULL DEFAULT 'uploaded',
     state_message TEXT,
-    owner_id UUID NOT NULL,
+    owner_id INT NOT NULL,
     assessment_year VARCHAR(7) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

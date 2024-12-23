@@ -43,6 +43,8 @@ const router = express.Router();
 
 // Validation middleware
 const validateUploadRequest = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.log("a", req.body);
+  console.log("b", req.file);
   const { ownerId, assessmentYear } = req.body;
 
   if (!ownerId || !assessmentYear) {
@@ -64,8 +66,8 @@ const validateUploadRequest = (req: express.Request, res: express.Response, next
 
 // Document upload route
 router.post('/upload', 
-  validateUploadRequest,
   upload.single('file'),
+  validateUploadRequest,
   async (req: express.Request, res: express.Response) => {
     try {
       const file = req.file;
@@ -105,6 +107,7 @@ router.post('/upload',
       });
 
     } catch (error) {
+      console.log("e", error);
     //   logger.error('Error uploading document', {
     //     error: error instanceof Error ? error.message : 'Unknown error',
     //     stack: error instanceof Error ? error.stack : undefined

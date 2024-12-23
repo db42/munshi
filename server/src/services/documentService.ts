@@ -42,8 +42,13 @@ export const saveDocument = (pool: Pool) => async (
         document.assessmentYear
     ];
 
-    const result = await pool.query(query, values);
-    return mapDbRowToDocument(result.rows[0]);
+    try {
+        const result = await pool.query(query, values);
+        return (result.rows[0]);
+    } catch (error) {
+        console.error('Error saving document:', error);
+        throw new Error('Failed to save document');
+    }
 };
 
 // Get all documents for a user
