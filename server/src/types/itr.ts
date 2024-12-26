@@ -37,10 +37,10 @@ export interface Itr2 {
     ScheduleAL?:        ScheduleAL;
     ScheduleAMT?:       ScheduleAMT;
     ScheduleAMTC?:      ScheduleAMTC;
-    ScheduleBFLA:       ScheduleBFLA;
+    ScheduleBFLA?:       ScheduleBFLA;
     ScheduleCFL?:       ScheduleCFL;
     ScheduleCGFor23?:   ScheduleCGFor23;
-    ScheduleCYLA:       ScheduleCYLA;
+    ScheduleCYLA?:       ScheduleCYLA;
     ScheduleEI?:        ScheduleEI;
     ScheduleESOP?:      ScheduleESOP;
     ScheduleFA?:        ScheduleFA;

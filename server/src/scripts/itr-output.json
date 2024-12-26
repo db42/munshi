@@ -1,0 +1,188 @@
+{
+  "CreationInfo": {
+    "SWVersionNo": "1.0",
+    "SWCreatedBy": "SW12345678",
+    "JSONCreatedBy": "SW12345678",
+    "JSONCreationDate": "2024-12-26",
+    "IntermediaryCity": "Delhi",
+    "Digest": "-"
+  },
+  "Form_ITR2": {
+    "FormName": "ITR-2",
+    "Description": "For Individuals and HUFs not having income from profits and gains of business or profession",
+    "AssessmentYear": "2024",
+    "SchemaVer": "Ver1.0",
+    "FormVer": "Ver1.0"
+  },
+  "PartA_GEN1": {
+    "PersonalInfo": {
+      "AssesseeName": {
+        "FirstName": "DUSHYANT BANSAL",
+        "SurNameOrOrgName": "DUSHYANT BANSAL"
+      },
+      "PAN": "AQWPB0620M",
+      "Address": {
+        "ResidenceNo": "1234",
+        "LocalityOrArea": "Some Area",
+        "CityOrTownOrDistrict": "Some City",
+        "StateCode": "01",
+        "CountryCode": "91",
+        "PinCode": 110001,
+        "CountryCodeMobile": 91,
+        "MobileNo": 1234567890,
+        "EmailAddress": "email@example.com"
+      },
+      "DOB": "1990-01-01",
+      "Status": "I"
+    },
+    "FilingStatus": {
+      "FiiFpiFlag": "N",
+      "ResidentialStatus": "RES",
+      "HeldUnlistedEqShrPrYrFlg": "N",
+      "ItrFilingDueDate": "2024-07-31",
+      "OptOutNewTaxRegime": "N",
+      "ReturnFileSec": 139,
+      "SeventhProvisio139": "N"
+    }
+  },
+  "ScheduleS": {
+    "Salaries": [
+      {
+        "NameOfEmployer": "THOUGHTSPOT INDIA PRIVATE LIMITED",
+        "TANofEmployer": "BLRT13221F",
+        "AddressDetail": {
+          "AddrDetail": "",
+          "CityOrTownOrDistrict": "",
+          "StateCode": "01",
+          "PinCode": 110011
+        },
+        "NatureOfEmployment": "OTH",
+        "Salarys": {
+          "GrossSalary": 0,
+          "IncomeNotified89A": 0,
+          "IncomeNotified89AType": [],
+          "IncomeNotifiedOther89A": 0,
+          "IncomeNotifiedPrYr89A": 0,
+          "ProfitsinLieuOfSalary": 0,
+          "Salary": 0,
+          "ValueOfPerquisites": 0
+        }
+      }
+    ],
+    "TotalGrossSalary": 0,
+    "NetSalary": 8523289,
+    "DeductionUS16": 50000,
+    "DeductionUnderSection16ia": 50000,
+    "EntertainmntalwncUs16ii": 0,
+    "ProfessionalTaxUs16iii": 0,
+    "TotIncUnderHeadSalaries": 8473289,
+    "AllwncExtentExemptUs10": 0
+  },
+  "PartB-TI": {
+    "Salaries": -50000,
+    "IncomeFromHP": 0,
+    "CapGain": {
+      "ShortTermLongTermTotal": 0,
+      "CapGains30Per115BBH": 0,
+      "ShortTerm": {
+        "ShortTerm15Per": 0,
+        "ShortTerm30Per": 0,
+        "ShortTermAppRate": 0,
+        "ShortTermSplRateDTAA": 0,
+        "TotalShortTerm": 0
+      },
+      "LongTerm": {
+        "LongTerm10Per": 0,
+        "LongTerm20Per": 0,
+        "LongTermSplRateDTAA": 0,
+        "TotalLongTerm": 0
+      },
+      "TotalCapGains": 0
+    },
+    "IncFromOS": {
+      "OtherSrcThanOwnRaceHorse": 0,
+      "IncChargblSplRate": 0,
+      "FromOwnRaceHorse": 0,
+      "TotIncFromOS": 0
+    },
+    "TotalTI": -50000,
+    "CurrentYearLoss": 0,
+    "BalanceAfterSetoffLosses": 0,
+    "BroughtFwdLossesSetoff": 0,
+    "GrossTotalIncome": 0,
+    "IncChargeTaxSplRate111A112": 0,
+    "DeductionsUnderScheduleVIA": 0,
+    "TotalIncome": 0,
+    "IncChargeableTaxSplRates": 0,
+    "NetAgricultureIncomeOrOtherIncomeForRate": 0,
+    "AggregateIncome": 0,
+    "LossesOfCurrentYearCarriedFwd": 50000,
+    "DeemedIncomeUs115JC": 0
+  },
+  "PartB_TTI": {
+    "TaxPayDeemedTotIncUs115JC": 0,
+    "TotalTaxPayablDeemedTotInc": 0,
+    "ComputationOfTaxLiability": {
+      "TaxPayableOnTI": {
+        "TaxAtNormalRatesOnAggrInc": 0,
+        "TaxAtSpecialRates": 0,
+        "RebateOnAgriInc": 0,
+        "TaxPayableOnTotInc": 0
+      },
+      "Rebate87A": 0,
+      "TaxPayableOnRebate": 0,
+      "Surcharge25ofSI": 0,
+      "SurchargeOnAboveCrore": 0,
+      "Surcharge25ofSIBeforeMarginal": 0,
+      "SurchargeOnAboveCroreBeforeMarginal": 0,
+      "TotalSurcharge": 0,
+      "EducationCess": 0,
+      "GrossTaxLiability": 0,
+      "GrossTaxPayable": 0,
+      "CreditUS115JD": 0,
+      "TaxPayAfterCreditUs115JD": 0,
+      "TaxRelief": {
+        "Section89": 0,
+        "TotTaxRelief": 0
+      },
+      "NetTaxLiability": 0,
+      "IntrstPay": {
+        "IntrstPayUs234A": 0,
+        "IntrstPayUs234B": 0,
+        "IntrstPayUs234C": 0,
+        "LateFilingFee234F": 0,
+        "TotalIntrstPay": 0
+      },
+      "AggregateTaxInterestLiability": 0
+    },
+    "Surcharge": 0,
+    "HealthEduCess": 0,
+    "TaxPaid": {
+      "TaxesPaid": {
+        "AdvanceTax": 0,
+        "TDS": 2564833,
+        "TCS": 0,
+        "SelfAssessmentTax": 0,
+        "TotalTaxesPaid": 2564833
+      },
+      "BalTaxPayable": -2564833
+    },
+    "Refund": {
+      "RefundDue": 2564833,
+      "BankAccountDtls": {
+        "BankDtlsFlag": "N"
+      }
+    },
+    "AssetOutIndiaFlag": "NO"
+  },
+  "Verification": {
+    "Capacity": "A",
+    "Date": "2024-12-26",
+    "Declaration": {
+      "AssesseeVerName": "",
+      "AssesseeVerPAN": "",
+      "FatherName": ""
+    },
+    "Place": "Mumbai"
+  }
+}
