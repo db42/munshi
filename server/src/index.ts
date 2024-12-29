@@ -2,6 +2,7 @@ import express from 'express';
 import documentRoutes from './routes/documents';
 import { ensureUploadDir } from './utils/ensureUploadDir';
 import { logger } from './utils/logger';
+import itrRoutes from './routes/itrRoutes';
 
 const createServer = () => {
   const app = express();
@@ -13,6 +14,8 @@ const createServer = () => {
 
   const setupRoutes = async () => {
     app.use('/api/documents', documentRoutes);
+    app.use('/api/itr', itrRoutes);
+
 
     // Basic route for testing
     app.get('/', (req, res) => {

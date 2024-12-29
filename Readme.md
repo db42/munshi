@@ -69,6 +69,7 @@ munshi
 - Generate ITR - define schema, validate - DONE
 - parse form 16 form
 - generate first version of from information parsed from form 16, 
+- API to give JSON
 - json renderer in client and ability to update fields in json
 - Document Portal - link upload doc
 - Document Portal - view docs

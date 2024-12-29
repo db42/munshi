@@ -72,3 +72,18 @@ Create a `.env` file with these variables:
 PORT=3000
 NODE_ENV=development
 ```
+
+## Curl requests
+
+```
+curl -X POST http://localhost:3000/api/documents/upload \
+  -F "file=@/Users/dushyant.bansal/Downloads/Form-16.pdf" \
+  -F "ownerId=123" \
+  -F "assessmentYear=2024-25"
+
+curl -X POST 'http://localhost:3000/api/documents/process' \
+-H 'Content-Type: application/json' \
+-d '{
+  "documentId": "fd54348a-b049-45b1-8026-ebfad4122dce"
+}'
+```

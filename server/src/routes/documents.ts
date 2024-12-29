@@ -5,6 +5,8 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { documents } from '../services/document';
 import { logger } from '../utils/logger';
+import { loadPDF } from '../services/pdfParserTabula';
+import { parsedDocuments } from '../services/parsedDocument';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -63,6 +65,65 @@ const validateUploadRequest = (req: express.Request, res: express.Response, next
 
   next();
 };
+
+// create new endpoint /process to process an already uploaded pdf file. this function will call 
+// loadPDF function from pdfParserTabula service. it'll insert the extracted json to table called processed_document
+router.post('/process', async (req: express.Request, res: express.Response) => {
+  try {
+    const { documentId } = req.body;
+
+    if (!documentId) {
+      return res.status(400).json({
+        message: 'Missing required field: documentId'
+      });
+    }
+
+    // Get document details from database
+    const document = await documents.getById(documentId);
+    
+    if (!document) {
+      return res.status(400).json({
+        message: 'Document not found'
+      });
+    }
+
+    if (document.state !== 'uploaded') {
+      return res.status(400).json({
+        message: 'Document is not in uploaded state'
+      });
+    }
+
+    // Update document state to processing
+    // await documents.updateState(documentId, 'processing');
+
+    // Process PDF and extract data
+    const extractedData = await loadPDF(document.filepath);
+
+    parsedDocuments.create({
+      document_id: documentId,
+      json_schema_type: 'FORM_16',
+      json_schema_version: 'v1',
+      parsed_data: extractedData,
+      parser_version: 'v1',
+    });
+
+    // Update document state to processed
+    // await documents.updateState(documentId, 'processed');
+
+    res.status(200).json({
+      message: 'Document processed successfully',
+      documentId
+    });
+
+  } catch (error) {
+    console.error('Error processing document:', error);
+    res.status(500).json({
+      message: 'Error processing document',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 
 // Document upload route
 router.post('/upload', 
