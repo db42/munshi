@@ -67,9 +67,11 @@ munshi
 # Todo
 
 - Generate ITR - define schema, validate - DONE
-- parse form 16 form
-- generate first version of from information parsed from form 16, 
-- API to give JSON
+- parse form 16 form - DONE
+- generate first version of from information parsed from form 16, - DONE
+- API to give JSON - DONE
+- perfect logic to parse information mentioned in form 16 - use own json from last year
+- add validation
 - json renderer in client and ability to update fields in json
 - Document Portal - link upload doc
 - Document Portal - view docs

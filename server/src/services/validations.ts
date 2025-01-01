@@ -1,6 +1,6 @@
 import Ajv from "ajv";
 import addFormats from "ajv-formats";
-import type { ITR } from '../types/generated';
+import type { Itr } from '../types/itr';
 import * as schema from '../../schema/ITR-2_2024_Main_V1.2.json';
 
 // Custom error class for validation errors
@@ -52,7 +52,7 @@ export class ITRValidator {
         // Add other custom formats as needed
     }
 
-    validateITR(data: ITR) {
+    validateITR(data: Itr) {
         const valid = this.validate(data);
 
         if (!valid) {
@@ -93,7 +93,7 @@ export class ITRValidator {
 }
 
 // Example usage:
-export const validatePersonalInfo = (personalInfo: ITR['ITR']['ITR2']['PartA_GEN1']['PersonalInfo']) => {
+export const validatePersonalInfo = (personalInfo: Itr['ITR']['ITR2']['PartA_GEN1']['PersonalInfo']) => {
     const validator = new ITRValidator();
     return validator.validateSection('PersonalInfo', personalInfo);
 };
