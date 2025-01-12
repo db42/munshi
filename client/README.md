@@ -23,7 +23,7 @@ This will create `tailwind.config.js` and `postcss.config.js` files needed for s
 
 3. Start development server:
 ```bash
-npm run dev
+npm run start
 ```
 The application will be available at `http://localhost:5173`
 

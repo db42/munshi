@@ -36,7 +36,12 @@ npm run db-init
 cp .env.example .env
 ```
 
-3. Start development server:
+3. Run PostgreSQL
+```
+brew services start postgresql
+```
+
+4. Start development server:
 ```bash
 # Run in development mode with hot reload
 npm run dev
@@ -87,3 +92,5 @@ curl -X POST 'http://localhost:3000/api/documents/process' \
   "documentId": "fd54348a-b049-45b1-8026-ebfad4122dce"
 }'
 ```
+
+Goto http://localhost:3000/api/itr/123/2024-25 to see the processes ITR
