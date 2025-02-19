@@ -4,8 +4,8 @@ import { PartBTTI, AssetOutIndiaFlag, TaxRescertifiedFlag } from '../../types/it
 export const processPartBTTI = (form16: Form16): PartBTTI => {
     // Calculate regular tax
     const totalIncome = form16.salaryDetails.grossSalary.total - 
-        (form16.salaryDetails.allowanceExemptSection10 || 0) -
-        (form16.deductions?.total || 0);
+        (form16.salaryDetails.exemptAllowances.totalExemption || 0) -
+        (form16.salaryDetails.deductionsUnderSection16.totalDeductions || 0);
     
     const taxOnIncome = calculateTaxOnIncome(totalIncome);
     const surcharge = calculateSurcharge(taxOnIncome, totalIncome);
@@ -14,7 +14,7 @@ export const processPartBTTI = (form16: Form16): PartBTTI => {
     const totalTaxPayable = taxOnIncome + surcharge + healthAndEducationCess;
     
     // Get tax payments from Form 16
-    const tdsPaid = form16.taxDeduction?.totalTaxDeducted || 0;
+    const tdsPaid = form16.totalTaxDeducted || 0;
 
     // Calculate refund
     const refundDue = tdsPaid > totalTaxPayable ? tdsPaid - totalTaxPayable : 0;

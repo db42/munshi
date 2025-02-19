@@ -17,8 +17,8 @@ export const processPartBTI = (form16: Form16): PartBTI => {
     // Step 1: Calculate Income from Salary
     // This includes gross salary minus exempt allowances and standard deduction
     const salaryIncome = form16.salaryDetails.grossSalary.total;
-    const exemptAllowances = form16.salaryDetails.allowanceExemptSection10 || 0;
-    const deductions = form16.deductions?.total || 0;
+    const exemptAllowances = form16.salaryDetails.exemptAllowances.totalExemption || 0;
+    const deductions = form16.salaryDetails.deductionsUnderSection16.totalDeductions || 0;
     const netSalaryIncome = salaryIncome - exemptAllowances - deductions;
 
     // Step 2: Calculate Income from House Property

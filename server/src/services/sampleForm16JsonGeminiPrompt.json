@@ -1,0 +1,114 @@
+{
+  "metadata": {
+    "certificateNumber": "ABCD1234E",
+    "lastUpdatedOn": "2024-02-15"
+  },
+  "employer": {
+    "name": "Example Corp Ltd",
+    "address": "123 Business Park, Tech City - 560001",
+    "pan": "AAAAA1234A",
+    "tan": "BLRA12345A"
+  },
+  "employee": {
+    "name": "John Doe",
+    "address": {
+      "addrDetail": "45 Residential Layout, Tech City",
+      "cityOrTownOrDistrict": "Tech City",
+      "stateCode": 29,
+      "pinCode": 560001
+    },
+    "pan": "BBBBB1234B",
+    "employeeReferenceNumber": "EMP123"
+  },
+  "assessmentYear": "2024-25",
+  "periodWithEmployer": {
+    "startDate": "2023-04-01",
+    "endDate": "2024-03-31"
+  },
+  "summaryOfTaxDeducted": [
+    {
+      "quarter": "Q1",
+      "receiptNumber": "Q1RECEIPT123",
+      "amountPaidCredited": 300000.00,
+      "taxDeducted": 30000.00,
+      "taxDepositedRemitted": 30000.00
+    }
+  ],
+  "totalTaxDeducted": 120000.00,
+  "taxDepositedThroughChallan": [
+    {
+      "slNo": 1,
+      "taxDeposited": 30000.00,
+      "bsrCode": "1234567",
+      "dateTaxDeposited": "2023-07-07",
+      "challanSerialNumber": "12345",
+      "statusMatchingOltas": "F"
+    }
+  ],
+  "verification": {
+    "name": "Jane Smith",
+    "designation": "HR Manager",
+    "place": "Tech City",
+    "date": "2024-03-31"
+  },
+  "salaryDetails": {
+    "optingOutTaxation": "No",
+    "grossSalary": {
+      "salary": 1200000.00,
+      "perquisites": 50000.00,
+      "profitsInLieu": 0.00,
+      "total": 1250000.00,
+      "salaryFromOtherEmployers": 0.00
+    },
+    "exemptAllowances": {
+      "travelConcession": 0.00,
+      "deathCumRetirementGratuity": 0.00,
+      "commutedPension": 0.00,
+      "leaveEncashment": 0.00,
+      "houseRentAllowance": 120000.00,
+      "otherAllowances": 0.00,
+      "totalExemption": 120000.00
+    },
+    "salaryFromCurrentEmployer": 1130000.00,
+    "deductionsUnderSection16": {
+      "standardDeduction": 50000.00,
+      "entertainmentAllowance": 0.00,
+      "taxOnEmployment": 2500.00,
+      "totalDeductions": 52500.00
+    },
+    "incomeChargeableSalaries": 1077500.00,
+    "otherIncome": {
+      "houseProperty": 0.00,
+      "otherSources": 10000.00,
+      "totalOtherIncome": 10000.00
+    },
+    "grossTotalIncome": 1087500.00,
+    "deductionsChapterVIA": {
+      "section80C": 150000.00,
+      "section80CCC": 0.00,
+      "section80CCD1": 0.00,
+      "total80C80CCC80CCD1": 150000.00,
+      "section80CCD1B": 50000.00,
+      "section80CCD2": 0.00,
+      "section80D": 25000.00,
+      "section80E": 0.00,
+      "section80CCH": 0.00,
+      "section80G": 10000.00,
+      "section80TTA": 10000.00,
+      "totalChapterVIADeductions": 245000.00
+    },
+    "totalTaxableIncome": 842500.00,
+    "taxOnTotalIncome": 80000.00,
+    "rebateSection87A": 0.00,
+    "surcharge": 0.00,
+    "healthEducationCess": 3200.00,
+    "taxPayable": 83200.00,
+    "reliefSection89": 0.00,
+    "netTaxPayable": 83200.00
+  },
+  "form12BA": {
+    "taxDeductedSalary": 83200.00,
+    "taxPaidEmployer": 0.00,
+    "totalTaxPaid": 83200.00
+  }
+}

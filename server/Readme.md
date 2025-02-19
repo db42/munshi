@@ -25,6 +25,7 @@ server/
 
 1. Install dependencies:
 ```bash
+nvm use 18
 cd server
 npm install
 npm run generate-itr-types
@@ -89,7 +90,7 @@ curl -X POST http://localhost:3000/api/documents/upload \
 curl -X POST 'http://localhost:3000/api/documents/process' \
 -H 'Content-Type: application/json' \
 -d '{
-  "documentId": "fd54348a-b049-45b1-8026-ebfad4122dce"
+  "documentId": "600c08ab-9dfc-4489-8b1c-ce372c72f9eb"
 }'
 ```
 

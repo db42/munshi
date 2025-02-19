@@ -3,6 +3,10 @@ import documentRoutes from './routes/documents';
 import { ensureUploadDir } from './utils/ensureUploadDir';
 import { logger } from './utils/logger';
 import itrRoutes from './routes/itrRoutes';
+import { config } from 'dotenv'
+import { resolve } from 'path'
+
+config({ path: resolve(__dirname, '../prod.env') })
 
 const createServer = () => {
   const app = express();

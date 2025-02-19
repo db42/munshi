@@ -5,7 +5,8 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { documents } from '../services/document';
 import { logger } from '../utils/logger';
-import { loadPDF } from '../services/pdfParserTabula';
+// import { loadPDF } from '../services/pdfParserTabula';
+import { loadPDFGemini } from '../services/pdfParserGemini';
 import { parsedDocuments } from '../services/parsedDocument';
 
 // Configure multer for file upload
@@ -97,7 +98,15 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
     // await documents.updateState(documentId, 'processing');
 
     // Process PDF and extract data
-    const extractedData = await loadPDF(document.filepath);
+    const extractedData = await loadPDFGemini(document.filepath);
+
+    if (extractedData.success === false) {
+      console.log(extractedData.error);
+      return res.status(500).json({
+        message: 'Error processing document',
+        error: extractedData.error
+      });
+    }
 
     parsedDocuments.create({
       document_id: documentId,

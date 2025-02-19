@@ -78,6 +78,10 @@ const parseForm16WithExtractedData = (rows: string[]): ParseResult<Form16> => {
         const parseEmployer = (): EmployerInfo => {
             const employerRow = rows.find(row => row.includes("PRIVATE LIMITED"));
             const tanRow = rows.find(row => row.includes("TAN of the Deductor"));
+            console.log(
+                "Employer Row:", employerRow,
+                "TAN Row:", tanRow
+            );
             
             return {
                 name: "THOUGHTSPOT INDIA PRIVATE LIMITED",
