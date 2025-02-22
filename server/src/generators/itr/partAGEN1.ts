@@ -10,11 +10,11 @@ export const processPartAGEN1 = (form16: Form16): PartAGEN1 => ({
         PAN: form16.employee.pan,
         Address: {
             ResidenceNo: "1234", // These would come from actual data
-            LocalityOrArea: "Some Area",
-            CityOrTownOrDistrict: "Some City",
-            StateCode: StateCode.The01,
+            LocalityOrArea: form16.employee.address.addrDetail,
+            CityOrTownOrDistrict: form16.employee.address.cityOrTownOrDistrict,
+            StateCode: String(form16.employee.address.stateCode) as StateCode,
             CountryCode: CountryCode.The91,
-            PinCode: 110001,
+            PinCode: form16.employee.address.pinCode,
             CountryCodeMobile: 91,
             MobileNo: 1234567890,
             EmailAddress: "email@example.com"

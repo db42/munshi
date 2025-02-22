@@ -13,10 +13,10 @@ export const processScheduleS = (form16: Form16): ScheduleS => ({
     TANofEmployer: form16.employer.tan,
     AddressDetail: {
       //generate empty AddressDetail object
-      AddrDetail: form16.employer.address ?? '',
-      CityOrTownOrDistrict: '',
-      StateCode: StateCode.The01,
-      PinCode: 110011
+      AddrDetail: form16.employer.address.addrDetail,
+      CityOrTownOrDistrict: form16.employer.address.cityOrTownOrDistrict,
+      StateCode: String(form16.employer.address.stateCode) as StateCode,
+      PinCode: form16.employer.address.pinCode
     },
     NatureOfEmployment: NatureOfEmployment.Oth,
     Salarys: {

@@ -5,7 +5,12 @@
   },
   "employer": {
     "name": "Example Corp Ltd",
-    "address": "123 Business Park, Tech City - 560001",
+    "address": {
+      "addrDetail": "45 Residential Layout, Tech City",
+      "cityOrTownOrDistrict": "Tech City",
+      "stateCode": 29,
+      "pinCode": 560001
+    },
     "pan": "AAAAA1234A",
     "tan": "BLRA12345A"
   },

@@ -39,7 +39,7 @@ export interface Address {
 }
 export interface EmployerInfo {
   name: string;
-  address: string;
+  address: Address;
   pan: string;
   tan: string;
 }
