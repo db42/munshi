@@ -131,7 +131,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
           document.filepath,
           taxpayerInfo
         );
-        console.log("extractedData", extractedData);
+        console.log("extractedData", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.FORM_26AS:

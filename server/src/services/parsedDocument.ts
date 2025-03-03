@@ -10,5 +10,6 @@ export const parsedDocuments = {
     updateData: parsedDocumentService.updateParsedDocumentData(pool),
     delete: parsedDocumentService.deleteParsedDocument(pool),
     getSuccessful: parsedDocumentService.getSuccessfulParsedDocuments(pool),
-    getForm16: parsedDocumentService.getForm16ParsedData(pool)
+    getForm16: parsedDocumentService.getForm16ParsedData(pool),
+    getUSEquityCapitalGainStatement: parsedDocumentService.getUSEquityCapitalGainStatementParsedData(pool)
 };

@@ -197,3 +197,23 @@ export const getForm16ParsedData = (pool: Pool) => async (
   const result = await executeQuery(pool, query, [userId, assessmentYear]);
   return result.rows[0] || null;
 };
+
+// get USEquityCapitalGainStatement parsed data for a user and assessment year
+export const getUSEquityCapitalGainStatementParsedData = (pool: Pool) => async (
+  userId: number,
+  assessmentYear: string
+): Promise<ParsedDocument | null> => {
+  const query = `
+    SELECT pd.* 
+    FROM parsed_documents pd
+    JOIN documents d ON pd.document_id = d.id
+    WHERE d.owner_id = $1
+    AND d.assessment_year = $2
+    AND pd.json_schema_type LIKE 'USEquityCapitalGainStatement%'
+    ORDER BY pd.updated_at DESC
+    LIMIT 1
+  `;
+
+  const result = await executeQuery(pool, query, [userId, assessmentYear]);
+  return result.rows[0] || null;
+};
