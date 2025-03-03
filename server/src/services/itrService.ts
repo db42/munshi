@@ -14,6 +14,12 @@ export interface ITRData {
 }
 
 /**
+ * Type-safe property accessor for ITR sections
+ * This ensures we can only access properties that actually exist on Itr2
+ */
+const itrSection = <K extends keyof Itr2>(itr: Itr2, key: K): Itr2[K] => itr[key];
+
+/**
  * Merges Schedule CG sections
  * 
  * @param existingScheduleCG - Existing Schedule CG section from ITR
@@ -151,20 +157,26 @@ const mergeUSEquityDataIntoITR = (existingITR: Itr2, equityITRSections: USEquity
         const updatedITR = JSON.parse(JSON.stringify(existingITR)) as Itr2;
         
         // 1. Merge Schedule CG
-        updatedITR.ScheduleCGFor23 = mergeScheduleCG(updatedITR.ScheduleCGFor23, scheduleCG);
+        const updatedScheduleCG = mergeScheduleCG(updatedITR.ScheduleCGFor23, scheduleCG);
+        updatedITR.ScheduleCGFor23 = updatedScheduleCG;
         
-        // 2. Merge Capital Gains in PartB-TI
-        if (updatedITR['PartB-TI']) {
+        // 2. Merge Capital Gains in PartB_TI
+        const partBTI = updatedITR.PartB_TI;
+        if (partBTI) {
             // Merge Capital Gains
-            updatedITR['PartB-TI'].CapGain = mergeCapitalGains(updatedITR['PartB-TI'].CapGain, partBTICapitalGains);
+            const updatedCapGains = mergeCapitalGains(partBTI.CapGain, partBTICapitalGains);
+            partBTI.CapGain = updatedCapGains;
             
-            // Update income totals
-            updatedITR['PartB-TI'] = updateIncomeTotals(updatedITR['PartB-TI'], partBTICapitalGains);
+            // Update income totals based on merged capital gains
+            const updatedPartBTI = updateIncomeTotals(partBTI, updatedCapGains);
+            updatedITR.PartB_TI = updatedPartBTI;
         }
         
         // 3. Merge Foreign Tax Credit in PartB-TTI
-        if (updatedITR.PartB_TTI) {
-            updatedITR.PartB_TTI = mergeForeignTaxCredit(updatedITR.PartB_TTI, partBTTIForeignTaxCredit);
+        const partBTTI = updatedITR.PartB_TTI;
+        if (partBTTI) {
+            const updatedPartBTTI = mergeForeignTaxCredit(partBTTI, partBTTIForeignTaxCredit);
+            updatedITR.PartB_TTI = updatedPartBTTI;
         }
         
         return updatedITR;

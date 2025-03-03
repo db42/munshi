@@ -20,7 +20,7 @@ export const convertForm16ToITR = (form16: Form16): ConversionResult<Itr2> => {
             Form_ITR2: processFormITR2(form16),
             PartA_GEN1: processPartAGEN1(form16),
             ScheduleS: processScheduleS(form16),
-            'PartB-TI': processPartBTI(form16),
+            PartB_TI: processPartBTI(form16),
             PartB_TTI: processPartBTTI(form16),
             //todo mark it as compulsory
             // ScheduleBFLA: initializeScheduleBFLA(),

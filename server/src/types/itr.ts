@@ -23,7 +23,7 @@ export interface Itr2 {
     CreationInfo:       CreationInfo;
     Form_ITR2:          FormITR2;
     PartA_GEN1:         PartAGEN1;
-    "PartB-TI":         PartBTI;
+    PartB_TI:          PartBTI;
     PartB_TTI:          PartBTTI;
     Schedule112A?:      Schedule112A;
     Schedule115AD?:     Schedule115AD;
@@ -10261,3 +10261,4 @@ const typeMap: any = {
         "S",
     ],
 };
+
