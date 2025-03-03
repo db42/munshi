@@ -10,11 +10,13 @@ Classify documents. This will use generative AI
 
 Workflow 1.2
 
-Parse documents (PDFs) to structured CSVs. This will be deterministic code generated with help from generative AI.
+Parse documents (PDFs) to structured CSVs. 
+- For form 16, we'll use generative AI to parse.
+- This can be deterministic code for other forms generated with help from generative AI.
 
 ### Workflow 2: Core ITR generation and calculation engine
 
-This will 
+This will compute the final taxes based on both new and old tax regime.
 
 ### Workflow 3: Review ITR
 
@@ -70,11 +72,14 @@ munshi
 - parse form 16 form - DONE
 - generate first version of from information parsed from form 16, - DONE
 - API to give JSON - DONE
-- perfect logic to parse information mentioned in form 16 - use own json from last year
+- perfect logic to parse information mentioned in form 16 - use own json from last year - DONE
 - add validation
 - json renderer in client and ability to update fields in json
 - Document Portal - link upload doc
 - Document Portal - view docs
+- parse form 26AS
+- India CG
+- US equity - WIP
 
 
 # Resources

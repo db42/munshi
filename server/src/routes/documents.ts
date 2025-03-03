@@ -8,6 +8,8 @@ import { logger } from '../utils/logger';
 // import { loadPDF } from '../services/pdfParserTabula';
 import { loadPDFGemini } from '../services/pdfParserGemini';
 import { parsedDocuments } from '../services/parsedDocument';
+import { DocumentType } from '../types/document';
+import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -48,7 +50,7 @@ const router = express.Router();
 const validateUploadRequest = (req: express.Request, res: express.Response, next: express.NextFunction) => {
   console.log("a", req.body);
   console.log("b", req.file);
-  const { ownerId, assessmentYear } = req.body;
+  const { ownerId, assessmentYear, documentType } = req.body;
 
   if (!ownerId || !assessmentYear) {
     return res.status(400).json({ 
@@ -62,6 +64,17 @@ const validateUploadRequest = (req: express.Request, res: express.Response, next
     return res.status(400).json({ 
       message: 'Invalid assessment year format. Expected: YYYY-YY' 
     });
+  }
+  
+  // Validate document type if provided
+  if (documentType) {
+    // Check if the provided documentType is a valid value from the enum
+    const validDocumentTypes = Object.values(DocumentType);
+    if (!validDocumentTypes.includes(documentType)) {
+      return res.status(400).json({
+        message: `Invalid document type. Allowed types: ${validDocumentTypes.join(', ')}`
+      });
+    }
   }
 
   next();
@@ -97,20 +110,59 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
     // Update document state to processing
     // await documents.updateState(documentId, 'processing');
 
-    // Process PDF and extract data
-    const extractedData = await loadPDFGemini(document.filepath);
+    // Choose parser based on document type
+    let extractedData;
+    console.log("document", document);
 
-    if (extractedData.success === false) {
-      console.log(extractedData.error);
+    switch (document.documentType) {
+      case DocumentType.FORM_16:
+        extractedData = await loadPDFGemini(document.filepath);
+        break;
+      
+      case DocumentType.US_EQUITY_STATEMENT:
+        
+        // Get taxpayer info from user service or use ownerId as fallback
+        const taxpayerInfo = {
+          name: document.ownerId, // Replace with actual user name lookup if available
+          pan: '' // Replace with actual PAN lookup if available
+        };
+        
+        extractedData = await parseUSEquityPDFWithGemini(
+          document.filepath,
+          taxpayerInfo
+        );
+        console.log("extractedData", extractedData);
+        break;
+      
+      case DocumentType.FORM_26AS:
+        // Add parser for form26AS when available
+        return res.status(501).json({
+          message: 'Parser for Form 26AS not yet implemented'
+        });
+      
+      default:
+        await documents.updateState(documentId, 'failed', 'No parser available for this document type');
+        return res.status(400).json({
+          message: `No parser available for document type: ${document.documentType}`
+        });
+    }
+
+    if (!extractedData || extractedData.success === false) {
+      const errorMessage = extractedData?.error || 'Unknown parsing error';
+      console.error('Error parsing document:', errorMessage);
+      
+      await documents.updateState(documentId, 'failed', errorMessage);
+      
       return res.status(500).json({
         message: 'Error processing document',
-        error: extractedData.error
+        error: errorMessage
       });
     }
 
-    parsedDocuments.create({
+    // Save the parsed data
+    await parsedDocuments.create({
       document_id: documentId,
-      json_schema_type: 'FORM_16',
+      json_schema_type: document.documentType,
       json_schema_version: 'v1',
       parsed_data: extractedData,
       parser_version: 'v1',
@@ -126,6 +178,20 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
 
   } catch (error) {
     console.error('Error processing document:', error);
+    
+    // Update document state to failed
+    // try {
+    //   if (req.body.documentId) {
+    //     await documents.updateState(
+    //       req.body.documentId, 
+    //       'failed', 
+    //       error instanceof Error ? error.message : 'Unknown error'
+    //     );
+    //   }
+    // } catch (stateUpdateError) {
+    //   console.error('Failed to update document state:', stateUpdateError);
+    // }
+    
     res.status(500).json({
       message: 'Error processing document',
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -141,7 +207,7 @@ router.post('/upload',
   async (req: express.Request, res: express.Response) => {
     try {
       const file = req.file;
-      const { ownerId, assessmentYear } = req.body;
+      const { ownerId, assessmentYear, documentType } = req.body;
 
       if (!file) {
         return res.status(400).json({ message: 'No file uploaded' });
@@ -163,7 +229,8 @@ router.post('/upload',
         mimeType: file.mimetype,
         state: 'uploaded',
         ownerId,
-        assessmentYear
+        assessmentYear,
+        documentType: documentType as DocumentType // Add documentType to save
       });
 
     //   logger.info({

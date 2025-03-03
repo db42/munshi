@@ -1,5 +1,5 @@
 import { Pool } from 'pg';
-import { Document, DocumentState } from '../types/document';
+import { Document, DocumentState, DocumentType } from '../types/document';
 
 // Helper function to map database row to Document type
 const mapDbRowToDocument = (row: any): Document => ({
@@ -26,8 +26,8 @@ export const saveDocument = (pool: Pool) => async (
     const query = `
         INSERT INTO documents (
             original_filename, stored_filename, filepath, file_size,
-            mime_type, state, owner_id, assessment_year
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            mime_type, document_type, state, owner_id, assessment_year
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
         RETURNING *
     `;
 
@@ -37,6 +37,7 @@ export const saveDocument = (pool: Pool) => async (
         document.filepath,
         document.fileSize,
         document.mimeType,
+        document.documentType,
         document.state,
         document.ownerId,
         document.assessmentYear

@@ -1,0 +1,42 @@
+{
+  "taxpayerName": "Test User",
+  "taxpayerPAN": "ABCDE1234F",
+  "brokerName": "Charles Schwab",
+  "brokerAccountNumber": "XXXX-XXXX",
+  "statementPeriod": {
+    "startDate": "2023-04-01",
+    "endDate": "2024-03-31"
+  },
+  "dividends": [
+    {
+      "securityName": "Example Corp",
+      "symbol": "EXC",
+      "paymentDate": "2023-06-15",
+      "grossAmount": 100.50,
+      "taxWithheld": 15.07,
+      "netAmount": 85.43,
+      "exchangeRate": 82.5,
+      "grossAmountINR": 8291.25,
+      "taxWithheldINR": 1243.28,
+      "netAmountINR": 7047.97
+    }
+  ],
+  "capitalGains": {
+    "shortTerm": {
+      "totalProceeds": 125000.00,
+      "totalCostBasis": 100000.00,
+      "totalGain": 25000.00,
+      "totalForeignTaxPaid": 3750.00
+    },
+    "longTerm": {
+      "totalProceeds": 250000.00,
+      "totalCostBasis": 150000.00,
+      "totalGain": 100000.00,
+      "totalForeignTaxPaid": 15000.00
+    }
+  },
+  "taxWithheld": {
+    "dividendTax": 1243.28,
+    "capitalGainsTax": 18750.00
+  }
+} 

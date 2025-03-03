@@ -38,8 +38,13 @@ cp .env.example .env
 ```
 
 3. Run PostgreSQL
-```
+```bash
 brew services start postgresql
+
+
+psql -U dushyant.bansal -h localhost -p 5432 -d munshi
+\dt
+SELECT * FROM documents;
 ```
 
 4. Start development server:
@@ -83,7 +88,7 @@ NODE_ENV=development
 
 ```
 curl -X POST http://localhost:3000/api/documents/upload \
-  -F "file=@/Users/dushyant.bansal/Downloads/Form-16.pdf" \
+  -F "file=@/Users/dushyant.bansal/work/munshi/Form-16.pdf" \
   -F "ownerId=123" \
   -F "assessmentYear=2024-25"
 
@@ -92,6 +97,20 @@ curl -X POST 'http://localhost:3000/api/documents/process' \
 -d '{
   "documentId": "600c08ab-9dfc-4489-8b1c-ce372c72f9eb"
 }'
+
+curl -X POST http://localhost:3000/api/documents/upload \
+  -F "file=@/Users/dushyant.bansal/work/munshi/charles-year-end.pdf" \
+  -F "ownerId=123" \
+  -F "assessmentYear=2024-25" \
+  -F "documentType=USEquityCapitalGainStatement"
+
+
+curl -X POST 'http://localhost:3000/api/documents/process' \
+-H 'Content-Type: application/json' \
+-d '{
+  "documentId": "b77b2368-aeff-4469-82ea-670c2d0885c4"
+}'
+
 ```
 
 Goto http://localhost:3000/api/itr/123/2024-25 to see the processes ITR

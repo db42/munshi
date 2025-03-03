@@ -1,5 +1,17 @@
 export type DocumentState = 'uploaded' | 'classifying' | 'classified' | 'processing' | 'processed' | 'failed';
 
+export enum DocumentType {
+    FORM_16 = 'form-16',
+    US_EQUITY_STATEMENT = 'USEquityCapitalGainStatement',
+    FORM_26AS = 'form26AS',
+    BANK_STATEMENT = 'bankStatement',
+    RENT_RECEIPT = 'rentReceipt',
+    INSURANCE_PREMIUM = 'insurancePremium',
+    PPF_RECEIPT = 'ppfReceipt',
+    MUTUAL_FUND_STATEMENT = 'mutualFundStatement',
+    OTHER = 'other'
+}
+
 export interface Document {
     id: string;
     originalFilename: string;
@@ -7,7 +19,7 @@ export interface Document {
     filepath: string;
     fileSize: number;
     mimeType: string;
-    documentType?: string;
+    documentType?: DocumentType;
     state: DocumentState;
     stateMessage?: string;
     ownerId: string;

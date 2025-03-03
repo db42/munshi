@@ -8,6 +8,7 @@ import {
   SalaryDetails,
 } from '../types/form16';
 import * as sampleData from './sampleForm16JsonGeminiPrompt.json';
+import { Config, defaultConfig } from "./geminiConfig";
 
 // Define the parse result type
 interface ParseResult<T> {
@@ -16,18 +17,6 @@ interface ParseResult<T> {
   error?: string;
 }
 
-// Configuration interface
-interface Config {
-  apiKey: string;
-  model: string;
-}
-
-function defaultConfig(): Config {
-  return {
-    apiKey: process.env.GEMINI_API_KEY || '',
-    model: 'gemini-2.0-flash'
-  }
-};
 
 console.log(defaultConfig);
 

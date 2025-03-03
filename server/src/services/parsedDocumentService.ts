@@ -1,18 +1,14 @@
+import { DocumentType } from '@/types/document';
 import { Pool, QueryResult } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 
 // Types
 export type ParsedDocumentState = 'pending' | 'success' | 'error';
 
-export type JsonSchemaType = 
-  | 'FORM_16' 
-  | 'BANK_STATEMENT' 
-  | 'FORM_26AS_PART_A';
-
 export interface ParsedDocument {
   id: string;
   document_id: string;
-  json_schema_type: JsonSchemaType;
+  json_schema_type: DocumentType;
   json_schema_version: string;
   parsed_data: any;
   parser_version: string;
@@ -96,7 +92,7 @@ export const getParsedDocumentsByDocumentId = (pool: Pool) => async (
 
 // Get all parsed documents of a specific schema type
 export const getParsedDocumentsBySchemaType = (pool: Pool) => async (
-  schemaType: JsonSchemaType
+  schemaType: DocumentType
 ): Promise<ParsedDocument[]> => {
   const query = `
     SELECT * FROM parsed_documents 
