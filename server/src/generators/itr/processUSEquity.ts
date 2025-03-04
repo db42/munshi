@@ -182,6 +182,100 @@ const createDeducClaimInfo = (): DeducClaimInfo => ({
 });
 
 /**
+ * Determines if a transaction is short-term or long-term based on holding period
+ * For Indian tax purposes, foreign equity held for <= 24 months is short-term
+ * 
+ * @param acquisitionDate Date of acquisition
+ * @param sellDate Date of sale
+ * @returns Boolean indicating if it's a short-term transaction
+ */
+const isShortTermTransaction = (acquisitionDate: Date, sellDate: Date): boolean => {
+  // Calculate difference in months
+  const monthsDiff = 
+    (sellDate.getFullYear() - acquisitionDate.getFullYear()) * 12 + 
+    (sellDate.getMonth() - acquisitionDate.getMonth());
+  
+  // For foreign equity (including US stocks), short-term is <= 24 months
+  return monthsDiff <= 24;
+};
+
+/**
+ * Calculate capital gains from transaction data
+ * 
+ * @param transactions Array of equity transactions
+ * @returns Object with short-term and long-term capital gains
+ */
+const calculateCapitalGains = (
+  transactions: USCGEquityTransaction[]): { shortTerm: CapitalGainSummary; longTerm: CapitalGainSummary } => {
+  // Initialize summary objects
+  const shortTerm: CapitalGainSummary = {
+    totalProceeds: 0,
+    totalCostBasis: 0,
+    totalGain: 0,
+    totalForeignTaxPaid: 0
+  };
+  
+  const longTerm: CapitalGainSummary = {
+    totalProceeds: 0,
+    totalCostBasis: 0,
+    totalGain: 0,
+    totalForeignTaxPaid: 0
+  };
+  
+  console.log(`Starting capital gains calculation for ${transactions.length} transactions...`);
+  
+  // Process each transaction
+  transactions.forEach((transaction, index) => {
+    // Skip if not a sale transaction (must have both acquisition and sell dates)
+    if (!transaction.acquisitionDate || !transaction.sellDate) {
+      console.log(`Skipping transaction #${index + 1}: Missing acquisition or sell date`);
+      return;
+    }
+    
+    const acquisitionDate = new Date(transaction.acquisitionDate);
+    const sellDate = new Date(transaction.sellDate);
+    
+    // Determine if short-term or long-term
+    const isShortTerm = isShortTermTransaction(acquisitionDate, sellDate);
+    
+    // Calculate gain for this transaction
+    const proceeds = transaction.totalProceeds || 0;
+    const costBasis = transaction.totalCost || 0;
+    const gain = proceeds - costBasis;
+    
+    // Log transaction details in a single statement
+    console.log(
+      `Transaction #${index + 1}: ${transaction.securityName || 'Unknown'} | ` +
+      `${acquisitionDate.toISOString().split('T')[0]} to ${sellDate.toISOString().split('T')[0]} | ` +
+      `${isShortTerm ? 'Short Term' : 'Long Term'} | ` +
+      `Proceeds: ${proceeds} | Cost: ${costBasis} | Gain/Loss: ${gain}`
+    );
+    
+    // Add to appropriate category
+    if (isShortTerm) {
+      shortTerm.totalProceeds += proceeds;
+      shortTerm.totalCostBasis += costBasis;
+      shortTerm.totalGain += gain;
+      console.log(`  → Added to Short Term - Running Total Gain: ${shortTerm.totalGain}`);
+    } else {
+      longTerm.totalProceeds += proceeds;
+      longTerm.totalCostBasis += costBasis;
+      longTerm.totalGain += gain;
+      console.log(`  → Added to Long Term - Running Total Gain: ${longTerm.totalGain}`);
+    }
+  });
+  
+  // Log final summary in a single statement
+  console.log(
+    `\nCapital Gains Summary:\n` +
+    `Short Term: Proceeds=${shortTerm.totalProceeds}, Cost=${shortTerm.totalCostBasis}, Gain=${shortTerm.totalGain}\n` +
+    `Long Term: Proceeds=${longTerm.totalProceeds}, Cost=${longTerm.totalCostBasis}, Gain=${longTerm.totalGain}`
+  );
+  
+  return { shortTerm, longTerm };
+};
+
+/**
  * Processes short-term capital gains from US equity data
  */
 const processShortTermCapitalGains = (shortTermGains: CapitalGainSummary): ShortTermCapGainFor23 => {
@@ -259,81 +353,6 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
         TotalLTCG: longTermGains.totalGain
     };
 };
-
-/**
- * Determines if a transaction is short-term or long-term based on holding period
- * For Indian tax purposes, foreign equity held for <= 24 months is short-term
- * 
- * @param acquisitionDate Date of acquisition
- * @param sellDate Date of sale
- * @returns Boolean indicating if it's a short-term transaction
- */
-const isShortTermTransaction = (acquisitionDate: Date, sellDate: Date): boolean => {
-  // Calculate difference in months
-  const monthsDiff = 
-    (sellDate.getFullYear() - acquisitionDate.getFullYear()) * 12 + 
-    (sellDate.getMonth() - acquisitionDate.getMonth());
-  
-  // For foreign equity (including US stocks), short-term is <= 24 months
-  return monthsDiff <= 24;
-};
-
-/**
- * Calculate capital gains from transaction data
- * 
- * @param transactions Array of equity transactions
- * @returns Object with short-term and long-term capital gains
- */
-const calculateCapitalGains = (
-  transactions: USCGEquityTransaction[]): { shortTerm: CapitalGainSummary; longTerm: CapitalGainSummary } => {
-  // Initialize capital gains objects
-  const shortTerm: CapitalGainSummary = {
-    totalProceeds: 0,
-    totalCostBasis: 0,
-    totalGain: 0,
-    totalForeignTaxPaid: 0
-  };
-  
-  const longTerm: CapitalGainSummary = {
-    totalProceeds: 0,
-    totalCostBasis: 0,
-    totalGain: 0,
-    totalForeignTaxPaid: 0
-  };
-  
-  // Process each transaction
-  transactions.forEach(transaction => {
-    // Skip if not a sale transaction (must have both acquisition and sell dates)
-    if (!transaction.acquisitionDate || !transaction.sellDate) {
-      return;
-    }
-    
-    const acquisitionDate = new Date(transaction.acquisitionDate);
-    const sellDate = new Date(transaction.sellDate);
-    
-    // Determine if short-term or long-term
-    const isShortTerm = isShortTermTransaction(acquisitionDate, sellDate);
-    
-    // Calculate gain for this transaction
-    const proceeds = transaction.totalProceeds || 0;
-    const costBasis = transaction.totalCost || 0;
-    const gain = proceeds - costBasis;
-    
-    // Add to appropriate category
-    if (isShortTerm) {
-      shortTerm.totalProceeds += proceeds;
-      shortTerm.totalCostBasis += costBasis;
-      shortTerm.totalGain += gain;
-    } else {
-      longTerm.totalProceeds += proceeds;
-      longTerm.totalCostBasis += costBasis;
-      longTerm.totalGain += gain;
-    }
-  });
-  
-  return { shortTerm, longTerm };
-};
-
 
 /**
  * Processes US equity data to generate the capital gains section of ITR-2

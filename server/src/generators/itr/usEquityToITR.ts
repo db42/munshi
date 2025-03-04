@@ -7,11 +7,10 @@ import { processUSEquityForITR as generateScheduleCGFromUSEquity, USEquityITRSec
 /**
  * Generates Capital Gains section for PartB-TI from US equity data
  * 
- * @param usEquityData - Parsed US equity statement data
+ * @param scheduleCG - Schedule CG data containing capital gains information
  * @returns CapGain object with capital gains information for PartB-TI
  */
-const generatePartBTICapitalGains = (usEquityData: USEquityStatement): CapGain => {
-  const scheduleCG = generateScheduleCGFromUSEquity(usEquityData);
+const generatePartBTICapitalGains = (scheduleCG: ScheduleCGFor23): CapGain => {
   const shortTermGains = scheduleCG.ShortTermCapGainFor23.TotalSTCG || 0;
   const longTermGains = scheduleCG.LongTermCapGain23.TotalLTCG || 0;
   
@@ -46,11 +45,21 @@ const generatePartBTICapitalGains = (usEquityData: USEquityStatement): CapGain =
  * @returns Foreign tax credit amount for PartB-TTI
  */
 const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): number => {
-  const taxWithheld = usEquityData.taxWithheld?.capitalGainsTax || 0;
+  // Get the tax withheld on capital gains directly from the source data
+  const capitalGainsTaxWithheld = usEquityData.taxWithheld?.capitalGainsTax || 0;
+  
+  // Log the foreign tax credit calculation
+  console.log(`Foreign Tax Credit Calculation:`);
+  console.log(`  Capital Gains Tax Withheld: ${capitalGainsTaxWithheld}`);
   
   // In a real implementation, you would calculate the allowable foreign tax credit
   // based on the tax treaty between India and the US
-  return taxWithheld;
+  // Typically, the foreign tax credit is limited to the lower of:
+  // 1. The foreign tax paid
+  // 2. The domestic tax payable on the foreign income
+  
+  // For now, we'll just return the tax withheld
+  return capitalGainsTaxWithheld;
 };
 
 /**
@@ -59,28 +68,24 @@ const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): numb
  * This function takes US equity statement data and generates ITR sections without modifying any existing ITR.
  * 
  * @param usEquityData - Parsed US equity statement data
- * @returns ConversionResult containing the generated ITR sections
+ * @returns Object containing the generated ITR sections
  */
 export const convertUSEquityToITR = (usEquityData: USEquityStatement): ConversionResult<USEquityITRSections> => {
-    
-  try {
-    const scheduleCG = generateScheduleCGFromUSEquity(usEquityData);
-    //TODO: following sections can also be derived from scheduleCG
-    const partBTICapitalGains = generatePartBTICapitalGains(usEquityData);
-    const partBTTIForeignTaxCredit = generatePartBTTIForeignTaxCredit(usEquityData);
-    
-    return {
-      success: true,
-      data: {
-        scheduleCG,
-        partBTICapitalGains,
-        partBTTIForeignTaxCredit
-      }
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: `Failed to generate ITR sections from US equity data: ${error}`
-    };
-  }
+  // Generate Schedule CG
+  const scheduleCG = generateScheduleCGFromUSEquity(usEquityData);
+  
+  // Generate Part B-TI Capital Gains
+  const partBTICapitalGains = generatePartBTICapitalGains(scheduleCG);
+  
+  // Generate Part B-TTI Foreign Tax Credit
+  const partBTTIForeignTaxCredit = generatePartBTTIForeignTaxCredit(usEquityData);
+  
+  return {
+    success: true,
+    data: {
+      scheduleCG,
+      partBTICapitalGains,
+      partBTTIForeignTaxCredit
+    }
+  };
 }; 
