@@ -79,7 +79,9 @@ munshi
 - Document Portal - view docs
 - parse form 26AS
 - India CG
-- US equity - WIP
+- US equity - DONE, validate the computations
+- handle currency format from US Equity - WIP
+- handle sectionFA from US Equity
 
 
 # Resources

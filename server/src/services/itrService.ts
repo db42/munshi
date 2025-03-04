@@ -150,7 +150,7 @@ const mergeForeignTaxCredit = (existingPartBTTI: any, foreignTaxCredit: number):
  * @param equityITRSections - Pre-processed ITR sections from US equity data
  * @returns Updated ITR with US equity data integrated
  */
-const mergeUSEquityDataIntoITR = (existingITR: Itr2, equityITRSections: USEquityITRSections): Itr2 => {
+const mergeUSEquityITRSectionsIntoITR = (existingITR: Itr2, equityITRSections: USEquityITRSections): Itr2 => {
     try {
         const { scheduleCG, partBTICapitalGains, partBTTIForeignTaxCredit } = equityITRSections;
         // Create a deep copy of the ITR to avoid mutations
@@ -203,15 +203,15 @@ export const generateITR = () => async (
     
     // 4. If US equity data exists, merge it into the ITR
     if (usEquityCapitalGainStatementDocs?.parsed_data.data && itrData.success && itrData.data) {
-        const usEquityData = usEquityCapitalGainStatementDocs.parsed_data.data;
+        const usEquityITRSectionsResult = usEquityCapitalGainStatementDocs.parsed_data.data;
         
         // Generate ITR sections from US equity data
-        const result = convertUSEquityToITR(usEquityData);
+        const result = convertUSEquityToITR(usEquityITRSectionsResult);
         if (result.success && result.data) {
         
             // const { scheduleCG, capitalGains, foreignTaxCredit } = result.data;
             // Merge US equity data into the ITR
-            const mergedITR = mergeUSEquityDataIntoITR(itrData.data, result.data);
+            const mergedITR = mergeUSEquityITRSectionsIntoITR(itrData.data, result.data);
             
             return {
                     assessmentYear,

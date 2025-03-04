@@ -1,6 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from 'fs/promises';
-import { USEquityStatement, TransactionType } from '../types/usEquityStatement';
+import { 
+  USEquityStatement, 
+  USCGEquityTransaction, 
+  DividendIncome, 
+  CapitalGainSummary 
+} from '../types/usEquityStatement';
 import { ConversionResult } from '../generators/itr/types';
 import * as sampleData from './sampleUSEquityJsonGeminiPrompt.json';
 import { defaultConfig, Config } from "./geminiConfig";
@@ -34,16 +39,16 @@ export const parseUSEquityPDFWithGemini = async (
     // Prepare the parts for the prompt
     const parts = [
       {
-        text: `Please analyze this Charles Schwab year-end summary document and extract the information according to the following structure:
+        text: `Please analyze this Charles Schwab year-end summary document and extract the information according to the following structure where each field shows its expected type:
       ${JSON.stringify(sampleData, null, 2)}
-      
+
       Please follow these rules:
-      - Extract all details about dividends received (specific securities, amounts, and dates)
+      - Extract all transaction entries including acquisition date, sell date, security name, etc.
+      - Extract all dividend entries received (specific securities, amounts, and dates)
       - Extract all details about capital gains/losses (short-term and long-term)
       - Ensure all monetary values are numeric, not strings
       - For the statement period, use the tax year covered (likely April 1 to March 31 for Indian tax purposes)
-      - Convert all USD amounts to INR using exchange rate of 82.5 if not explicitly mentioned
-      - Extract any tax withholding information (usually 15% for dividends from US securities)
+      - Extract any tax withholding information
       - Return the data in strict JSON format matching the structure above
       - If certain information is not available in the document, use null or 0 as appropriate
       - Dates should be in ISO format (YYYY-MM-DD)`
@@ -64,73 +69,14 @@ export const parseUSEquityPDFWithGemini = async (
     try {
       // Parse the JSON response
       const cleanText = text.replace(/```json|```/g, "").trim();
-      const parsedData = JSON.parse(cleanText);
+      const parsedData: USEquityStatement = JSON.parse(cleanText);
+
+      console.log(JSON.stringify(parsedData, null, 2));
       
-      // Create the USEquityStatement object
-      const statement: USEquityStatement = {
-        taxpayerName: taxpayerInfo.name,
-        taxpayerPAN: taxpayerInfo.pan,
-        brokerName: parsedData.brokerName || "Charles Schwab",
-        brokerAccountNumber: parsedData.brokerAccountNumber || "",
-        statementPeriod: {
-          startDate: new Date(parsedData.statementPeriod?.startDate || ""),
-          endDate: new Date(parsedData.statementPeriod?.endDate || "")
-        },
-        transactions: [], // We might not have detailed transactions from the summary PDF
-        dividends: (parsedData.dividends || []).map((div: any) => ({
-          securityName: div.securityName,
-          symbol: div.symbol,
-          paymentDate: new Date(div.paymentDate),
-          grossAmount: div.grossAmount,
-          taxWithheld: div.taxWithheld,
-          netAmount: div.netAmount,
-          exchangeRate: div.exchangeRate || 82.5,
-          grossAmountINR: div.grossAmountINR,
-          taxWithheldINR: div.taxWithheldINR,
-          netAmountINR: div.netAmountINR
-        })),
-        capitalGains: {
-          shortTerm: {
-            totalProceeds: parsedData.capitalGains?.shortTerm?.totalProceeds || 0,
-            totalCostBasis: parsedData.capitalGains?.shortTerm?.totalCostBasis || 0,
-            totalGain: parsedData.capitalGains?.shortTerm?.totalGain || 0,
-            totalForeignTaxPaid: parsedData.capitalGains?.shortTerm?.totalForeignTaxPaid || 0
-          },
-          longTerm: {
-            totalProceeds: parsedData.capitalGains?.longTerm?.totalProceeds || 0,
-            totalCostBasis: parsedData.capitalGains?.longTerm?.totalCostBasis || 0,
-            totalGain: parsedData.capitalGains?.longTerm?.totalGain || 0,
-            totalForeignTaxPaid: parsedData.capitalGains?.longTerm?.totalForeignTaxPaid || 0
-          }
-        },
-        taxWithheld: {
-          dividendTax: parsedData.taxWithheld?.dividendTax || 0,
-          capitalGainsTax: parsedData.taxWithheld?.capitalGainsTax || 0
-        }
-      };
-
-      // Create simplified transaction records from dividends
-      // (we don't have real transactions, but these can be useful for display)
-      statement.dividends.forEach(div => {
-        statement.transactions.push({
-          transactionId: `DIV-${div.symbol}-${div.paymentDate.getTime()}`,
-          securityName: div.securityName,
-          symbol: div.symbol,
-          transactionDate: div.paymentDate,
-          type: TransactionType.DIVIDEND,
-          quantity: 0, // Not available from summary
-          pricePerUnit: 0, // Not available from summary
-          totalAmount: div.grossAmount,
-          feesBrokerage: 0,
-          exchangeRate: div.exchangeRate,
-          amountINR: div.grossAmountINR,
-          notes: 'Dividend payment extracted from year-end summary'
-        });
-      });
-
+      
       return {
         success: true,
-        data: statement
+        data: parsedData
       };
     } catch (parseError) {
       console.error('Error parsing Gemini response:', parseError);

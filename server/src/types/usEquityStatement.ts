@@ -19,7 +19,7 @@ export interface USEquityStatement {
   };
   
   // Transaction details
-  transactions: USEquityTransaction[];
+  transactions: USCGEquityTransaction[];
   
   // Summary information
   dividends: DividendIncome[];
@@ -33,20 +33,16 @@ export interface USEquityStatement {
   };
 }
 
-export interface USEquityTransaction {
+export interface USCGEquityTransaction {
   transactionId: string;
   securityName: string;
   symbol: string;
-  transactionDate: Date;
   acquisitionDate?: Date; // for sell transactions
-  type: TransactionType;
+  sellDate?: Date; // for sell transactions
   quantity: number;
-  pricePerUnit: number;
-  totalAmount: number;
+  totalCost: number;
+  totalProceeds: number;
   feesBrokerage: number;
-  exchangeRate: number; // USD to INR conversion rate on transaction date
-  amountINR: number;    // Total amount in INR
-  notes?: string;
 }
 
 export interface DividendIncome {
@@ -56,10 +52,6 @@ export interface DividendIncome {
   grossAmount: number;  // in USD
   taxWithheld: number;  // in USD
   netAmount: number;    // in USD
-  exchangeRate: number; // USD to INR conversion rate on payment date
-  grossAmountINR: number;
-  taxWithheldINR: number;
-  netAmountINR: number;
 }
 
 export interface CapitalGainSummary {

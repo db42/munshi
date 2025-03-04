@@ -1,4 +1,4 @@
-import { USEquityStatement } from '../../types/usEquityStatement';
+import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../../types/usEquityStatement';
 import { 
     ScheduleCGFor23, 
     ShortTermCapGainFor23, 
@@ -14,8 +14,6 @@ import {
     InStcg30Per,
     InStcgAppRate,
     InStcgDTAARate,
-    LossRemainSetOff,
-    TotLossSetOff,
     AccruOrRecOfCG,
     NRITransacSec48Dtl,
     DeducClaimInfo,
@@ -186,8 +184,7 @@ const createDeducClaimInfo = (): DeducClaimInfo => ({
 /**
  * Processes short-term capital gains from US equity data
  */
-const processShortTermCapitalGains = (usEquityData: USEquityStatement): ShortTermCapGainFor23 => {
-    const shortTermGains = usEquityData.capitalGains.shortTerm;
+const processShortTermCapitalGains = (shortTermGains: CapitalGainSummary): ShortTermCapGainFor23 => {
     
     return {
         AmtDeemedStcg: 0,
@@ -218,8 +215,7 @@ const processShortTermCapitalGains = (usEquityData: USEquityStatement): ShortTer
 /**
  * Processes long-term capital gains from US equity data
  */
-const processLongTermCapitalGains = (usEquityData: USEquityStatement): LongTermCapGain23 => {
-    const longTermGains = usEquityData.capitalGains.longTerm;
+const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTermCapGain23 => {
     
     return {
         AmtDeemedLtcg: 0,
@@ -265,6 +261,81 @@ const processLongTermCapitalGains = (usEquityData: USEquityStatement): LongTermC
 };
 
 /**
+ * Determines if a transaction is short-term or long-term based on holding period
+ * For Indian tax purposes, foreign equity held for <= 24 months is short-term
+ * 
+ * @param acquisitionDate Date of acquisition
+ * @param sellDate Date of sale
+ * @returns Boolean indicating if it's a short-term transaction
+ */
+const isShortTermTransaction = (acquisitionDate: Date, sellDate: Date): boolean => {
+  // Calculate difference in months
+  const monthsDiff = 
+    (sellDate.getFullYear() - acquisitionDate.getFullYear()) * 12 + 
+    (sellDate.getMonth() - acquisitionDate.getMonth());
+  
+  // For foreign equity (including US stocks), short-term is <= 24 months
+  return monthsDiff <= 24;
+};
+
+/**
+ * Calculate capital gains from transaction data
+ * 
+ * @param transactions Array of equity transactions
+ * @returns Object with short-term and long-term capital gains
+ */
+const calculateCapitalGains = (
+  transactions: USCGEquityTransaction[]): { shortTerm: CapitalGainSummary; longTerm: CapitalGainSummary } => {
+  // Initialize capital gains objects
+  const shortTerm: CapitalGainSummary = {
+    totalProceeds: 0,
+    totalCostBasis: 0,
+    totalGain: 0,
+    totalForeignTaxPaid: 0
+  };
+  
+  const longTerm: CapitalGainSummary = {
+    totalProceeds: 0,
+    totalCostBasis: 0,
+    totalGain: 0,
+    totalForeignTaxPaid: 0
+  };
+  
+  // Process each transaction
+  transactions.forEach(transaction => {
+    // Skip if not a sale transaction (must have both acquisition and sell dates)
+    if (!transaction.acquisitionDate || !transaction.sellDate) {
+      return;
+    }
+    
+    const acquisitionDate = new Date(transaction.acquisitionDate);
+    const sellDate = new Date(transaction.sellDate);
+    
+    // Determine if short-term or long-term
+    const isShortTerm = isShortTermTransaction(acquisitionDate, sellDate);
+    
+    // Calculate gain for this transaction
+    const proceeds = transaction.totalProceeds || 0;
+    const costBasis = transaction.totalCost || 0;
+    const gain = proceeds - costBasis;
+    
+    // Add to appropriate category
+    if (isShortTerm) {
+      shortTerm.totalProceeds += proceeds;
+      shortTerm.totalCostBasis += costBasis;
+      shortTerm.totalGain += gain;
+    } else {
+      longTerm.totalProceeds += proceeds;
+      longTerm.totalCostBasis += costBasis;
+      longTerm.totalGain += gain;
+    }
+  });
+  
+  return { shortTerm, longTerm };
+};
+
+
+/**
  * Processes US equity data to generate the capital gains section of ITR-2
  * 
  * This function takes US equity statement data and populates the relevant sections
@@ -277,8 +348,10 @@ const processLongTermCapitalGains = (usEquityData: USEquityStatement): LongTermC
  * @returns ScheduleCGFor23 object with capital gains information
  */
 export const processUSEquityForITR = (usEquityData: USEquityStatement): ScheduleCGFor23 => {
-    const shortTermGains = processShortTermCapitalGains(usEquityData);
-    const longTermGains = processLongTermCapitalGains(usEquityData);
+    const capitalGains = calculateCapitalGains(usEquityData.transactions);
+      
+    const shortTermGains = processShortTermCapitalGains(capitalGains.shortTerm);
+    const longTermGains = processLongTermCapitalGains(capitalGains.longTerm);
     
     const totalGains = shortTermGains.TotalSTCG + longTermGains.TotalLTCG;
     const totalForeignTax = shortTermGains.TotalAmtTaxUsDTAAStcg + longTermGains.TotalAmtTaxUsDTAALtcg;

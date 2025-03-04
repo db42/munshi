@@ -1,4 +1,4 @@
-import { USEquityStatement } from '../../types/usEquityStatement';
+import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../../types/usEquityStatement';
 import { ScheduleCGFor23, CapGain, ShortTerm, LongTerm } from '../../types/itr';
 import { ConversionResult } from './types';
 import { processUSEquityForITR as generateScheduleCGFromUSEquity, USEquityITRSections } from './processUSEquity';
@@ -62,8 +62,10 @@ const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): numb
  * @returns ConversionResult containing the generated ITR sections
  */
 export const convertUSEquityToITR = (usEquityData: USEquityStatement): ConversionResult<USEquityITRSections> => {
+    
   try {
     const scheduleCG = generateScheduleCGFromUSEquity(usEquityData);
+    //TODO: following sections can also be derived from scheduleCG
     const partBTICapitalGains = generatePartBTICapitalGains(usEquityData);
     const partBTTIForeignTaxCredit = generatePartBTTIForeignTaxCredit(usEquityData);
     

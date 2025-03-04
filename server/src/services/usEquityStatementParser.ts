@@ -1,4 +1,4 @@
-import { USEquityStatement, USEquityTransaction, DividendIncome, CapitalGainSummary, TransactionType } from '../types/usEquityStatement';
+import { USEquityStatement, USCGEquityTransaction, DividendIncome, CapitalGainSummary, TransactionType } from '../types/usEquityStatement';
 import { ConversionResult } from '../generators/itr/types';
 
 /**
@@ -147,7 +147,7 @@ export class USEquityStatementParser {
       
       if (action.includes('Buy') || action.includes('Sell')) {
         // Stock transaction
-        const transaction: USEquityTransaction = {
+        const transaction: USCGEquityTransaction = {
           transactionId: `SCH-${i}-${Date.now()}`, // Generate a unique ID
           securityName: row['Description'] || '',
           symbol: row['Symbol'] || '',
