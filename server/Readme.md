@@ -40,11 +40,6 @@ cp .env.example .env
 3. Run PostgreSQL
 ```bash
 brew services start postgresql
-
-
-psql -U dushyant.bansal -h localhost -p 5432 -d munshi
-\dt
-SELECT * FROM documents;
 ```
 
 4. Start development server:
@@ -56,6 +51,13 @@ npm run dev
 npm run build
 npm start
 ```
+
+5. [One time] Generate USD_INR data
+- generate data on google sheets https://docs.google.com/spreadsheets/d/1G82gVR0Iza3G8SRutVzoToJ-gKeBpd9AdD-rnCcVVjE/edit?gid=0#gid=0 
+- download as csv in src/scripts/USD-INR-data.csv
+- run `node src/scripts/parseUSDINR.js`
+- move `src/scripts/usd_inr_rates.json` to `src/utils/usd_inr_rates.json`
+
 
 ## Available Scripts
 
@@ -114,3 +116,11 @@ curl -X POST 'http://localhost:3000/api/documents/process' \
 ```
 
 Goto http://localhost:3000/api/itr/123/2024-25 to see the processes ITR
+
+## PostgreSQL commands
+
+```
+psql -U dushyant.bansal -h localhost -p 5432 -d munshi
+\dt
+SELECT * FROM documents;
+```

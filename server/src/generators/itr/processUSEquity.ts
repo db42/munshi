@@ -20,10 +20,9 @@ import {
     MFSectionCode,
     CapGain
 } from '../../types/itr';
+import { getExchangeRate, convertUSDtoINR, formatCurrency } from '../../utils/currencyConverter';
 
-/**
- * Interface defining the sections of ITR that are affected by US equity data
- */
+// Define the interface for ITR sections
 export interface USEquityITRSections {
     scheduleCG: ScheduleCGFor23;
     partBTICapitalGains: CapGain;
@@ -222,6 +221,27 @@ const calculateCapitalGains = (
     totalForeignTaxPaid: 0
   };
   
+  // Create arrays to store individual transactions for reporting
+  const shortTermTransactions: Array<{
+    index: number;
+    security: string;
+    dates: string;
+    proceeds: number;
+    cost: number;
+    gain: number;
+    exchangeRate: number;
+  }> = [];
+  
+  const longTermTransactions: Array<{
+    index: number;
+    security: string;
+    dates: string;
+    proceeds: number;
+    cost: number;
+    gain: number;
+    exchangeRate: number;
+  }> = [];
+  
   console.log(`Starting capital gains calculation for ${transactions.length} transactions...`);
   
   // Process each transaction
@@ -238,39 +258,74 @@ const calculateCapitalGains = (
     // Determine if short-term or long-term
     const isShortTerm = isShortTermTransaction(acquisitionDate, sellDate);
     
-    // Calculate gain for this transaction
-    const proceeds = transaction.totalProceeds || 0;
-    const costBasis = transaction.totalCost || 0;
-    const gain = proceeds - costBasis;
+    // Get exchange rate for the sell date
+    const exchangeRate = getExchangeRate(sellDate);
     
-    // Log transaction details in a single statement
-    console.log(
-      `Transaction #${index + 1}: ${transaction.securityName || 'Unknown'} | ` +
-      `${acquisitionDate.toISOString().split('T')[0]} to ${sellDate.toISOString().split('T')[0]} | ` +
-      `${isShortTerm ? 'Short Term' : 'Long Term'} | ` +
-      `Proceeds: ${proceeds} | Cost: ${costBasis} | Gain/Loss: ${gain}`
-    );
+    // Calculate gain for this transaction in USD
+    const proceedsUSD = transaction.totalProceeds || 0;
+    const costBasisUSD = transaction.totalCost || 0;
+    const gainUSD = proceedsUSD - costBasisUSD;
+    
+    // Convert to INR
+    const proceedsINR = convertUSDtoINR(proceedsUSD, sellDate);
+    const costBasisINR = convertUSDtoINR(costBasisUSD, sellDate);
+    const gainINR = convertUSDtoINR(gainUSD, sellDate);
+    
+    // Create transaction entry
+    const transactionEntry = {
+      index: index + 1,
+      security: transaction.securityName || 'Unknown',
+      dates: `${acquisitionDate.toISOString().split('T')[0]} to ${sellDate.toISOString().split('T')[0]}`,
+      proceeds: proceedsINR,
+      cost: costBasisINR,
+      gain: gainINR,
+      exchangeRate
+    };
     
     // Add to appropriate category
     if (isShortTerm) {
-      shortTerm.totalProceeds += proceeds;
-      shortTerm.totalCostBasis += costBasis;
-      shortTerm.totalGain += gain;
-      console.log(`  → Added to Short Term - Running Total Gain: ${shortTerm.totalGain}`);
+      shortTerm.totalProceeds += proceedsINR;
+      shortTerm.totalCostBasis += costBasisINR;
+      shortTerm.totalGain += gainINR;
+      shortTermTransactions.push(transactionEntry);
     } else {
-      longTerm.totalProceeds += proceeds;
-      longTerm.totalCostBasis += costBasis;
-      longTerm.totalGain += gain;
-      console.log(`  → Added to Long Term - Running Total Gain: ${longTerm.totalGain}`);
+      longTerm.totalProceeds += proceedsINR;
+      longTerm.totalCostBasis += costBasisINR;
+      longTerm.totalGain += gainINR;
+      longTermTransactions.push(transactionEntry);
     }
   });
   
-  // Log final summary in a single statement
-  console.log(
-    `\nCapital Gains Summary:\n` +
-    `Short Term: Proceeds=${shortTerm.totalProceeds}, Cost=${shortTerm.totalCostBasis}, Gain=${shortTerm.totalGain}\n` +
-    `Long Term: Proceeds=${longTerm.totalProceeds}, Cost=${longTerm.totalCostBasis}, Gain=${longTerm.totalGain}`
-  );
+  // Log short term transactions
+  console.log('\n===== SHORT TERM CAPITAL GAINS =====');
+  if (shortTermTransactions.length === 0) {
+    console.log('No short term transactions found.');
+  } else {
+    console.log(`Found ${shortTermTransactions.length} short term transactions:`);
+    shortTermTransactions.forEach(tx => {
+      console.log(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
+                 `Proceeds: ${formatCurrency(tx.proceeds)} | Cost: ${formatCurrency(tx.cost)} | Gain: ${formatCurrency(tx.gain)}`);
+    });
+    console.log(`\nShort Term Summary: Proceeds=${formatCurrency(shortTerm.totalProceeds)}, Cost=${formatCurrency(shortTerm.totalCostBasis)}, Gain=${formatCurrency(shortTerm.totalGain)}`);
+  }
+  
+  // Log long term transactions
+  console.log('\n===== LONG TERM CAPITAL GAINS =====');
+  if (longTermTransactions.length === 0) {
+    console.log('No long term transactions found.');
+  } else {
+    console.log(`Found ${longTermTransactions.length} long term transactions:`);
+    longTermTransactions.forEach(tx => {
+      console.log(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
+                 `Proceeds: ${formatCurrency(tx.proceeds)} | Cost: ${formatCurrency(tx.cost)} | Gain: ${formatCurrency(tx.gain)}`);
+    });
+    console.log(`\nLong Term Summary: Proceeds=${formatCurrency(longTerm.totalProceeds)}, Cost=${formatCurrency(longTerm.totalCostBasis)}, Gain=${formatCurrency(longTerm.totalGain)}`);
+  }
+  
+  // Log overall summary
+  console.log('\n===== OVERALL CAPITAL GAINS SUMMARY =====');
+  console.log(`Total Transactions: ${shortTermTransactions.length + longTermTransactions.length}`);
+  console.log(`Total Gain: ${formatCurrency(shortTerm.totalGain + longTerm.totalGain)}`);
   
   return { shortTerm, longTerm };
 };
@@ -373,7 +428,6 @@ export const processUSEquityForITR = (usEquityData: USEquityStatement): Schedule
     const longTermGains = processLongTermCapitalGains(capitalGains.longTerm);
     
     const totalGains = shortTermGains.TotalSTCG + longTermGains.TotalLTCG;
-    const totalForeignTax = shortTermGains.TotalAmtTaxUsDTAAStcg + longTermGains.TotalAmtTaxUsDTAALtcg;
     
     return {
         ShortTermCapGainFor23: shortTermGains,
