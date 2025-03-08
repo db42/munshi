@@ -199,13 +199,31 @@ const isShortTermTransaction = (acquisitionDate: Date, sellDate: Date): boolean 
 };
 
 /**
- * Calculate capital gains from transaction data
+ * Calculate capital gains from transaction data for a specific Indian financial year
  * 
  * @param transactions Array of equity transactions
+ * @param financialYear Optional financial year (e.g., '2023-2024'). If not provided, uses the current financial year.
  * @returns Object with short-term and long-term capital gains
  */
 const calculateCapitalGains = (
-  transactions: USCGEquityTransaction[]): { shortTerm: CapitalGainSummary; longTerm: CapitalGainSummary } => {
+  transactions: USCGEquityTransaction[],
+  financialYear: string
+): { shortTerm: CapitalGainSummary; longTerm: CapitalGainSummary } => {
+  // Determine the financial year dates
+  let startDate: Date;
+  let endDate: Date;
+  
+  // Parse the provided financial year (format: 'YYYY-YYYY')
+  const years = financialYear.split('-');
+  if (years.length === 2) {
+    startDate = new Date(`${years[0]}-04-01`); // April 1st of start year
+    endDate = new Date(`${years[1]}-03-31`);   // March 31st of end year
+  } else {
+    throw new Error(`Invalid financial year format: ${financialYear}. Expected format: 'YYYY-YYYY'`);
+  }
+  
+  console.log(`Calculating capital gains for Indian financial year: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+  
   // Initialize summary objects
   const shortTerm: CapitalGainSummary = {
     totalProceeds: 0,
@@ -242,10 +260,18 @@ const calculateCapitalGains = (
     exchangeRate: number;
   }> = [];
   
-  console.log(`Starting capital gains calculation for ${transactions.length} transactions...`);
+  // Filter transactions for the specified financial year
+  const relevantTransactions = transactions.filter(transaction => {
+    if (!transaction.sellDate) return false;
+    
+    const sellDate = new Date(transaction.sellDate);
+    return sellDate >= startDate && sellDate <= endDate;
+  });
   
-  // Process each transaction
-  transactions.forEach((transaction, index) => {
+  console.log(`Found ${relevantTransactions.length} transactions in the specified financial year out of ${transactions.length} total transactions`);
+  
+  // Process each relevant transaction
+  relevantTransactions.forEach((transaction, index) => {
     // Skip if not a sale transaction (must have both acquisition and sell dates)
     if (!transaction.acquisitionDate || !transaction.sellDate) {
       console.log(`Skipping transaction #${index + 1}: Missing acquisition or sell date`);
@@ -324,6 +350,7 @@ const calculateCapitalGains = (
   
   // Log overall summary
   console.log('\n===== OVERALL CAPITAL GAINS SUMMARY =====');
+  console.log(`Financial Year: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
   console.log(`Total Transactions: ${shortTermTransactions.length + longTermTransactions.length}`);
   console.log(`Total Gain: ${formatCurrency(shortTerm.totalGain + longTerm.totalGain)}`);
   
@@ -419,10 +446,14 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
  * 3. Foreign tax credit for taxes paid in the US
  * 
  * @param usEquityData - Parsed US equity statement data
+ * @param financialYear - financial year (e.g., '2023-2024').
  * @returns ScheduleCGFor23 object with capital gains information
  */
-export const processUSEquityForITR = (usEquityData: USEquityStatement): ScheduleCGFor23 => {
-    const capitalGains = calculateCapitalGains(usEquityData.transactions);
+export const processUSEquityForITR = (
+    usEquityData: USEquityStatement, 
+    financialYear: string
+): ScheduleCGFor23 => {
+    const capitalGains = calculateCapitalGains(usEquityData.transactions, financialYear);
       
     const shortTermGains = processShortTermCapitalGains(capitalGains.shortTerm);
     const longTermGains = processLongTermCapitalGains(capitalGains.longTerm);

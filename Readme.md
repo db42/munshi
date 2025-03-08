@@ -80,8 +80,9 @@ munshi
 - parse form 26AS
 - India CG
 - US equity - DONE, validate the computations
-- handle currency format from US Equity - WIP
-- handle sectionFA from US Equity
+- handle currency format from US Equity - DONE
+- update period for CG gain from US Equity - WIP
+- handle sectionFA from US Equity - 
 
 
 # Resources

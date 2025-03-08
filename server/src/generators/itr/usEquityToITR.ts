@@ -72,7 +72,7 @@ const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): numb
  */
 export const convertUSEquityToITR = (usEquityData: USEquityStatement): ConversionResult<USEquityITRSections> => {
   // Generate Schedule CG
-  const scheduleCG = generateScheduleCGFromUSEquity(usEquityData);
+  const scheduleCG = generateScheduleCGFromUSEquity(usEquityData, '2024-2025');
   
   // Generate Part B-TI Capital Gains
   const partBTICapitalGains = generatePartBTICapitalGains(scheduleCG);
