@@ -1,10 +1,9 @@
-import { Pool } from 'pg';
-import pool from '../config/database';
 import { parsedDocuments } from './parsedDocument';
 import { convertForm16ToITR } from '../generators/itr/form16ToITR';
-import { convertUSCGEquityToITR } from '../generators/itr/usEquityToITR';
 import { Itr2, ScheduleCGFor23, CapGain } from '../types/itr';
 import { USEquityITRSections } from '../generators/itr/processUSCGEquity';
+import { convertCharlesSchwabCSVToITR } from '../generators/itr/charlesSchwabToITR';
+import { convertUSCGEquityToITR } from '../generators/itr/usEquityToITR';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -202,34 +201,38 @@ export const generateITR = () => async (
     const itrData = convertForm16ToITR(form16Docs?.parsed_data.data);
     
     // 4. If US equity data exists, merge it into the ITR
-    if (usEquityCapitalGainStatementDocs?.parsed_data.data && itrData.success && itrData.data) {
-        const usEquityITRSectionsResult = usEquityCapitalGainStatementDocs.parsed_data.data;
+    if (!(usEquityCapitalGainStatementDocs?.parsed_data.data && itrData.success && itrData.data)) {
+        throw new Error('Not implemented');
+    }
+    const usEquityITRSectionsResult = usEquityCapitalGainStatementDocs.parsed_data.data;
         
-        // Generate ITR sections from US equity data
-        const result = convertUSCGEquityToITR(usEquityITRSectionsResult);
-        if (result.success && result.data) {
-        
-            // const { scheduleCG, capitalGains, foreignTaxCredit } = result.data;
-            // Merge US equity data into the ITR
-            const mergedITR = mergeUSEquityITRSectionsIntoITR(itrData.data, result.data);
-            
-            return {
-                    assessmentYear,
-                    userId,
-                    ...mergedITR
-                };
-            
-        } else {
-            console.error(`Failed to generate ITR sections: ${result.error}`);
+    // Generate ITR sections from US equity data
+    const result = convertUSCGEquityToITR(usEquityITRSectionsResult);
+    if (!(result.success && result.data)) {
+        throw new Error('Not implemented');
+    }
+    
+    // const { scheduleCG, capitalGains, foreignTaxCredit } = result.data;
+    // Merge US equity data into the ITR
+    const mergedITR = mergeUSEquityITRSectionsIntoITR(itrData.data, result.data);
+    
+
+    // 5. If Charles Schwab CSV data exists, merge it into the ITR
+    const charlesSchwabCSVDataParseResult = await parsedDocuments.getCharlesSchwabCSVData(userId, assessmentYear);
+    if (charlesSchwabCSVDataParseResult.success && charlesSchwabCSVDataParseResult.data) {
+        const scheduleFAResult = convertCharlesSchwabCSVToITR(charlesSchwabCSVDataParseResult.data, assessmentYear);
+        if (scheduleFAResult.success && scheduleFAResult.data) {
+            mergedITR.ScheduleFA = scheduleFAResult.data;
         }
     }
     
     // Return the ITR data from Form 16 if US equity data couldn't be merged
     return {
-        assessmentYear,
-        userId,
-        ...(itrData.success ? itrData.data : {})
-    };
+            assessmentYear,
+            userId,
+            ...mergedITR
+        };
+        
 };
 
 

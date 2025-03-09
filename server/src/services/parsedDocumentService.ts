@@ -1,6 +1,8 @@
 import { DocumentType } from '@/types/document';
 import { Pool, QueryResult } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
+import { CharlesSchwabCSVData } from './charlesSchwabCSVParser';
+import { ParseResult } from '../utils/parserTypes';
 
 // Types
 export type ParsedDocumentState = 'pending' | 'success' | 'error';
@@ -216,4 +218,41 @@ export const getUSEquityCapitalGainStatementParsedData = (pool: Pool) => async (
 
   const result = await executeQuery(pool, query, [userId, assessmentYear]);
   return result.rows[0] || null;
+};
+
+// Get Charles Schwab CSV parsed data for a user and assessment year
+export const getCharlesSchwabCSVData = (pool: Pool) => async (
+  userId: number,
+  assessmentYear: string
+): Promise<ParseResult<CharlesSchwabCSVData>> => {
+  const query = `
+    SELECT pd.* 
+    FROM parsed_documents pd
+    JOIN documents d ON pd.document_id = d.id
+    WHERE d.owner_id = $1
+    AND d.assessment_year = $2
+    AND pd.json_schema_type LIKE 'USEquityStatement%'
+    ORDER BY pd.updated_at DESC
+    LIMIT 1
+  `;
+
+  const result = await executeQuery(pool, query, [userId, assessmentYear]);
+  if (result.rows.length && result.rows[0].parsed_data.data) {
+    let charlesSchwabCSVData: CharlesSchwabCSVData = result.rows[0].parsed_data.data;
+    charlesSchwabCSVData = {
+      ...charlesSchwabCSVData,
+      records: charlesSchwabCSVData.records.map((record) => ({
+        ...record,
+        date: new Date(record.date)
+      }))
+    }
+    return {
+      success: true,
+      data: charlesSchwabCSVData
+    };
+  }
+  return {
+    success: false,
+    error: 'No data found'
+  };
 };

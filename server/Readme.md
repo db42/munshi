@@ -113,9 +113,23 @@ curl -X POST 'http://localhost:3000/api/documents/process' \
   "documentId": "b77b2368-aeff-4469-82ea-670c2d0885c4"
 }'
 
+
+curl -X POST http://localhost:3000/api/documents/upload \
+  -F "file=@/Users/dushyant.bansal/work/munshi/Individual_XXX947_Transactions_20250308-033239.csv;type=text/csv" \
+  -F "ownerId=123" \
+  -F "assessmentYear=2024-25" \
+  -F "documentType=USEquityStatement"
+
+curl -X POST 'http://localhost:3000/api/documents/process' \
+-H 'Content-Type: application/json' \
+-d '{
+  "documentId": "a3304148-8097-4637-a1a7-44b83de59ab4"
+}'
+
+
 ```
 
-Goto http://localhost:3000/api/itr/123/2024-25 to see the processes ITR
+Goto http://localhost:3000/api/itr/123/2024-25 to see the processes ITR - WIP
 
 ## PostgreSQL commands
 

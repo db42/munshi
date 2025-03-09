@@ -1,6 +1,5 @@
 import { Form16 } from '../../types/form16';
 import { Itr2 } from '../../types/itr';
-import { ConversionResult } from './types';
 import { processCreationInfo } from './creationInfo';
 import { processFormITR2 } from './formITR2';
 import { processPartAGEN1 } from './partAGEN1';
@@ -12,8 +11,9 @@ import {
     // initializeScheduleCYLA, 
     initializeVerification 
 } from './initializers';
+import { ParseResult } from '../../utils/parserTypes';
 
-export const convertForm16ToITR = (form16: Form16): ConversionResult<Itr2> => {
+export const convertForm16ToITR = (form16: Form16): ParseResult<Itr2> => {
     try {
         const itr: Itr2 = {
             CreationInfo: processCreationInfo(form16),

@@ -29,6 +29,7 @@ const storage = multer.diskStorage({
 
 // Configure file filter
 const fileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  console.log("file-mimetype", file.mimetype);
   const allowedMimes = [
     'application/pdf', 
     'image/jpeg', 
@@ -144,9 +145,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
       case DocumentType.US_EQUITY_STATEMENT:
         // Use the new CSV parser for Charles Schwab statements
         extractedData = await parseCharlesSchwabCSV(
-          document.filepath,
-          taxpayerInfo,
-          document.assessmentYear // Use provided financial year or fall back to assessment year
+          document.filepath
         );
         console.log("Extracted CSV data:", JSON.stringify(extractedData, null, 2));
         break;

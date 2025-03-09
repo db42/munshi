@@ -1,6 +1,5 @@
 import { USEquityStatement, USCGEquityTransaction, DividendIncome, CapitalGainSummary, TransactionType } from '../types/usEquityStatement';
-import { ConversionResult } from '../generators/itr/types';
-
+import { ParseResult } from '../utils/parserTypes';
 /**
  * Parser for US equity broker statements.
  * Currently supports CSV format from major brokers.
@@ -11,13 +10,13 @@ export class USEquityStatementParser {
    * @param csvContent The raw CSV content from the broker statement
    * @param brokerType The type of broker (e.g., 'schwab', 'fidelity', 'robinhood', etc.)
    * @param taxpayerInfo Basic taxpayer information
-   * @returns A ConversionResult containing the parsed USEquityStatement or an error
+   * @returns A ParseResult containing the parsed USEquityStatement or an error
    */
   static parseFromCSV(
     csvContent: string, 
     brokerType: string,
     taxpayerInfo: { name: string; pan: string }
-  ): ConversionResult<USEquityStatement> {
+  ): ParseResult<USEquityStatement> {
     try {
       // Initialize an empty statement
       const statement: USEquityStatement = {

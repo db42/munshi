@@ -1,8 +1,7 @@
 import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../../types/usEquityStatement';
 import { ScheduleCGFor23, CapGain, ShortTerm, LongTerm } from '../../types/itr';
-import { ConversionResult } from './types';
 import { processUSEquityForITR as generateScheduleCGFromUSEquity, USEquityITRSections } from './processUSCGEquity';
-
+import { ParseResult } from '../../utils/parserTypes';
 
 /**
  * Generates Capital Gains section for PartB-TI from US equity data
@@ -70,7 +69,7 @@ const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): numb
  * @param usEquityData - Parsed US equity statement data
  * @returns Object containing the generated ITR sections
  */
-export const convertUSCGEquityToITR = (usEquityData: USEquityStatement): ConversionResult<USEquityITRSections> => {
+export const convertUSCGEquityToITR = (usEquityData: USEquityStatement): ParseResult<USEquityITRSections> => {
   // Generate Schedule CG
   const scheduleCG = generateScheduleCGFromUSEquity(usEquityData, '2024-2025');
   
