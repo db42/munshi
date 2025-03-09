@@ -9,14 +9,7 @@ import {
 } from '../types/form16';
 import * as sampleData from './sampleForm16JsonGeminiPrompt.json';
 import { Config, defaultConfig } from "./geminiConfig";
-
-// Define the parse result type
-interface ParseResult<T> {
-  success: boolean;
-  data?: T;
-  error?: string;
-}
-
+import { ParseResult } from '../utils/parserTypes';
 
 console.log(defaultConfig);
 

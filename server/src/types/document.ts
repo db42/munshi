@@ -2,14 +2,15 @@ export type DocumentState = 'uploaded' | 'classifying' | 'classified' | 'process
 
 export enum DocumentType {
     FORM_16 = 'form-16',
-    US_EQUITY_STATEMENT = 'USEquityCapitalGainStatement',
+    US_EQUITY_CG_STATEMENT = 'USEquityCapitalGainStatement',
     FORM_26AS = 'form26AS',
     BANK_STATEMENT = 'bankStatement',
     RENT_RECEIPT = 'rentReceipt',
     INSURANCE_PREMIUM = 'insurancePremium',
     PPF_RECEIPT = 'ppfReceipt',
     MUTUAL_FUND_STATEMENT = 'mutualFundStatement',
-    OTHER = 'other'
+    OTHER = 'other',
+    US_EQUITY_STATEMENT = 'USEquityStatement'
 }
 
 export interface Document {

@@ -10,6 +10,7 @@ import { loadPDFGemini } from '../services/pdfParserGemini';
 import { parsedDocuments } from '../services/parsedDocument';
 import { DocumentType } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
+import { parseCharlesSchwabCSV } from '../services/charlesSchwabCSVParser';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -28,11 +29,18 @@ const storage = multer.diskStorage({
 
 // Configure file filter
 const fileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  const allowedMimes = ['application/pdf', 'image/jpeg', 'image/png'];
+  const allowedMimes = [
+    'application/pdf', 
+    'image/jpeg', 
+    'image/png',
+    'text/csv',                   // Add CSV mime type
+    'application/vnd.ms-excel',   // Excel files can contain CSV
+    'text/plain'                  // Some CSVs might be uploaded as text
+  ];
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type'));
+    cb(new Error('Invalid file type. Allowed types: PDF, JPEG, PNG, CSV'));
   }
 };
 
@@ -112,26 +120,35 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
 
     // Choose parser based on document type
     let extractedData;
-    console.log("document", document);
+    console.log("Processing document:", document);
+
+    // Get taxpayer info from user service or use ownerId as fallback
+    const taxpayerInfo = {
+      name: document.ownerId, // Replace with actual user name lookup if available
+      pan: '' // Replace with actual PAN lookup if available
+    };
 
     switch (document.documentType) {
       case DocumentType.FORM_16:
         extractedData = await loadPDFGemini(document.filepath);
         break;
       
-      case DocumentType.US_EQUITY_STATEMENT:
-        
-        // Get taxpayer info from user service or use ownerId as fallback
-        const taxpayerInfo = {
-          name: document.ownerId, // Replace with actual user name lookup if available
-          pan: '' // Replace with actual PAN lookup if available
-        };
-        
+      case DocumentType.US_EQUITY_CG_STATEMENT:
         extractedData = await parseUSEquityPDFWithGemini(
           document.filepath,
           taxpayerInfo
         );
         console.log("extractedData", JSON.stringify(extractedData, null, 2));
+        break;
+      
+      case DocumentType.US_EQUITY_STATEMENT:
+        // Use the new CSV parser for Charles Schwab statements
+        extractedData = await parseCharlesSchwabCSV(
+          document.filepath,
+          taxpayerInfo,
+          document.assessmentYear // Use provided financial year or fall back to assessment year
+        );
+        console.log("Extracted CSV data:", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.FORM_26AS:

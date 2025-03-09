@@ -7,6 +7,7 @@ export enum TransactionType {
   OTHER = 'OTHER'
 }
 
+
 export interface USEquityStatement {
   // Basic information
   taxpayerName: string;

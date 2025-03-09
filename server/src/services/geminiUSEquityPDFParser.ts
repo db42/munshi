@@ -6,9 +6,9 @@ import {
   DividendIncome, 
   CapitalGainSummary 
 } from '../types/usEquityStatement';
-import { ConversionResult } from '../generators/itr/types';
 import * as sampleData from './sampleUSEquityJsonGeminiPrompt.json';
 import { defaultConfig, Config } from "./geminiConfig";
+import { ParseResult } from '../utils/parserTypes';
 
 /**
  * Parse a Charles Schwab year-end summary PDF using Gemini API.
@@ -17,13 +17,13 @@ import { defaultConfig, Config } from "./geminiConfig";
  * @param filePath Path to the PDF file
  * @param taxpayerInfo Basic taxpayer information
  * @param config Configuration for the Gemini API
- * @returns A ConversionResult containing the parsed USEquityStatement or an error
+ * @returns A ParseResult containing the parsed USEquityStatement or an error
  */
 export const parseUSEquityPDFWithGemini = async (
   filePath: string,
   taxpayerInfo: { name: string; pan: string },
   config: Config = defaultConfig()
-): Promise<ConversionResult<USEquityStatement>> => {
+): Promise<ParseResult<USEquityStatement>> => {
   try {
     // Initialize Gemini
     console.log('Initializing Gemini with API key:', config.apiKey);

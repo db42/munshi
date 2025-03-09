@@ -2,9 +2,9 @@ import { Pool } from 'pg';
 import pool from '../config/database';
 import { parsedDocuments } from './parsedDocument';
 import { convertForm16ToITR } from '../generators/itr/form16ToITR';
-import { convertUSEquityToITR } from '../generators/itr/usEquityToITR';
+import { convertUSCGEquityToITR } from '../generators/itr/usEquityToITR';
 import { Itr2, ScheduleCGFor23, CapGain } from '../types/itr';
-import { USEquityITRSections } from '../generators/itr/processUSEquity';
+import { USEquityITRSections } from '../generators/itr/processUSCGEquity';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -206,7 +206,7 @@ export const generateITR = () => async (
         const usEquityITRSectionsResult = usEquityCapitalGainStatementDocs.parsed_data.data;
         
         // Generate ITR sections from US equity data
-        const result = convertUSEquityToITR(usEquityITRSectionsResult);
+        const result = convertUSCGEquityToITR(usEquityITRSectionsResult);
         if (result.success && result.data) {
         
             // const { scheduleCG, capitalGains, foreignTaxCredit } = result.data;
