@@ -1,9 +1,8 @@
 import { parsedDocuments } from './parsedDocument';
 import { convertForm16ToITR } from '../generators/itr/form16ToITR';
 import { Itr2, ScheduleCGFor23, CapGain } from '../types/itr';
-import { USEquityITRSections } from '../generators/itr/processUSCGEquity';
 import { convertCharlesSchwabCSVToITR } from '../generators/itr/charlesSchwabToITR';
-import { convertUSCGEquityToITR } from '../generators/itr/usEquityToITR';
+import { convertUSCGEquityToITR, USEquityITRSections } from '../generators/itr/usEquityToITR';
 
 export interface ITRData {
     // Define your ITR structure here

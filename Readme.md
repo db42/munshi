@@ -81,8 +81,12 @@ munshi
 - India CG
 - US equity - DONE, validate the computations
 - handle currency format from US Equity - DONE
-- update period for CG gain from US Equity - WIP
-- handle sectionFA from US Equity - 
+- update period for CG gain from US Equity - DONE
+- handle sectionFA from US Equity - DONE
+- handle peak logic, conversion to INR - WIP
+- verify the computations for sectionFA - WIP
+- support for previous ITR in the computations for sectionFA - 
+- documents portal -> view parsed data for each file
 
 
 # Resources
