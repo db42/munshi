@@ -1,7 +1,7 @@
 import { CharlesSchwabCSVData, TransactionAction, CharlesSchwabRecord} from '../../services/charlesSchwabCSVParser';
 import { ScheduleFA } from '../../types/itr';
 import { getRelevantDates, identifyCalendarYear, ParseResult } from '../../utils/parserTypes';
-import { findPeakPrice } from '../../utils/equityPriceUtils';
+import { findPeakPrice, findPrice } from '../../utils/equityPriceUtils';
 import { getExchangeRate } from '../../utils/currencyConverter';
 
 // {
@@ -279,9 +279,15 @@ function buildScheduleFAEntries(
   
       //create security holding object for each remaining lot
       remainingLots.forEach(lot => {
+        const initialInvestmentINR = lot.cost * getExchangeRate(lot.date);
         const remainingQuantity = lot.quantity - (lot.sellQuantity || 0);
-        const marketValue = remainingQuantity * (lot.price || 0);
-        const salesProceedsOrRedemptionAmountINR = (lot.sellQuantity || 0) * (lot.price || 0);
+        const closingValueUSD = remainingQuantity * findPrice(security.symbol, calendarYearEnd);
+        const closingValueINR = closingValueUSD * getExchangeRate(calendarYearEnd);
+        
+        let salesProceedsOrRedemptionAmountINR = 0; 
+        if (lot.sellDate) {
+          salesProceedsOrRedemptionAmountINR = (lot.sellQuantity || 0) * findPrice(security.symbol, lot.sellDate) * getExchangeRate(lot.sellDate);
+        }
         
         // Use the findPeakPrice function to get the peak price and date
         const { price: peakPrice, date: peakPriceDate } = findPeakPrice(security.symbol, lot.date, calendarYearStart, calendarYearEnd);
@@ -299,11 +305,11 @@ function buildScheduleFAEntries(
           zipCode: 'xxxx',
           natureOfAsset: 'equity',
           dateOfAcquisition: lot.date,
-          initialInvestmentINR: lot.cost,
+          initialInvestmentINR: initialInvestmentINR,
           peakValueINR: peakValueINR,
           peakValueDate: peakValueDate,
-          closingValueINR: marketValue,
-          totalGrossAmountINR: marketValue,
+          closingValueINR: closingValueINR,
+          totalGrossAmountINR: 0,
           salesProceedsOrRedemptionAmountINR: salesProceedsOrRedemptionAmountINR
         };
         

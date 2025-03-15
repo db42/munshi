@@ -21,6 +21,23 @@ export interface PeakPriceResult {
 }
 
 /**
+ * Finds the price of a security on a specific date
+ * 
+ * @param symbol - The security symbol
+ * @param date - The date to find the price for
+ * @returns The price in USD, or 0 if no data is found
+ */
+export const findPrice = (symbol: string, date: Date): number => {
+  if (!closingPriceData[symbol]) {
+    console.warn(`No price data found for symbol: ${symbol}`);
+    return 0;
+  }
+
+  const price = closingPriceData[symbol][date.toISOString().split('T')[0]];
+  return price || 0;
+};
+
+/**
  * Finds the peak price for a security within a date range
  * 
  * @param symbol - The security symbol
