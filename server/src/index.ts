@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import documentRoutes from './routes/documents';
 import { ensureUploadDir } from './utils/ensureUploadDir';
 import { logger } from './utils/logger';
@@ -13,6 +14,13 @@ const createServer = () => {
   const port = process.env.PORT || 3000;
 
   const setupMiddleware = async () => {
+    // Enable CORS for client application
+    app.use(cors({
+      origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+      allowedHeaders: ['Content-Type', 'Authorization']
+    }));
+    
     app.use(express.json());
   };
 

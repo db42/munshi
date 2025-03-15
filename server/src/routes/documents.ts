@@ -289,4 +289,99 @@ router.post('/upload',
   }
 );
 
+// Get all documents for a user
+router.get('/user/:userId', async (req: express.Request, res: express.Response) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({ 
+        message: 'Missing required parameter: userId' 
+      });
+    }
+
+    // Get documents for the user
+    const userDocuments = await documents.getByUser(userId);
+    
+    res.status(200).json({
+      message: 'Documents retrieved successfully',
+      documents: userDocuments
+    });
+  } catch (error) {
+    console.error('Error retrieving documents:', error);
+    res.status(500).json({ 
+      message: 'Error retrieving documents',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get documents for a user by assessment year
+router.get('/user/:userId/year/:assessmentYear', async (req: express.Request, res: express.Response) => {
+  try {
+    const { userId, assessmentYear } = req.params;
+    
+    if (!userId || !assessmentYear) {
+      return res.status(400).json({ 
+        message: 'Missing required parameters: userId and assessmentYear' 
+      });
+    }
+
+    // Validate assessment year format (YYYY-YY)
+    const yearPattern = /^\d{4}-\d{2}$/;
+    if (!yearPattern.test(assessmentYear)) {
+      return res.status(400).json({ 
+        message: 'Invalid assessment year format. Expected: YYYY-YY' 
+      });
+    }
+
+    // Get documents for the user and assessment year
+    const userDocuments = await documents.getByYear(userId, assessmentYear);
+    
+    res.status(200).json({
+      message: 'Documents retrieved successfully',
+      documents: userDocuments
+    });
+  } catch (error) {
+    console.error('Error retrieving documents:', error);
+    res.status(500).json({ 
+      message: 'Error retrieving documents',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get a single document by ID
+router.get('/:documentId', async (req: express.Request, res: express.Response) => {
+  try {
+    const { documentId } = req.params;
+    
+    if (!documentId) {
+      return res.status(400).json({ 
+        message: 'Missing required parameter: documentId' 
+      });
+    }
+
+    // Get document by ID
+    const document = await documents.getById(documentId);
+    
+    if (!document) {
+      return res.status(404).json({ 
+        message: 'Document not found' 
+      });
+    }
+    
+    res.status(200).json({
+      message: 'Document retrieved successfully',
+      document
+    });
+  } catch (error) {
+    console.error('Error retrieving document:', error);
+    res.status(500).json({ 
+      message: 'Error retrieving document',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;
