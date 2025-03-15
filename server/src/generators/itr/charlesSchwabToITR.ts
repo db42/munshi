@@ -1,6 +1,8 @@
 import { CharlesSchwabCSVData, TransactionAction, CharlesSchwabRecord} from '../../services/charlesSchwabCSVParser';
-import { ScheduleCGFor23, CapGain, ShortTerm, LongTerm, ScheduleFA } from '../../types/itr';
+import { ScheduleFA } from '../../types/itr';
 import { getRelevantDates, identifyCalendarYear, ParseResult } from '../../utils/parserTypes';
+import { findPeakPrice } from '../../utils/equityPriceUtils';
+import { getExchangeRate } from '../../utils/currencyConverter';
 
 // {
 //     "Country": "United States",
@@ -25,6 +27,7 @@ export interface SecurityHolding {
   dateOfAcquisition: Date;
   initialInvestmentINR: number;
   peakValueINR: number;
+  peakValueDate: Date; //not used in Schedule FA directly
   closingValueINR: number;
   totalGrossAmountINR: number;
   salesProceedsOrRedemptionAmountINR: number; // in INR
@@ -245,7 +248,7 @@ function processTransactions(
     }
   }
 
-  /**
+/**
  * Builds Schedule FA entries from processed securities
  * 
  * @param securities - Processed securities
@@ -280,19 +283,31 @@ function buildScheduleFAEntries(
         const marketValue = remainingQuantity * (lot.price || 0);
         const salesProceedsOrRedemptionAmountINR = (lot.sellQuantity || 0) * (lot.price || 0);
         
-        yearEndHoldings.push({
+        // Use the findPeakPrice function to get the peak price and date
+        const { price: peakPrice, date: peakPriceDate } = findPeakPrice(security.symbol, lot.date, calendarYearStart, calendarYearEnd);
+        let peakValueINR = lot.cost;
+        let peakValueDate = lot.date;
+        if (peakPriceDate) {
+          peakValueINR = peakPrice * remainingQuantity * getExchangeRate(peakPriceDate);
+          peakValueDate = peakPriceDate;
+        } 
+        
+        const holding: SecurityHolding = {
           symbol: security.symbol,
           securityName: security.securityName,
-          address: '',
-          zipCode: '',
-          natureOfAsset: '',
+          address: 'xxxx',
+          zipCode: 'xxxx',
+          natureOfAsset: 'equity',
           dateOfAcquisition: lot.date,
           initialInvestmentINR: lot.cost,
-          peakValueINR: 0,
+          peakValueINR: peakValueINR,
+          peakValueDate: peakValueDate,
           closingValueINR: marketValue,
           totalGrossAmountINR: marketValue,
           salesProceedsOrRedemptionAmountINR: salesProceedsOrRedemptionAmountINR
-        });
+        };
+        
+        yearEndHoldings.push(holding);
       });
   
     });
@@ -319,7 +334,7 @@ function generateScheduleFA(securityHoldings: SecurityHolding[]): ScheduleFA {
     const dateOfAcquisition = holding.dateOfAcquisition.toISOString().split('T')[0];
     
     return {
-      NameOfEntity: holding.securityName,
+      NameOfEntity: holding.symbol,
       AddressOfEntity: holding.address,
       ZipCode: holding.zipCode,
       CountryName: "United States", // Assuming Charles Schwab holdings are US-based

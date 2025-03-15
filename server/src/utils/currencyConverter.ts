@@ -5,6 +5,9 @@ export interface USDINRRates {
     [date: string]: number;
 }
 
+// Default exchange rate to use when a specific date's rate is not found
+export const DEFAULT_EXCHANGE_RATE = 83.5;
+
 // Cast the imported JSON to the defined type
 const usdInrRates: USDINRRates = usdInrRatesData as USDINRRates;
 
@@ -27,7 +30,7 @@ export const getExchangeRate = (date: Date): number => {
     // If not found, use a default rate (average for the year or most recent)
     // For simplicity, we'll use a fixed fallback rate of 83.5
     console.log(`Exchange rate not found for ${formattedDate}, using default rate of 83.5`);
-    return 83.5;
+    return DEFAULT_EXCHANGE_RATE;
 };
 
 /**

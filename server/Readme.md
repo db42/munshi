@@ -58,6 +58,12 @@ npm start
 - run `node src/scripts/parseUSDINR.js`
 - move `src/scripts/usd_inr_rates.json` to `src/utils/usd_inr_rates.json`
 
+6. [One time] Generate US equity closing price data
+- generate data on google sheets https://docs.google.com/spreadsheets/d/1q4SlvPVYFa2Mfe9-UeX1El5H_WT2owGfZrNvO1AUf2o/edit?gid=0#gid=0
+- download as csv in src/scripts/US equity price data - Sheet1.csv
+- run `node src/scripts/parseUSEquityClosingPriceData.js`
+- this will generate src/utils/usd-equity-closing-price-data.json
+
 
 ## Available Scripts
 
