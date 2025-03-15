@@ -137,6 +137,19 @@ curl -X POST 'http://localhost:3000/api/documents/process' \
 
 Goto http://localhost:3000/api/itr/123/2024-25 to see the processes ITR - WIP
 
+## GET Document Endpoints
+
+```
+# Get all documents for a user
+curl -X GET http://localhost:3000/api/documents/user/123
+
+# Get documents for a user by assessment year
+curl -X GET http://localhost:3000/api/documents/user/123/year/2024-25
+
+# Get a single document by ID
+curl -X GET http://localhost:3000/api/documents/600c08ab-9dfc-4489-8b1c-ce372c72f9eb
+```
+
 ## PostgreSQL commands
 
 ```

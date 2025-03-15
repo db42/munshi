@@ -73,21 +73,20 @@ munshi
 - generate first version of from information parsed from form 16, - DONE
 - API to give JSON - DONE
 - perfect logic to parse information mentioned in form 16 - use own json from last year - DONE
-- add validation
+- US equity - DONE, validate the computations
+- handle currency format from US Equity - DONE
+- update period for CG gain from US Equity - DONE
+- handle sectionFA from US Equity - DONE
+- handle peak logic, conversion to INR - DONE
+- verify the computations for sectionFA - WIP
+- support for previous ITR in the computations for sectionFA - 
+- documents portal -> view parsed data for each file
 - json renderer in client and ability to update fields in json
 - Document Portal - link upload doc
 - Document Portal - view docs
 - parse form 26AS
 - India CG
-- US equity - DONE, validate the computations
-- handle currency format from US Equity - DONE
-- update period for CG gain from US Equity - DONE
-- handle sectionFA from US Equity - DONE
-- handle peak logic, conversion to INR - WIP
-- verify the computations for sectionFA - WIP
-- support for previous ITR in the computations for sectionFA - 
-- documents portal -> view parsed data for each file
-
+- add validation
 
 # Resources
 - schema and validation rules - https://www.incometax.gov.in/iec/foportal/downloads#itr-2 
