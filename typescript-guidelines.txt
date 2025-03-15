@@ -1,0 +1,5 @@
+1. Use optional property over nullable property. See examples:
+
+Optional property (date?: Date)
+
+Nullable property (date: Date | null)
