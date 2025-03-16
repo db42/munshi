@@ -109,3 +109,15 @@ export const getDocumentsByAssessmentYear = (pool: Pool) => async (
     const result = await pool.query(query, [userId, assessmentYear]);
     return result.rows.map(mapDbRowToDocument);
 };
+
+// Delete a document by ID
+export const deleteDocument = (pool: Pool) => async (
+    documentId: string
+): Promise<void> => {
+    const query = `
+        DELETE FROM documents 
+        WHERE id = $1
+    `;
+
+    await pool.query(query, [documentId]);
+};

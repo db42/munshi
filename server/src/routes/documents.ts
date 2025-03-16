@@ -455,4 +455,58 @@ router.get('/:documentId/file', async (req: express.Request, res: express.Respon
   }
 });
 
+// Delete a document
+router.delete('/:documentId', async (req: express.Request, res: express.Response) => {
+  try {
+    const { documentId } = req.params;
+    
+    if (!documentId) {
+      return res.status(400).json({ 
+        message: 'Missing required parameter: documentId' 
+      });
+    }
+
+    // Get document by ID to check if it exists and get the filepath
+    const document = await documents.getById(documentId);
+    
+    if (!document) {
+      return res.status(404).json({ 
+        message: 'Document not found' 
+      });
+    }
+
+    // Delete any associated parsed documents first
+    try {
+      // This is a soft dependency, so we don't want to fail if it fails
+      await parsedDocuments.delete(documentId);
+    } catch (parseError) {
+      console.error('Error deleting parsed document data:', parseError);
+      // Continue with document deletion even if parsed data deletion fails
+    }
+
+    // Delete the document from the database
+    await documents.delete(documentId);
+    
+    // Delete the file from the filesystem
+    try {
+      if (fs.existsSync(document.filepath)) {
+        await fs.promises.unlink(document.filepath);
+      }
+    } catch (fileError) {
+      console.error('Error deleting document file:', fileError);
+      // We've already deleted from DB, so just log the error
+    }
+    
+    res.status(200).json({
+      message: 'Document deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    res.status(500).json({ 
+      message: 'Error deleting document',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

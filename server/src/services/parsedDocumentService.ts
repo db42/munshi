@@ -147,11 +147,13 @@ export const updateParsedDocumentData = (pool: Pool) => async (
 
 // Delete a parsed document
 export const deleteParsedDocument = (pool: Pool) => async (
-  id: string
-): Promise<boolean> => {
-  const query = 'DELETE FROM parsed_documents WHERE id = $1';
-  const result = await executeQuery(pool, query, [id]);
-  return result && result.rowCount !== null && result.rowCount > 0;
+  documentId: string
+): Promise<void> => {
+  const query = `
+    DELETE FROM parsed_documents 
+    WHERE document_id = $1
+  `;
+  await executeQuery(pool, query, [documentId]);
 };
 
 // Get all successful parsed documents for a set of document IDs

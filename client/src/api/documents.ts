@@ -155,4 +155,26 @@ export const processDocument = async (documentId: string): Promise<string> => {
     console.error('Error processing document:', error);
     throw error;
   }
+};
+
+/**
+ * Delete a document
+ * @param documentId - The document ID to delete
+ * @returns Promise with the delete response
+ */
+export const deleteDocument = async (documentId: string): Promise<void> => {
+  try {
+    const response = await fetch(ENDPOINTS.DOCUMENT_BY_ID(documentId), {
+      method: 'DELETE',
+      headers: DEFAULT_HEADERS,
+    });
+
+    if (!response.ok) {
+      const errorData: ErrorResponse = await response.json();
+      throw new Error(errorData.message || 'Failed to delete document');
+    }
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    throw error;
+  }
 }; 

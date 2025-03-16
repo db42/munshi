@@ -7,5 +7,6 @@ export const documents = {
     getByUser: documentService.getDocumentsByUser(pool),
     getById: documentService.getDocumentById(pool),
     updateState: documentService.updateDocumentState(pool),
-    getByYear: documentService.getDocumentsByAssessmentYear(pool)
+    getByYear: documentService.getDocumentsByAssessmentYear(pool),
+    delete: documentService.deleteDocument(pool)
 };

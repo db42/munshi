@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, Eye, AlertCircle, Loader } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { getDocumentsByUser, uploadDocument, processDocument } from '../api/documents';
+import { getDocumentsByUser, uploadDocument, processDocument, deleteDocument } from '../api/documents';
 import { Document, DocumentState, DocumentType } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';
 import { DEFAULT_USER_ID, DEFAULT_ASSESSMENT_YEAR } from '../api/config';
@@ -25,6 +25,11 @@ const DocumentPortal = () => {
   const [uploading, setUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  
+  // Delete state
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSuccess, setDeleteSuccess] = useState<boolean>(false);
   
   // File input reference
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,6 +132,45 @@ const DocumentPortal = () => {
     }
   };
 
+  // Handle document deletion
+  const handleDeleteDocument = async (documentId: string) => {
+    if (window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+      try {
+        setDeleting(documentId);
+        setDeleteError(null);
+        setDeleteSuccess(false);
+        
+        await deleteDocument(documentId);
+        
+        setDeleteSuccess(true);
+        
+        // Remove the document from the state
+        setDocuments(prevDocuments => 
+          prevDocuments.filter(doc => doc.id !== documentId)
+        );
+        
+        // Update pending count
+        setPendingCount(prevCount => {
+          const deletedDoc = documents.find(doc => doc.id === documentId);
+          if (deletedDoc && deletedDoc.state !== 'processed') {
+            return prevCount - 1;
+          }
+          return prevCount;
+        });
+        
+        // Clear success message after 3 seconds
+        setTimeout(() => {
+          setDeleteSuccess(false);
+        }, 3000);
+      } catch (err) {
+        setDeleteError(formatApiError(err));
+        console.error('Failed to delete document:', err);
+      } finally {
+        setDeleting(null);
+      }
+    }
+  };
+
   // Get status display text and color
   const getStatusDisplay = (state: DocumentState) => {
     switch (state) {
@@ -220,6 +264,26 @@ const DocumentPortal = () => {
         </Alert>
       )}
 
+      {/* Success Alert for Delete */}
+      {deleteSuccess && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <AlertCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-600">
+            Document deleted successfully!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error Alert for Delete */}
+      {deleteError && (
+        <Alert className="mb-6 bg-red-50 border-red-200">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-600">
+            {deleteError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Documents List */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-4 py-3 border-b border-gray-200">
@@ -259,8 +323,16 @@ const DocumentPortal = () => {
                     <Link to={`/documents/${doc.id}`} className="text-gray-400 hover:text-gray-500">
                       <Eye className="h-5 w-5" />
                     </Link>
-                    <button className="text-gray-400 hover:text-red-500">
-                      <Trash2 className="h-5 w-5" />
+                    <button 
+                      className="text-gray-400 hover:text-red-500"
+                      onClick={() => handleDeleteDocument(doc.id)}
+                      disabled={deleting === doc.id}
+                    >
+                      {deleting === doc.id ? (
+                        <Loader className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-5 w-5" />
+                      )}
                     </button>
                   </div>
                 </li>
