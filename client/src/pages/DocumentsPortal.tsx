@@ -25,6 +25,7 @@ const DocumentPortal = () => {
   const [uploading, setUploading] = useState<boolean>(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  const [selectedDocumentType, setSelectedDocumentType] = useState<DocumentType | ''>('');
   
   // Delete state
   const [deleting, setDeleting] = useState<string | null>(null);
@@ -96,6 +97,12 @@ const DocumentPortal = () => {
     event.preventDefault();
     event.stopPropagation();
     
+    // Check if document type is selected
+    if (!selectedDocumentType) {
+      setUploadError('Please select a document type before uploading.');
+      return;
+    }
+    
     const files = event.dataTransfer.files;
     if (!files || files.length === 0) return;
 
@@ -106,6 +113,12 @@ const DocumentPortal = () => {
   // Upload file
   const uploadFile = async (file: File) => {
     try {
+      // Check if document type is selected
+      if (!selectedDocumentType) {
+        setUploadError('Please select a document type before uploading.');
+        return;
+      }
+
       setUploading(true);
       setUploadError(null);
       setUploadSuccess(false);
@@ -114,13 +127,17 @@ const DocumentPortal = () => {
       const documentId = await uploadDocument(
         file,
         DEFAULT_USER_ID,
-        DEFAULT_ASSESSMENT_YEAR
+        DEFAULT_ASSESSMENT_YEAR,
+        selectedDocumentType // Document type is now required
       );
 
       // Optionally, process the document automatically
       // await processDocument(documentId);
 
       setUploadSuccess(true);
+      
+      // Reset the selected document type
+      setSelectedDocumentType('');
       
       // Refresh the document list
       await fetchDocuments();
@@ -227,6 +244,12 @@ const DocumentPortal = () => {
     }
   };
 
+  // Get document type options for the dropdown
+  const documentTypeOptions = Object.entries(DocumentType).map(([key, value]) => ({
+    label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+    value
+  }));
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Header Section */}
@@ -251,10 +274,44 @@ const DocumentPortal = () => {
               className="hidden"
               accept=".pdf,.jpg,.jpeg,.png,.csv,.txt"
             />
+            
+            {/* Document Type Selector */}
+            <div className="mb-4">
+              <label htmlFor="document-type" className="block text-sm font-medium text-gray-700 mb-1">
+                Document Type <span className="text-red-500">*</span>
+              </label>
+              <select
+                id="document-type"
+                className="w-full max-w-xs mx-auto block px-3 py-2 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                value={selectedDocumentType}
+                onChange={(e) => setSelectedDocumentType(e.target.value as DocumentType | '')}
+                disabled={uploading}
+                required
+              >
+                <option value="" disabled>Select Document Type</option>
+                {documentTypeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+              {selectedDocumentType && (
+                <p className="mt-2 text-xs text-blue-600">
+                  Document will be uploaded as: <span className="font-semibold">{documentTypeOptions.find(opt => opt.value === selectedDocumentType)?.label}</span>
+                </p>
+              )}
+              {!selectedDocumentType && (
+                <p className="mt-2 text-xs text-red-600">
+                  Please select a document type before uploading
+                </p>
+              )}
+            </div>
+            
             <button 
-              className={`${uploading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'} text-white px-4 py-2 rounded-md`}
+              className={`${uploading ? 'bg-blue-400 cursor-not-allowed' : !selectedDocumentType ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'} text-white px-4 py-2 rounded-md`}
               onClick={handleFileSelect}
-              disabled={uploading}
+              disabled={uploading || !selectedDocumentType}
+              title={!selectedDocumentType ? "Please select a document type first" : ""}
             >
               {uploading ? 'Uploading...' : 'Choose Files'}
             </button>
