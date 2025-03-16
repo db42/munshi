@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, Eye, AlertCircle, Loader } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
-import { getDocumentsByUser } from '../api/documents';
-import { Document, DocumentState } from '../types/document';
+import { getDocumentsByUser, uploadDocument, processDocument } from '../api/documents';
+import { Document, DocumentState, DocumentType } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';
-import { DEFAULT_USER_ID } from '../api/config';
+import { DEFAULT_USER_ID, DEFAULT_ASSESSMENT_YEAR } from '../api/config';
 import { Link } from 'react-router-dom';
 
 // Helper function to format file size
@@ -20,32 +20,112 @@ const DocumentPortal = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState<number>(0);
+  
+  // Upload state
+  const [uploading, setUploading] = useState<boolean>(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<boolean>(false);
+  
+  // File input reference
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch documents when component mounts
-  useEffect(() => {
-    const fetchDocuments = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const fetchedDocuments = await getDocumentsByUser(DEFAULT_USER_ID);
-        setDocuments(fetchedDocuments);
-        
-        // Count documents that are not in 'processed' state
-        const pending = fetchedDocuments.filter(
-          doc => doc.state !== 'processed'
-        ).length;
-        setPendingCount(pending);
-      } catch (err) {
-        setError(formatApiError(err));
-        console.error('Failed to fetch documents:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchDocuments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const fetchedDocuments = await getDocumentsByUser(DEFAULT_USER_ID);
+      setDocuments(fetchedDocuments);
+      
+      // Count documents that are not in 'processed' state
+      const pending = fetchedDocuments.filter(
+        doc => doc.state !== 'processed'
+      ).length;
+      setPendingCount(pending);
+    } catch (err) {
+      setError(formatApiError(err));
+      console.error('Failed to fetch documents:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDocuments();
   }, []);
+
+  // Handle file selection
+  const handleFileSelect = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  // Handle file change
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    await uploadFile(file);
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Handle drag and drop
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const files = event.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    await uploadFile(file);
+  };
+
+  // Upload file
+  const uploadFile = async (file: File) => {
+    try {
+      setUploading(true);
+      setUploadError(null);
+      setUploadSuccess(false);
+
+      // Upload the document
+      const documentId = await uploadDocument(
+        file,
+        DEFAULT_USER_ID,
+        DEFAULT_ASSESSMENT_YEAR
+      );
+
+      // Optionally, process the document automatically
+      // await processDocument(documentId);
+
+      setUploadSuccess(true);
+      
+      // Refresh the document list
+      await fetchDocuments();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUploadSuccess(false);
+      }, 3000);
+    } catch (err) {
+      setUploadError(formatApiError(err));
+      console.error('Failed to upload document:', err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // Get status display text and color
   const getStatusDisplay = (state: DocumentState) => {
@@ -73,17 +153,52 @@ const DocumentPortal = () => {
 
       {/* Upload Section */}
       <div className="mb-8">
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center bg-gray-50">
-          <Upload className="mx-auto h-12 w-12 text-gray-400" />
+        <div 
+          className={`border-2 border-dashed ${uploading ? 'border-blue-300 bg-blue-50' : 'border-gray-300 bg-gray-50'} rounded-lg p-8 text-center`}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          <Upload className={`mx-auto h-12 w-12 ${uploading ? 'text-blue-400 animate-pulse' : 'text-gray-400'}`} />
           <div className="mt-4">
-            <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
-              Choose Files
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png,.csv,.txt"
+            />
+            <button 
+              className={`${uploading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'} text-white px-4 py-2 rounded-md`}
+              onClick={handleFileSelect}
+              disabled={uploading}
+            >
+              {uploading ? 'Uploading...' : 'Choose Files'}
             </button>
             <p className="mt-2 text-sm text-gray-600">or drag and drop your files here</p>
           </div>
           <p className="text-xs text-gray-500 mt-2">Supported formats: PDF, JPG, PNG, CSV (Max size: 10MB)</p>
         </div>
       </div>
+
+      {/* Upload Error Alert */}
+      {uploadError && (
+        <Alert className="mb-6 bg-red-50 border-red-200">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-600">
+            {uploadError}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Upload Success Alert */}
+      {uploadSuccess && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <AlertCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-600">
+            Document uploaded successfully!
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Error Alert */}
       {error && (
