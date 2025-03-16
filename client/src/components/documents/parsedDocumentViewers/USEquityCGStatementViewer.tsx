@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { USEquityCGStatementData, DividendIncome, USCGEquityTransaction } from '../../../types/parsedDocuments';
 import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
@@ -8,6 +8,13 @@ interface USEquityCGStatementViewerProps {
 }
 
 const USEquityCGStatementViewer: React.FC<USEquityCGStatementViewerProps> = ({ data }) => {
+  // Add debugging to check the data structure
+  useEffect(() => {
+    console.log('USEquityCGStatementData:', data);
+    console.log('Transactions:', data.transactions);
+    console.log('Capital Gains:', data.capitalGains);
+  }, [data]);
+
   // Format currency
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('en-US', {
@@ -56,41 +63,77 @@ const USEquityCGStatementViewer: React.FC<USEquityCGStatementViewerProps> = ({ d
 
   // Calculate capital gains summary
   const calculateCapitalGainsSummary = () => {
-    const shortTermTransactions = data.transactions.filter(
-      t => t.acquisitionDate && t.sellDate && !isLongTerm(t.acquisitionDate, t.sellDate)
-    );
+    // Add debugging
+    console.log('Using pre-computed capital gains data...');
+    console.log('Capital Gains data:', data.capitalGains);
     
-    const longTermTransactions = data.transactions.filter(
-      t => t.acquisitionDate && t.sellDate && isLongTerm(t.acquisitionDate, t.sellDate)
-    );
+    // Check if capital gains data exists
+    if (!data.capitalGains) {
+      console.log('No capital gains data found');
+      return {
+        shortTerm: {
+          proceeds: 0,
+          costBasis: 0,
+          fees: 0,
+          gain: 0,
+          foreignTaxPaid: 0
+        },
+        longTerm: {
+          proceeds: 0,
+          costBasis: 0,
+          fees: 0,
+          gain: 0,
+          foreignTaxPaid: 0
+        },
+        total: {
+          gain: 0,
+          foreignTaxPaid: 0
+        }
+      };
+    }
     
-    const shortTermProceeds = shortTermTransactions.reduce((sum, t) => sum + t.totalProceeds, 0);
-    const shortTermCostBasis = shortTermTransactions.reduce((sum, t) => sum + t.totalCost, 0);
-    const shortTermFees = shortTermTransactions.reduce((sum, t) => sum + t.feesBrokerage, 0);
-    const shortTermGain = shortTermProceeds - shortTermCostBasis - shortTermFees;
+    // Use the pre-computed values directly
+    const shortTerm = data.capitalGains.shortTerm || {
+      totalProceeds: 0,
+      totalCostBasis: 0,
+      totalGain: 0,
+      totalForeignTaxPaid: 0
+    };
     
-    const longTermProceeds = longTermTransactions.reduce((sum, t) => sum + t.totalProceeds, 0);
-    const longTermCostBasis = longTermTransactions.reduce((sum, t) => sum + t.totalCost, 0);
-    const longTermFees = longTermTransactions.reduce((sum, t) => sum + t.feesBrokerage, 0);
-    const longTermGain = longTermProceeds - longTermCostBasis - longTermFees;
+    const longTerm = data.capitalGains.longTerm || {
+      totalProceeds: 0,
+      totalCostBasis: 0,
+      totalGain: 0,
+      totalForeignTaxPaid: 0
+    };
     
-    const totalGain = shortTermGain + longTermGain;
-    const totalForeignTaxPaid = data.capitalGains.shortTerm.totalForeignTaxPaid + data.capitalGains.longTerm.totalForeignTaxPaid;
+    // Calculate total gain and foreign tax paid
+    const totalGain = (shortTerm.totalGain || 0) + (longTerm.totalGain || 0);
+    const totalForeignTaxPaid = (shortTerm.totalForeignTaxPaid || 0) + (longTerm.totalForeignTaxPaid || 0);
+    
+    console.log('Using pre-computed values:', {
+      shortTerm,
+      longTerm,
+      totalGain,
+      totalForeignTaxPaid
+    });
     
     return {
       shortTerm: {
-        proceeds: shortTermProceeds,
-        costBasis: shortTermCostBasis,
-        fees: shortTermFees,
-        gain: shortTermGain,
-        foreignTaxPaid: data.capitalGains.shortTerm.totalForeignTaxPaid
+        proceeds: shortTerm.totalProceeds || 0,
+        costBasis: shortTerm.totalCostBasis || 0,
+        // Fees are included in cost basis in the pre-computed data
+        fees: 0,
+        gain: shortTerm.totalGain || 0,
+        foreignTaxPaid: shortTerm.totalForeignTaxPaid || 0
       },
       longTerm: {
-        proceeds: longTermProceeds,
-        costBasis: longTermCostBasis,
-        fees: longTermFees,
-        gain: longTermGain,
-        foreignTaxPaid: data.capitalGains.longTerm.totalForeignTaxPaid
+        proceeds: longTerm.totalProceeds || 0,
+        costBasis: longTerm.totalCostBasis || 0,
+        // Fees are included in cost basis in the pre-computed data
+        fees: 0,
+        gain: longTerm.totalGain || 0,
+        foreignTaxPaid: longTerm.totalForeignTaxPaid || 0
       },
       total: {
         gain: totalGain,
