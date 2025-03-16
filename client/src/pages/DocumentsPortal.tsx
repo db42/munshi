@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Trash2, Eye, AlertCircle, Loader } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { getDocumentsByUser, uploadDocument, processDocument, deleteDocument } from '../api/documents';
 import { Document, DocumentState, DocumentType } from '../types/document';
@@ -31,6 +31,11 @@ const DocumentPortal = () => {
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSuccess, setDeleteSuccess] = useState<boolean>(false);
   
+  // Process state
+  const [processing, setProcessing] = useState<string | null>(null);
+  const [processError, setProcessError] = useState<string | null>(null);
+  const [processSuccess, setProcessSuccess] = useState<boolean>(false);
+  
   // File input reference
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +50,7 @@ const DocumentPortal = () => {
       
       // Count documents that are not in 'processed' state
       const pending = fetchedDocuments.filter(
-        doc => doc.state !== 'processed'
+        doc => doc.state !== DocumentState.PROCESSED
       ).length;
       setPendingCount(pending);
     } catch (err) {
@@ -171,16 +176,51 @@ const DocumentPortal = () => {
     }
   };
 
+  // Handle document processing
+  const handleProcessDocument = async (documentId: string) => {
+    try {
+      setProcessing(documentId);
+      setProcessError(null);
+      setProcessSuccess(false);
+      
+      await processDocument(documentId);
+      
+      setProcessSuccess(true);
+      
+      // Update the document state in the UI
+      setDocuments(prevDocuments => 
+        prevDocuments.map(doc => 
+          doc.id === documentId 
+            ? { ...doc, state: DocumentState.PROCESSING } 
+            : doc
+        )
+      );
+      
+      // Refresh the document list to get updated status
+      await fetchDocuments();
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setProcessSuccess(false);
+      }, 3000);
+    } catch (err) {
+      setProcessError(formatApiError(err));
+      console.error('Failed to process document:', err);
+    } finally {
+      setProcessing(null);
+    }
+  };
+
   // Get status display text and color
   const getStatusDisplay = (state: DocumentState) => {
     switch (state) {
-      case 'processed':
+      case DocumentState.PROCESSED:
         return { text: 'Processed', className: 'bg-green-100 text-green-800' };
-      case 'processing':
+      case DocumentState.PROCESSING:
         return { text: 'Processing', className: 'bg-blue-100 text-blue-800' };
-      case 'failed':
+      case DocumentState.FAILED:
         return { text: 'Failed', className: 'bg-red-100 text-red-800' };
-      case 'uploaded':
+      case DocumentState.UPLOADED:
         return { text: 'Uploaded', className: 'bg-yellow-100 text-yellow-800' };
       default:
         return { text: state, className: 'bg-gray-100 text-gray-800' };
@@ -284,6 +324,26 @@ const DocumentPortal = () => {
         </Alert>
       )}
 
+      {/* Success Alert for Process */}
+      {processSuccess && (
+        <Alert className="mb-6 bg-green-50 border-green-200">
+          <AlertCircle className="h-4 w-4 text-green-600" />
+          <AlertDescription className="text-green-600">
+            Document processing started successfully!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Error Alert for Process */}
+      {processError && (
+        <Alert className="mb-6 bg-red-50 border-red-200">
+          <AlertCircle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-600">
+            {processError}
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Documents List */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-4 py-3 border-b border-gray-200">
@@ -305,6 +365,8 @@ const DocumentPortal = () => {
           <ul className="divide-y divide-gray-200">
             {documents.map(doc => {
               const status = getStatusDisplay(doc.state);
+              const canProcess = doc.state === DocumentState.UPLOADED; // Only allow processing for uploaded documents
+              
               return (
                 <li key={doc.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
                   <div className="flex items-center">
@@ -320,6 +382,23 @@ const DocumentPortal = () => {
                     <span className={`px-2 py-1 text-xs rounded-full ${status.className}`}>
                       {status.text}
                     </span>
+                    
+                    {/* Process button - only show for documents in 'uploaded' state */}
+                    {canProcess && (
+                      <button 
+                        className={`text-gray-400 hover:text-blue-500 ${!canProcess ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={() => handleProcessDocument(doc.id)}
+                        disabled={!canProcess || processing === doc.id}
+                        title={canProcess ? "Process document" : "Document cannot be processed"}
+                      >
+                        {processing === doc.id ? (
+                          <Loader className="h-5 w-5 animate-spin" />
+                        ) : (
+                          <Play className="h-5 w-5" />
+                        )}
+                      </button>
+                    )}
+                    
                     <Link to={`/documents/${doc.id}`} className="text-gray-400 hover:text-gray-500">
                       <Eye className="h-5 w-5" />
                     </Link>

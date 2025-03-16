@@ -8,7 +8,7 @@ import { parsedDocuments } from '../services/parsedDocument';
 import { logger } from '../utils/logger';
 // import { loadPDF } from '../services/pdfParserTabula';
 import { loadPDFGemini } from '../services/pdfParserGemini';
-import { DocumentType } from '../types/document';
+import { DocumentType, DocumentState } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
 import { parseCharlesSchwabCSV } from '../services/charlesSchwabCSVParser';
 
@@ -110,14 +110,14 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
       });
     }
 
-    if (document.state !== 'uploaded') {
+    if (document.state !== DocumentState.UPLOADED) {
       return res.status(400).json({
         message: 'Document is not in uploaded state'
       });
     }
 
     // Update document state to processing
-    // await documents.updateState(documentId, 'processing');
+    await documents.updateState(documentId, DocumentState.PROCESSING);
 
     // Choose parser based on document type
     let extractedData;
@@ -157,7 +157,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
         });
       
       default:
-        await documents.updateState(documentId, 'failed', 'No parser available for this document type');
+        await documents.updateState(documentId, DocumentState.FAILED, 'No parser available for this document type');
         return res.status(400).json({
           message: `No parser available for document type: ${document.documentType}`
         });
@@ -167,7 +167,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
       const errorMessage = extractedData?.error || 'Unknown parsing error';
       console.error('Error parsing document:', errorMessage);
       
-      await documents.updateState(documentId, 'failed', errorMessage);
+      await documents.updateState(documentId, DocumentState.FAILED, errorMessage);
       
       return res.status(500).json({
         message: 'Error processing document',
@@ -185,7 +185,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
     });
 
     // Update document state to processed
-    // await documents.updateState(documentId, 'processed');
+    await documents.updateState(documentId, DocumentState.PROCESSED);
 
     res.status(200).json({
       message: 'Document processed successfully',
@@ -196,17 +196,18 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
     console.error('Error processing document:', error);
     
     // Update document state to failed
-    // try {
-    //   if (req.body.documentId) {
-    //     await documents.updateState(
-    //       req.body.documentId, 
-    //       'failed', 
-    //       error instanceof Error ? error.message : 'Unknown error'
-    //     );
-    //   }
-    // } catch (stateUpdateError) {
-    //   console.error('Failed to update document state:', stateUpdateError);
-    // }
+    try {
+      if (req.body.documentId) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        await documents.updateState(
+          req.body.documentId, 
+          DocumentState.FAILED, 
+          errorMessage
+        );
+      }
+    } catch (stateUpdateError) {
+      console.error('Failed to update document state:', stateUpdateError);
+    }
     
     res.status(500).json({
       message: 'Error processing document',
@@ -243,7 +244,7 @@ router.post('/upload',
         filepath: file.path,
         fileSize: file.size,
         mimeType: file.mimetype,
-        state: 'uploaded',
+        state: DocumentState.UPLOADED,
         ownerId,
         assessmentYear,
         documentType: documentType as DocumentType // Add documentType to save

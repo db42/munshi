@@ -85,14 +85,25 @@ export const updateDocumentState = (pool: Pool) => async (
     state: DocumentState,
     message?: string
 ): Promise<void> => {
-    const query = `
+    let query = `
         UPDATE documents 
-        SET state = $1, state_message = $2,
-            processed_at = CASE WHEN $1 = 'processed' THEN CURRENT_TIMESTAMP ELSE processed_at END
-        WHERE id = $3
+        SET state = $1,
+            processed_at = CURRENT_TIMESTAMP
+        WHERE id = $2
     `;
 
-    await pool.query(query, [state, message || null, documentId]);
+    if (state !== 'processed') {
+        query = `
+            UPDATE documents 
+            SET state = $1
+            WHERE id = $2
+        `;
+    }
+
+    await pool.query(query, [
+        state,
+        documentId
+    ]);
 };
 
 // Get documents by assessment year

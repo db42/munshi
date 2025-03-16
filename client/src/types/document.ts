@@ -1,4 +1,11 @@
-export type DocumentState = 'uploaded' | 'classifying' | 'classified' | 'processing' | 'processed' | 'failed';
+export enum DocumentState {
+    UPLOADED = 'uploaded',
+    CLASSIFYING = 'classifying',
+    CLASSIFIED = 'classified',
+    PROCESSING = 'processing',
+    PROCESSED = 'processed',
+    FAILED = 'failed'
+}
 
 export enum DocumentType {
     FORM_16 = 'form-16',
