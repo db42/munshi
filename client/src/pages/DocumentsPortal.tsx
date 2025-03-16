@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { Card, CardContent } from '../components/ui/card';
 import { getDocumentsByUser, uploadDocument, processDocument, deleteDocument } from '../api/documents';
 import { Document, DocumentState, DocumentType } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';
@@ -402,81 +403,83 @@ const DocumentPortal = () => {
       )}
 
       {/* Documents List */}
-      <div className="bg-white rounded-lg shadow">
+      <Card>
         <div className="px-4 py-3 border-b border-gray-200">
           <h2 className="text-lg font-medium text-gray-900">Your Documents</h2>
         </div>
         
-        {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader className="h-8 w-8 text-blue-500 animate-spin" />
-            <span className="ml-2 text-gray-600">Loading documents...</span>
-          </div>
-        ) : documents.length === 0 ? (
-          <div className="py-12 text-center text-gray-500">
-            <FileText className="h-12 w-12 mx-auto text-gray-400 mb-2" />
-            <p>No documents found</p>
-            <p className="text-sm mt-1">Upload documents to get started</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-200">
-            {documents.map(doc => {
-              const status = getStatusDisplay(doc.state);
-              const canProcess = doc.state === DocumentState.UPLOADED; // Only allow processing for uploaded documents
-              
-              return (
-                <li key={doc.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center">
-                    <FileText className="h-6 w-6 text-gray-400" />
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900">{doc.originalFilename}</p>
-                      <p className="text-xs text-gray-500">
-                        {doc.documentType || 'Unknown'} • {formatFileSize(doc.fileSize)}
-                      </p>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader className="h-8 w-8 text-blue-500 animate-spin" />
+              <span className="ml-2 text-gray-600">Loading documents...</span>
+            </div>
+          ) : documents.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">
+              <FileText className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+              <p>No documents found</p>
+              <p className="text-sm mt-1">Upload documents to get started</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200">
+              {documents.map(doc => {
+                const status = getStatusDisplay(doc.state);
+                const canProcess = doc.state === DocumentState.UPLOADED; // Only allow processing for uploaded documents
+                
+                return (
+                  <li key={doc.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
+                    <div className="flex items-center">
+                      <FileText className="h-6 w-6 text-gray-400" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900">{doc.originalFilename}</p>
+                        <p className="text-xs text-gray-500">
+                          {doc.documentType || 'Unknown'} • {formatFileSize(doc.fileSize)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${status.className}`}>
-                      {status.text}
-                    </span>
-                    
-                    {/* Process button - only show for documents in 'uploaded' state */}
-                    {canProcess && (
+                    <div className="flex items-center space-x-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${status.className}`}>
+                        {status.text}
+                      </span>
+                      
+                      {/* Process button - only show for documents in 'uploaded' state */}
+                      {canProcess && (
+                        <button 
+                          className={`text-gray-400 hover:text-blue-500 ${!canProcess ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          onClick={() => handleProcessDocument(doc.id)}
+                          disabled={!canProcess || processing === doc.id}
+                          title={canProcess ? "Process document" : "Document cannot be processed"}
+                        >
+                          {processing === doc.id ? (
+                            <Loader className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <Play className="h-5 w-5" />
+                          )}
+                        </button>
+                      )}
+                      
+                      <Link to={`/documents/${doc.id}`} className="text-gray-400 hover:text-gray-500">
+                        <Eye className="h-5 w-5" />
+                      </Link>
                       <button 
-                        className={`text-gray-400 hover:text-blue-500 ${!canProcess ? 'opacity-50 cursor-not-allowed' : ''}`}
-                        onClick={() => handleProcessDocument(doc.id)}
-                        disabled={!canProcess || processing === doc.id}
-                        title={canProcess ? "Process document" : "Document cannot be processed"}
+                        className="text-gray-400 hover:text-red-500"
+                        onClick={() => handleDeleteDocument(doc.id)}
+                        disabled={deleting === doc.id}
                       >
-                        {processing === doc.id ? (
+                        {deleting === doc.id ? (
                           <Loader className="h-5 w-5 animate-spin" />
                         ) : (
-                          <Play className="h-5 w-5" />
+                          <Trash2 className="h-5 w-5" />
                         )}
                       </button>
-                    )}
-                    
-                    <Link to={`/documents/${doc.id}`} className="text-gray-400 hover:text-gray-500">
-                      <Eye className="h-5 w-5" />
-                    </Link>
-                    <button 
-                      className="text-gray-400 hover:text-red-500"
-                      onClick={() => handleDeleteDocument(doc.id)}
-                      disabled={deleting === doc.id}
-                    >
-                      {deleting === doc.id ? (
-                        <Loader className="h-5 w-5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

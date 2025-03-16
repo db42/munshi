@@ -80,10 +80,8 @@ munshi
 - handle peak logic, conversion to INR - DONE
 - verify the computations for sectionFA - WIP
 - support for previous ITR in the computations for sectionFA - 
-- documents portal -> view parsed data for each file
+- documents portal -> view parsed data for each file - DONE
 - json renderer in client and ability to update fields in json
-- Document Portal - link upload doc
-- Document Portal - view docs
 - parse form 26AS
 - India CG
 - add validation
