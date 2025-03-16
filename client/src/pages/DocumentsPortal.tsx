@@ -5,6 +5,7 @@ import { getDocumentsByUser } from '../api/documents';
 import { Document, DocumentState } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';
 import { DEFAULT_USER_ID } from '../api/config';
+import { Link } from 'react-router-dom';
 
 // Helper function to format file size
 const formatFileSize = (bytes: number): string => {
@@ -140,9 +141,9 @@ const DocumentPortal = () => {
                     <span className={`px-2 py-1 text-xs rounded-full ${status.className}`}>
                       {status.text}
                     </span>
-                    <button className="text-gray-400 hover:text-gray-500">
+                    <Link to={`/documents/${doc.id}`} className="text-gray-400 hover:text-gray-500">
                       <Eye className="h-5 w-5" />
-                    </button>
+                    </Link>
                     <button className="text-gray-400 hover:text-red-500">
                       <Trash2 className="h-5 w-5" />
                     </button>

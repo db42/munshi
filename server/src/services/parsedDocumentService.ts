@@ -82,14 +82,14 @@ export const getParsedDocumentById = (pool: Pool) => async (
 // Get all parsed documents for a specific document
 export const getParsedDocumentsByDocumentId = (pool: Pool) => async (
   documentId: string
-): Promise<ParsedDocument[]> => {
+): Promise<ParsedDocument | null> => {
   const query = `
     SELECT * FROM parsed_documents 
     WHERE document_id = $1 
     ORDER BY created_at DESC
   `;
   const result = await executeQuery(pool, query, [documentId]);
-  return result.rows;
+  return result.rows[0] || null;
 };
 
 // Get all parsed documents of a specific schema type

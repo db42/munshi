@@ -4,10 +4,10 @@ import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { documents } from '../services/document';
+import { parsedDocuments } from '../services/parsedDocument';
 import { logger } from '../utils/logger';
 // import { loadPDF } from '../services/pdfParserTabula';
 import { loadPDFGemini } from '../services/pdfParserGemini';
-import { parsedDocuments } from '../services/parsedDocument';
 import { DocumentType } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
 import { parseCharlesSchwabCSV } from '../services/charlesSchwabCSVParser';
@@ -379,6 +379,77 @@ router.get('/:documentId', async (req: express.Request, res: express.Response) =
     console.error('Error retrieving document:', error);
     res.status(500).json({ 
       message: 'Error retrieving document',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// Get parsed document data by document ID
+router.get('/:documentId/parsed-data', async (req: express.Request, res: express.Response) => {
+  try {
+    const { documentId } = req.params;
+
+    if (!documentId) {
+      return res.status(400).json({ 
+        message: 'Missing required parameter: documentId' 
+      });
+    }
+
+    const parsedDocument = await parsedDocuments.getByDocumentId(documentId);
+
+    res.status(200).json({
+      message: 'Parsed document retrieved successfully',
+      parsedDocument
+    });
+  } catch (error) {
+    console.error('Error retrieving parsed document:', error);
+    res.status(500).json({ 
+      message: 'Error retrieving parsed document',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+
+
+// Serve document file
+router.get('/:documentId/file', async (req: express.Request, res: express.Response) => {
+  try {
+    const { documentId } = req.params;
+    
+    if (!documentId) {
+      return res.status(400).json({ 
+        message: 'Missing required parameter: documentId' 
+      });
+    }
+
+    // Get document by ID
+    const document = await documents.getById(documentId);
+    
+    if (!document) {
+      return res.status(404).json({ 
+        message: 'Document not found' 
+      });
+    }
+
+    // Check if file exists
+    if (!fs.existsSync(document.filepath)) {
+      return res.status(404).json({ 
+        message: 'Document file not found on server' 
+      });
+    }
+
+    // Set appropriate content type
+    res.setHeader('Content-Type', document.mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${document.originalFilename}"`);
+    
+    // Stream the file
+    const fileStream = fs.createReadStream(document.filepath);
+    fileStream.pipe(res);
+  } catch (error) {
+    console.error('Error serving document file:', error);
+    res.status(500).json({ 
+      message: 'Error serving document file',
       error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
