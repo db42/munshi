@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Card, CardContent } from '../components/ui/card';
-import { getDocumentsByUser, uploadDocument, processDocument, deleteDocument } from '../api/documents';
+import { getDocumentsByUserAndYear, uploadDocument, processDocument, deleteDocument } from '../api/documents';
 import { Document, DocumentState, DocumentType } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';
-import { DEFAULT_USER_ID, DEFAULT_ASSESSMENT_YEAR } from '../api/config';
+import { DEFAULT_USER_ID } from '../api/config';
 import { Link } from 'react-router-dom';
+import { useAssessmentYear } from '../context/AssessmentYearContext';
 
 // Helper function to format file size
 const formatFileSize = (bytes: number): string => {
@@ -21,6 +22,7 @@ const DocumentPortal = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState<number>(0);
+  const { assessmentYear } = useAssessmentYear();
   
   // Upload state
   const [uploading, setUploading] = useState<boolean>(false);
@@ -47,7 +49,8 @@ const DocumentPortal = () => {
       setLoading(true);
       setError(null);
       
-      const fetchedDocuments = await getDocumentsByUser(DEFAULT_USER_ID);
+      // Use the assessment year from context
+      const fetchedDocuments = await getDocumentsByUserAndYear(DEFAULT_USER_ID, assessmentYear);
       setDocuments(fetchedDocuments);
       
       // Count documents that are not in 'processed' state
@@ -124,12 +127,12 @@ const DocumentPortal = () => {
       setUploadError(null);
       setUploadSuccess(false);
 
-      // Upload the document
+      // Upload the document with assessment year from context
       const documentId = await uploadDocument(
         file,
         DEFAULT_USER_ID,
-        DEFAULT_ASSESSMENT_YEAR,
-        selectedDocumentType // Document type is now required
+        assessmentYear, // Use assessment year from context
+        selectedDocumentType
       );
 
       // Optionally, process the document automatically
@@ -268,6 +271,9 @@ const DocumentPortal = () => {
         >
           <Upload className={`mx-auto h-12 w-12 ${uploading ? 'text-blue-400 animate-pulse' : 'text-gray-400'}`} />
           <div className="mt-4">
+            <div className="mb-2 text-sm font-medium text-gray-700">
+              Upload documents for assessment year <span className="font-semibold">{assessmentYear}</span>
+            </div>
             <input
               type="file"
               ref={fileInputRef}

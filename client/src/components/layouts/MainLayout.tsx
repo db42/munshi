@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
+import AssessmentYearSwitcher from '../AssessmentYearSwitcher';
+import { useAssessmentYear } from '../../context/AssessmentYearContext';
 
 interface NavItem {
   id: string;
@@ -13,6 +15,7 @@ export default function MainLayout() {
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
+  const { assessmentYear, setAssessmentYear } = useAssessmentYear();
 
   const navItems: NavItem[] = [
     {
@@ -141,14 +144,23 @@ export default function MainLayout() {
         {/* Header */}
         <header className="h-16 bg-white border-b px-4 flex items-center justify-between fixed right-0 left-auto transition-all duration-300 ease-in-out"
           style={{ width: `calc(100% - ${isSidebarOpen ? '16rem' : '5rem'})` }}>
-          <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="px-4 py-2 hover:bg-gray-100 rounded-md transition-colors"
-          >
-            {isSidebarOpen ? 'Collapse' : 'Expand'}
-          </button>
           <div className="flex items-center space-x-4">
-            <span>John Doe</span>
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="px-4 py-2 hover:bg-gray-100 rounded-md transition-colors"
+            >
+              {isSidebarOpen ? 'Collapse' : 'Expand'}
+            </button>
+            
+            {/* Assessment Year Switcher */}
+            <AssessmentYearSwitcher 
+              currentYear={assessmentYear}
+              onChange={setAssessmentYear}
+            />
+          </div>
+          
+          <div className="flex items-center">
+            <span className="font-medium">John Doe</span>
           </div>
         </header>
 
