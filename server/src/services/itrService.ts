@@ -190,7 +190,7 @@ export const generateITR = () => async (
 ): Promise<ITRData> => {
     // 1. Get Form 16 data
     const form16Docs = await parsedDocuments.getForm16(userId, assessmentYear);
-    // console.log(form16Docs?.parsed_data.data);
+    console.log(form16Docs?.parsed_data.data);
 
     // 2. Get USEquityCapitalGainStatement data
     const usEquityCapitalGainStatementDocs = await parsedDocuments.getUSEquityCapitalGainStatement(userId, assessmentYear);
@@ -201,14 +201,14 @@ export const generateITR = () => async (
     
     // 4. If US equity data exists, merge it into the ITR
     if (!(usEquityCapitalGainStatementDocs?.parsed_data.data && itrData.success && itrData.data)) {
-        throw new Error('Not implemented');
+        throw new Error('US CG Equity data not found');
     }
     const usEquityITRSectionsResult = usEquityCapitalGainStatementDocs.parsed_data.data;
         
     // Generate ITR sections from US equity data
-    const result = convertUSCGEquityToITR(usEquityITRSectionsResult);
+    const result = convertUSCGEquityToITR(usEquityITRSectionsResult, assessmentYear);
     if (!(result.success && result.data)) {
-        throw new Error('Not implemented');
+        throw new Error('US CG Equity data not processed');
     }
     
     // const { scheduleCG, capitalGains, foreignTaxCredit } = result.data;

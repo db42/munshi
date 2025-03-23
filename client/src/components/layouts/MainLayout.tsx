@@ -26,11 +26,7 @@ export default function MainLayout() {
     {
       id: 'documents',
       label: 'Documents',
-      path: '/documents',
-      subitems: [
-        { id: 'upload', label: 'Upload Documents', path: '/documents/upload' },
-        { id: 'view', label: 'View Documents', path: '/documents/view' }
-      ]
+      path: '/documents'
     },
     {
       id: 'itr',

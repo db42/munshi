@@ -10,6 +10,9 @@ export const ENDPOINTS = {
   DOCUMENT_BY_ID: (id: string) => `${API_BASE_URL}/documents/${id}`,
   UPLOAD_DOCUMENT: `${API_BASE_URL}/documents/upload`,
   PROCESS_DOCUMENT: `${API_BASE_URL}/documents/process`,
+  
+  // ITR endpoints
+  ITR_BY_USER_AND_YEAR: (userId: string, year: string) => `${API_BASE_URL}/itr/${userId}/${year}`,
 };
 
 // Default headers

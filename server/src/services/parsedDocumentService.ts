@@ -1,4 +1,4 @@
-import { DocumentType } from '@/types/document';
+import { DocumentType } from '../types/document';
 import { Pool, QueryResult } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import { CharlesSchwabCSVData } from './charlesSchwabCSVParser';
@@ -182,7 +182,7 @@ export const getForm16ParsedData = (pool: Pool) => async (
     JOIN documents d ON pd.document_id = d.id
     WHERE d.owner_id = $1
     AND d.assessment_year = $2
-    AND pd.json_schema_type LIKE 'FORM_16%'
+    AND pd.json_schema_type = '${DocumentType.FORM_16}'
     ORDER BY pd.updated_at DESC
     LIMIT 1
   `;
@@ -192,7 +192,7 @@ export const getForm16ParsedData = (pool: Pool) => async (
   //   JOIN documents d ON pd.document_id = d.id
   //   WHERE d.owner_id = 123
   //   AND d.assessment_year = '2024-25'
-  //   AND pd.json_schema_type LIKE 'FORM_16%'
+  //   AND pd.json_schema_type = '${DocumentType.FORM_16}'
   //   AND pd.state = 'success'
   //   ORDER BY pd.updated_at DESC
   //   LIMIT 1
@@ -213,7 +213,7 @@ export const getUSEquityCapitalGainStatementParsedData = (pool: Pool) => async (
     JOIN documents d ON pd.document_id = d.id
     WHERE d.owner_id = $1
     AND d.assessment_year = $2
-    AND pd.json_schema_type LIKE 'USEquityCapitalGainStatement%'
+    AND pd.json_schema_type = '${DocumentType.US_EQUITY_CG_STATEMENT}'
     ORDER BY pd.updated_at DESC
     LIMIT 1
   `;
@@ -233,7 +233,7 @@ export const getCharlesSchwabCSVData = (pool: Pool) => async (
     JOIN documents d ON pd.document_id = d.id
     WHERE d.owner_id = $1
     AND d.assessment_year = $2
-    AND pd.json_schema_type LIKE 'USEquityStatement%'
+    AND pd.json_schema_type = '${DocumentType.US_EQUITY_STATEMENT}'
     ORDER BY pd.updated_at DESC
     LIMIT 1
   `;

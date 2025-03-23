@@ -3,13 +3,13 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/layouts/MainLayout';
 import DocumentPortal from './pages/DocumentsPortal';
 import DocumentDetail from './pages/DocumentDetail';
+import Review from './pages/Review';
 import { AssessmentYearProvider } from './context/AssessmentYearContext';
 
 // Simple placeholder components
 const Dashboard = () => <div>Dashboard Content</div>;
 const Documents = () => <div>Documents Content</div>;
 const ITRGeneration = () => <div>ITR Generation Content</div>;
-const Review = () => <div>Review Content</div>;
 
 function App() {
   return (

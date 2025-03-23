@@ -202,21 +202,30 @@ const isShortTermTransaction = (acquisitionDate: Date, sellDate: Date): boolean 
 };
 
 /**
- * Calculate capital gains from transaction data for a specific Indian financial year
+ * Calculate capital gains from transaction data for a specific assessment year
  * 
  * @param transactions Array of equity transactions
- * @param financialYear Optional financial year (e.g., '2023-2024'). If not provided, uses the current financial year.
+ * @param assessmentYear Assessment year in format YYYY-YY
  * @returns Object with short-term and long-term capital gains
  */
 const calculateCapitalGains = (
   transactions: USCGEquityTransaction[],
-  financialYear: string
+  assessmentYear: string
 ): { shortTerm: CapitalGainSummary; longTerm: CapitalGainSummary } => {
+  // Convert assessment year to financial year format (YYYY-YYYY)
+  let financialYear: string;
+  if (assessmentYear.includes('-')) {
+    const startYear = assessmentYear.split('-')[0];
+    financialYear = `${startYear}-${Number(startYear) + 1}`;
+  } else {
+    throw new Error(`Invalid assessment year format: ${assessmentYear}. Expected format: 'YYYY-YY'`);
+  }
+
   // Determine the financial year dates
   let startDate: Date;
   let endDate: Date;
   
-  // Parse the provided financial year (format: 'YYYY-YYYY')
+  // Parse the financial year (format: 'YYYY-YYYY')
   const years = financialYear.split('-');
   if (years.length === 2) {
     startDate = new Date(`${years[0]}-04-01`); // April 1st of start year
@@ -449,14 +458,14 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
  * 3. Foreign tax credit for taxes paid in the US
  * 
  * @param usEquityData - Parsed US equity statement data
- * @param financialYear - financial year (e.g., '2023-2024').
+ * @param assessmentYear - Assessment year in format YYYY-YY
  * @returns ScheduleCGFor23 object with capital gains information
  */
 const processUSEquityForITR = (
     usEquityData: USEquityStatement, 
-    financialYear: string
+    assessmentYear: string
 ): ScheduleCGFor23 => {
-    const capitalGains = calculateCapitalGains(usEquityData.transactions, financialYear);
+    const capitalGains = calculateCapitalGains(usEquityData.transactions, assessmentYear);
       
     const shortTermGains = processShortTermCapitalGains(capitalGains.shortTerm);
     const longTermGains = processLongTermCapitalGains(capitalGains.longTerm);
@@ -534,16 +543,15 @@ const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): numb
 };
 
 /**
- * Converts US equity capital gains statement data to ITR-2 format
- * 
- * This function takes US equity statement data and generates ITR sections without modifying any existing ITR.
+ * Convert US CG Equity data to ITR sections
  * 
  * @param usEquityData - Parsed US equity statement data
+ * @param assessmentYear - Assessment year in format YYYY-YY
  * @returns Object containing the generated ITR sections
  */
-export const convertUSCGEquityToITR = (usEquityData: USEquityStatement): ParseResult<USEquityITRSections> => {
+export const convertUSCGEquityToITR = (usEquityData: USEquityStatement, assessmentYear: string): ParseResult<USEquityITRSections> => {
   // Generate Schedule CG
-  const scheduleCG = processUSEquityForITR(usEquityData, '2024-2025');
+  const scheduleCG = processUSEquityForITR(usEquityData, assessmentYear);
   
   // Generate Part B-TI Capital Gains
   const partBTICapitalGains = generatePartBTICapitalGains(scheduleCG);

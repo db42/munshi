@@ -1,0 +1,21 @@
+# Typescript guidelines
+1. Use optional property over nullable property. See examples:
+
+Optional property (date?: Date)
+
+Nullable property (date: Date | null)
+
+2. how to define functions
+
+
+# Product guidelines
+## Data viewer
+
+Viewer for parsedDocumentData for each document is extremely critical for this application.
+
+Out BE will parse all the documents (pdfs/csv etc.). A good viewer for this data will help an expert admin of this app to review and verify this parsed data. Therefore, viewer should be - for power users 
+- show high density information
+- show all the information present (don't skip anything)
+- show information in the right formats e.g. use tables etc.
+- minimize number of clicks it takes - ideally user should be able to just scroll and verify the information
+- avoid doing any computations on client side. since goal is to verify backend data, if you do any computation client side, it defeats the purpose.
