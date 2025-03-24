@@ -1,0 +1,22 @@
+## Todo
+
+- DONE Generate ITR - define schema, validate
+- DONE parse form 16 form
+- DONE generate first version of from information parsed from form 16
+- DONE API to give JSON
+- DONE perfect logic to parse information mentioned in form 16 - use own json from last year
+- DONE US equity - DONE, validate the computations
+- DONE handle currency format from US Equity
+- DONE update period for CG gain from US Equity
+- DONE handle sectionFA from US Equity
+- DONE handle peak logic, conversion to INR 
+- DONE documents portal -> view parsed data for each file
+- DONE AY switcher
+- documentportal for form-16 - 
+- TODO support for previous ITR in the computations for sectionFA - 
+- TODO verify the computations for sectionFA last return - WIP
+- TODO json renderer in client and ability to update fields in json - update AL,
+- TODO parse form 26AS - information like fd interest
+- TODO India CG - CAMS
+- TODO add validation
+- TODO schedule AL from previous ITR
