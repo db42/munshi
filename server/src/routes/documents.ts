@@ -11,6 +11,7 @@ import { loadPDFGemini } from '../services/pdfParserGemini';
 import { DocumentType, DocumentState } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
 import { parseCharlesSchwabCSV } from '../services/charlesSchwabCSVParser';
+import { parseUSEquityCGStatementCSV } from '../services/usEquityCGStatementCSVParser';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -110,9 +111,11 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
       });
     }
 
-    if (document.state !== DocumentState.UPLOADED) {
+    // Allow reprocessing of documents that are in UPLOADED, PROCESSED, or FAILED states
+    const allowedStates = [DocumentState.UPLOADED, DocumentState.PROCESSED, DocumentState.FAILED];
+    if (!allowedStates.includes(document.state)) {
       return res.status(400).json({
-        message: 'Document is not in uploaded state'
+        message: `Document cannot be processed in its current state: ${document.state}`
       });
     }
 
@@ -148,6 +151,15 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
           document.filepath
         );
         console.log("Extracted CSV data:", JSON.stringify(extractedData, null, 2));
+        break;
+      
+      case DocumentType.US_EQUITY_CG_STATEMENT_CSV:
+        // Use the dedicated parser for capital gain CSV statements
+        extractedData = await parseUSEquityCGStatementCSV(
+          document.filepath,
+          document.assessmentYear
+        );
+        console.log("Extracted Capital Gain CSV data:", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.FORM_26AS:

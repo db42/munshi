@@ -1,6 +1,6 @@
 import { CharlesSchwabCSVData, TransactionAction, CharlesSchwabRecord} from '../../services/charlesSchwabCSVParser';
 import { ScheduleFA } from '../../types/itr';
-import { getRelevantDates, identifyCalendarYear, ParseResult } from '../../utils/parserTypes';
+import { getFinancialYear, getRelevantDates, identifyCalendarYear, ParseResult } from '../../utils/parserTypes';
 import { findPeakPrice, findPrice } from '../../utils/equityPriceUtils';
 import { getExchangeRate } from '../../utils/currencyConverter';
 
@@ -96,7 +96,7 @@ function getSecurityHoldings(csvData: CharlesSchwabCSVData, calendarYearStart: D
  * @param csvData - Parsed Charles Schwab CSV data
  * @returns Object containing the generated ITR sections
  */
-export function convertCharlesSchwabCSVToITR(csvData: CharlesSchwabCSVData, financialYear: string): ParseResult<ScheduleFA> {
+export function convertCharlesSchwabCSVToITR(csvData: CharlesSchwabCSVData, assessmentYear: string): ParseResult<ScheduleFA> {
   if (!csvData) {
     return {
       success: false,
@@ -106,6 +106,7 @@ export function convertCharlesSchwabCSVToITR(csvData: CharlesSchwabCSVData, fina
 
   try {
     // Step 1: Identify current calendar year from financial year
+    const financialYear = getFinancialYear(assessmentYear);
     const calendarYear = identifyCalendarYear(financialYear);
     const { calendarYearStart, calendarYearEnd } = getRelevantDates(calendarYear);
 

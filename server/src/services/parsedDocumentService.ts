@@ -258,3 +258,46 @@ export const getCharlesSchwabCSVData = (pool: Pool) => async (
     error: 'No data found'
   };
 };
+
+// Get Charles Schwab CSV parsed data for a user and assessment year
+export const getCharlesSchwabCSVData1 = (pool: Pool) => async (
+  userId: number,
+  assessmentYear: string
+): Promise<ParseResult<CharlesSchwabCSVData>> => {
+  const query = `
+    SELECT pd.id, pd.document_id, pd.json_schema_type, pd.json_schema_version, pd.parser_version, pd.state, pd.state_message, pd.created_at, pd.updated_at, pd.processed_at,
+          jsonb_set(
+           pd.parsed_data,
+           '{date}',
+           to_jsonb(to_timestamp((pd.parsed_data->>'date'), 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))
+         ) as parsed_data
+    FROM parsed_documents pd
+    JOIN documents d ON pd.document_id = d.id
+    WHERE d.owner_id = $1
+    AND d.assessment_year = $2
+    AND pd.json_schema_type = '${DocumentType.US_EQUITY_STATEMENT}'
+    ORDER BY pd.updated_at DESC
+    LIMIT 1
+  `;
+
+  const result = await executeQuery(pool, query, [userId, assessmentYear]);
+  console.log(result);
+  if (result.rows.length && result.rows[0].parsed_data.data) {
+    let charlesSchwabCSVData: CharlesSchwabCSVData = result.rows[0].parsed_data.data;
+    charlesSchwabCSVData = {
+      ...charlesSchwabCSVData,
+      records: charlesSchwabCSVData.records.map((record) => ({
+        ...record,
+        // date: new Date(record.date)
+      }))
+    }
+    return {
+      success: true,
+      data: charlesSchwabCSVData
+    };
+  }
+  return {
+    success: false,
+    error: 'No data found'
+  };
+};

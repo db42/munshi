@@ -58,7 +58,6 @@ export interface CharlesSchwabRecord {
  * Focuses on extracting holdings data for Schedule FA reporting
  * 
  * @param filePath - Path to the CSV file
- * @param financialYear - Financial year (e.g., '2023-24') for which to process the data
  * @returns Parsed data for Schedule FA
  */
 export const parseCharlesSchwabCSV = async (

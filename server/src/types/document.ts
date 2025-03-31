@@ -10,6 +10,7 @@ export enum DocumentState {
 export enum DocumentType {
     FORM_16 = 'form-16',
     US_EQUITY_CG_STATEMENT = 'USEquityCapitalGainStatement',
+    US_EQUITY_CG_STATEMENT_CSV = 'USEquityCapitalGainStatementCSV',
     FORM_26AS = 'form26AS',
     BANK_STATEMENT = 'bankStatement',
     RENT_RECEIPT = 'rentReceipt',

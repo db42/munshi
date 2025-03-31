@@ -8,7 +8,7 @@ import DocumentPreviewModal from '../components/documents/DocumentPreviewModal';
 import ParsedDocumentViewer from '../components/documents/ParsedDocumentViewer';
 import { formatFileSize } from '../utils/formatters';
 import { formatApiError } from '../utils/api-helpers';
-import { Loader, FileText, AlertCircle, Play } from 'lucide-react';
+import { Loader, FileText, AlertCircle, Play, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 
 const DocumentDetail = () => {
@@ -230,11 +230,36 @@ const DocumentDetail = () => {
               </button>
             )}
           </div>
-        ) :  (
-          <ParsedDocumentViewer 
-            parsedData={parsedDocument?.parsed_data.data} 
-            documentType={document.documentType || DocumentType.OTHER} 
-          />
+        ) : (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Processed Document Data</h3>
+              {(document.state === DocumentState.PROCESSED || document.state === DocumentState.FAILED) && (
+                <button 
+                  className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 flex items-center"
+                  onClick={handleProcessDocument}
+                  disabled={processing}
+                  title="Reprocess document"
+                >
+                  {processing ? (
+                    <>
+                      <Loader className="h-4 w-4 mr-2 animate-spin" />
+                      Reprocessing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Reprocess Document
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+            <ParsedDocumentViewer 
+              parsedData={parsedDocument?.parsed_data.data} 
+              documentType={document.documentType || DocumentType.OTHER} 
+            />
+          </>
         )}
       </div>
       

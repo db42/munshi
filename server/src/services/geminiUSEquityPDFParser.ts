@@ -43,7 +43,7 @@ export const parseUSEquityPDFWithGemini = async (
       ${JSON.stringify(sampleData, null, 2)}
 
       Please follow these rules:
-      - Extract all transaction entries including acquisition date, sell date, security name, etc.
+      - It is extremly critical to extract all transaction entries including acquisition date, sell date, security name, etc.
       - Extract all dividend entries received (specific securities, amounts, and dates)
       - Extract all details about capital gains/losses (short-term and long-term)
       - Ensure all monetary values are numeric, not strings

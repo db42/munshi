@@ -20,7 +20,7 @@ const usdInrRates: USDINRRates = usdInrRatesData as USDINRRates;
  */
 export const getExchangeRate = (date: Date): number => {
     // Format date as M/D/YYYY to match the format in the JSON file
-    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`;
+    const formattedDate = `${date.getMonth()}/${date.getDate()}/${date.getFullYear()}`;
     
     // Try to get the exact rate for the date
     if (formattedDate in usdInrRates) {

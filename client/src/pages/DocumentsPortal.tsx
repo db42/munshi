@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play } from 'lucide-react';
+import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
 import { Card, CardContent } from '../components/ui/card';
 import { getDocumentsByUserAndYear, uploadDocument, processDocument, deleteDocument } from '../api/documents';
@@ -431,6 +431,7 @@ const DocumentPortal = () => {
               {documents.map(doc => {
                 const status = getStatusDisplay(doc.state);
                 const canProcess = doc.state === DocumentState.UPLOADED; // Only allow processing for uploaded documents
+                const canReprocess = doc.state === DocumentState.PROCESSED || doc.state === DocumentState.FAILED; // Allow reprocessing for processed or failed documents
                 
                 return (
                   <li key={doc.id} className="px-4 py-4 flex items-center justify-between hover:bg-gray-50">
@@ -451,15 +452,31 @@ const DocumentPortal = () => {
                       {/* Process button - only show for documents in 'uploaded' state */}
                       {canProcess && (
                         <button 
-                          className={`text-gray-400 hover:text-blue-500 ${!canProcess ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          className="text-gray-400 hover:text-blue-500"
                           onClick={() => handleProcessDocument(doc.id)}
-                          disabled={!canProcess || processing === doc.id}
-                          title={canProcess ? "Process document" : "Document cannot be processed"}
+                          disabled={processing === doc.id}
+                          title="Process document"
                         >
                           {processing === doc.id ? (
                             <Loader className="h-5 w-5 animate-spin" />
                           ) : (
                             <Play className="h-5 w-5" />
+                          )}
+                        </button>
+                      )}
+
+                      {/* Reprocess button - only show for documents in 'processed' or 'failed' state */}
+                      {canReprocess && (
+                        <button 
+                          className="text-gray-400 hover:text-blue-500"
+                          onClick={() => handleProcessDocument(doc.id)}
+                          disabled={processing === doc.id}
+                          title="Reprocess document"
+                        >
+                          {processing === doc.id ? (
+                            <Loader className="h-5 w-5 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-5 w-5" />
                           )}
                         </button>
                       )}

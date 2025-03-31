@@ -51,7 +51,7 @@ function parseUsdInrCsv(filePath) {
  * Main function to demonstrate usage
  */
 function main() {
-  const filePath = path.resolve(__dirname, 'USD-INR-data.csv');
+  const filePath = path.resolve(__dirname, 'USD INR data - Sheet1.csv');
   
   try {
     // Parse the CSV file
@@ -68,7 +68,7 @@ function main() {
     });
     
     // Save as JSON for future use
-    const jsonFilePath = path.resolve(__dirname, 'usd_inr_rates.json');
+    const jsonFilePath = path.resolve(__dirname, '../utils/usd_inr_rates.json');
     fs.writeFileSync(jsonFilePath, JSON.stringify(exchangeRates, null, 2));
     console.log(`\nExchange rates saved as JSON to: ${jsonFilePath}`);
     

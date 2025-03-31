@@ -1,6 +1,6 @@
 import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../../types/usEquityStatement';
 import { ShortTerm, LongTerm } from '../../types/itr';
-import { ParseResult } from '../../utils/parserTypes';
+import { ParseResult, getFinancialYear } from '../../utils/parserTypes';
 
 import { 
     ScheduleCGFor23, 
@@ -208,18 +208,12 @@ const isShortTermTransaction = (acquisitionDate: Date, sellDate: Date): boolean 
  * @param assessmentYear Assessment year in format YYYY-YY
  * @returns Object with short-term and long-term capital gains
  */
-const calculateCapitalGains = (
+export const calculateCapitalGains = (
   transactions: USCGEquityTransaction[],
   assessmentYear: string
 ): { shortTerm: CapitalGainSummary; longTerm: CapitalGainSummary } => {
   // Convert assessment year to financial year format (YYYY-YYYY)
-  let financialYear: string;
-  if (assessmentYear.includes('-')) {
-    const startYear = assessmentYear.split('-')[0];
-    financialYear = `${startYear}-${Number(startYear) + 1}`;
-  } else {
-    throw new Error(`Invalid assessment year format: ${assessmentYear}. Expected format: 'YYYY-YY'`);
-  }
+  const financialYear = getFinancialYear(assessmentYear);
 
   // Determine the financial year dates
   let startDate: Date;
@@ -306,7 +300,7 @@ const calculateCapitalGains = (
     
     // Convert to INR
     const proceedsINR = convertUSDtoINR(proceedsUSD, sellDate);
-    const costBasisINR = convertUSDtoINR(costBasisUSD, sellDate);
+    const costBasisINR = convertUSDtoINR(costBasisUSD, acquisitionDate);
     const gainINR = convertUSDtoINR(gainUSD, sellDate);
     
     // Create transaction entry

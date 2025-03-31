@@ -38,6 +38,7 @@ const ParsedDocumentViewer: React.FC<ParsedDocumentViewerProps> = ({
       return <USEquityStatementViewer data={parsedData as USEquityStatementData} />;
     
     case DocumentType.US_EQUITY_CG_STATEMENT:
+    case DocumentType.US_EQUITY_CG_STATEMENT_CSV:
       return <USEquityCGStatementViewer data={parsedData as USEquityCGStatementData} />;
     
     // Add more specialized viewers as they are implemented

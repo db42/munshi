@@ -17,17 +17,14 @@ export interface ParseResult<T> {
 /**
  * Identifies the calendar year from the financial year
  * 
- * @param financialYear - Financial year in format 'YYYY-YY'
+ * @param financialYear - Financial year in format 'YYYY-YYYY'
  * @returns The calendar year
  */
 export function identifyCalendarYear(financialYear: string): number {
-  const match = financialYear.match(/^(\d{4})-\d{2}$/);
-  if (!match) {
-    throw new Error(`Invalid financial year format: ${financialYear}. Expected format: 'YYYY-YY'`);
-  }
+  const yearString = financialYear.split('-')[0];
   
   // For financial year 2023-24, the relevant calendar year is 2023
-  const calendarYear = parseInt(match[1]);
+  const calendarYear = parseInt(yearString);
   
   console.log(`Processing for Financial Year: ${financialYear} (April 1 to March 31)`);
   console.log(`Relevant Calendar Year for Schedule FA: ${calendarYear} (January 1 to December 31)`);
@@ -46,4 +43,19 @@ export function getRelevantDates(calendarYear: number) {
   const calendarYearEnd = new Date(`${calendarYear}-12-31`);
   
   return { calendarYearStart, calendarYearEnd };
+}
+
+export function getFinancialYear(assessmentYear: string): string {
+  // Extract the start year from the assessment year
+  let financialYear = '';
+  if (assessmentYear.includes('-')) {
+    const startYear = assessmentYear.split('-')[0];
+    financialYear = `${Number(startYear) - 1}-${startYear}`;
+  } else {
+    throw new Error(`Invalid assessment year format: ${assessmentYear}. Expected format: 'YYYY-YY'`);
+  }
+  
+  console.log(`Processing for Financial Year: ${financialYear} (April 1 to March 31)`);
+  
+  return financialYear;
 }
