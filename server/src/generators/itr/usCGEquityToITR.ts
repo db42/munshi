@@ -23,7 +23,7 @@ import {
     MFSectionCode,
     CapGain
 } from '../../types/itr';
-import { getExchangeRate, convertUSDtoINR, formatCurrency } from '../../utils/currencyConverter';
+import { getExchangeRate, convertUSDtoINR } from '../../utils/currencyConverter';
 
 // Define the interface for ITR sections
 export interface USEquityITRSections {
@@ -253,6 +253,7 @@ export const calculateCapitalGains = (
     proceeds: number;
     cost: number;
     gain: number;
+    gainConstantCurrency: number;
     exchangeRate: number;
   }> = [];
   
@@ -263,6 +264,7 @@ export const calculateCapitalGains = (
     proceeds: number;
     cost: number;
     gain: number;
+    gainConstantCurrency: number;
     exchangeRate: number;
   }> = [];
   
@@ -291,17 +293,17 @@ export const calculateCapitalGains = (
     const isShortTerm = isShortTermTransaction(acquisitionDate, sellDate);
     
     // Get exchange rate for the sell date
-    const exchangeRate = getExchangeRate(sellDate);
+    const sellDateExchangeRate = getExchangeRate(sellDate);
     
     // Calculate gain for this transaction in USD
     const proceedsUSD = transaction.totalProceeds || 0;
     const costBasisUSD = transaction.totalCost || 0;
-    const gainUSD = proceedsUSD - costBasisUSD;
     
     // Convert to INR
     const proceedsINR = convertUSDtoINR(proceedsUSD, sellDate);
     const costBasisINR = convertUSDtoINR(costBasisUSD, acquisitionDate);
-    const gainINR = convertUSDtoINR(gainUSD, sellDate);
+    const gainINR = proceedsINR - costBasisINR;
+    const gainINRConstantCurrency = convertUSDtoINR(proceedsUSD - costBasisUSD, sellDate);
     
     // Create transaction entry
     const transactionEntry = {
@@ -311,7 +313,8 @@ export const calculateCapitalGains = (
       proceeds: proceedsINR,
       cost: costBasisINR,
       gain: gainINR,
-      exchangeRate
+      gainConstantCurrency: gainINRConstantCurrency,
+      exchangeRate: sellDateExchangeRate
     };
     
     // Add to appropriate category
@@ -336,9 +339,9 @@ export const calculateCapitalGains = (
     console.log(`Found ${shortTermTransactions.length} short term transactions:`);
     shortTermTransactions.forEach(tx => {
       console.log(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
-                 `Proceeds: ${formatCurrency(tx.proceeds)} | Cost: ${formatCurrency(tx.cost)} | Gain: ${formatCurrency(tx.gain)}`);
+                 `Proceeds(INR): ${tx.proceeds} | Cost(INR): ${tx.cost} | Gain(INR): ${tx.gain} | Gain Constant Currency: ${tx.gainConstantCurrency}`);
     });
-    console.log(`\nShort Term Summary: Proceeds=${formatCurrency(shortTerm.totalProceeds)}, Cost=${formatCurrency(shortTerm.totalCostBasis)}, Gain=${formatCurrency(shortTerm.totalGain)}`);
+    console.log(`\nShort Term Summary: Proceeds(INR)=${shortTerm.totalProceeds}, Cost(INR)=${shortTerm.totalCostBasis}, Gain(INR)=${shortTerm.totalGain}`);
   }
   
   // Log long term transactions
@@ -349,16 +352,16 @@ export const calculateCapitalGains = (
     console.log(`Found ${longTermTransactions.length} long term transactions:`);
     longTermTransactions.forEach(tx => {
       console.log(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
-                 `Proceeds: ${formatCurrency(tx.proceeds)} | Cost: ${formatCurrency(tx.cost)} | Gain: ${formatCurrency(tx.gain)}`);
+                 `Proceeds(INR): ${tx.proceeds} | Cost(INR): ${tx.cost} | Gain(INR): ${tx.gain} | Gain Constant Currency: ${tx.gainConstantCurrency}`);
     });
-    console.log(`\nLong Term Summary: Proceeds=${formatCurrency(longTerm.totalProceeds)}, Cost=${formatCurrency(longTerm.totalCostBasis)}, Gain=${formatCurrency(longTerm.totalGain)}`);
+    console.log(`\nLong Term Summary: Proceeds(INR)=${longTerm.totalProceeds}, Cost(INR)=${longTerm.totalCostBasis}, Gain(INR)=${longTerm.totalGain}`);
   }
   
   // Log overall summary
   console.log('\n===== OVERALL CAPITAL GAINS SUMMARY =====');
   console.log(`Financial Year: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
   console.log(`Total Transactions: ${shortTermTransactions.length + longTermTransactions.length}`);
-  console.log(`Total Gain: ${formatCurrency(shortTerm.totalGain + longTerm.totalGain)}`);
+  console.log(`Total Gain(INR)=${shortTerm.totalGain + longTerm.totalGain}`);
   
   return { shortTerm, longTerm };
 };
@@ -455,7 +458,7 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
  * @param assessmentYear - Assessment year in format YYYY-YY
  * @returns ScheduleCGFor23 object with capital gains information
  */
-const processUSEquityForITR = (
+const generateScheduleCG = (
     usEquityData: USEquityStatement, 
     assessmentYear: string
 ): ScheduleCGFor23 => {
@@ -545,7 +548,7 @@ const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): numb
  */
 export const convertUSCGEquityToITR = (usEquityData: USEquityStatement, assessmentYear: string): ParseResult<USEquityITRSections> => {
   // Generate Schedule CG
-  const scheduleCG = processUSEquityForITR(usEquityData, assessmentYear);
+  const scheduleCG = generateScheduleCG(usEquityData, assessmentYear);
   
   // Generate Part B-TI Capital Gains
   const partBTICapitalGains = generatePartBTICapitalGains(scheduleCG);

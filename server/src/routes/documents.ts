@@ -159,7 +159,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
           document.filepath,
           document.assessmentYear
         );
-        console.log("Extracted Capital Gain CSV data:", JSON.stringify(extractedData, null, 2));
+        // console.log("Extracted Capital Gain CSV data:", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.FORM_26AS:

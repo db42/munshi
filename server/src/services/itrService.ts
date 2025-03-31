@@ -2,7 +2,7 @@ import { parsedDocuments } from './parsedDocument';
 import { convertForm16ToITR } from '../generators/itr/form16ToITR';
 import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA } from '../types/itr';
 import { convertCharlesSchwabCSVToITR } from '../generators/itr/charlesSchwabToITR';
-import { convertUSCGEquityToITR, USEquityITRSections } from '../generators/itr/usEquityToITR';
+import { convertUSCGEquityToITR, USEquityITRSections } from '../generators/itr/usCGEquityToITR';
 import { ParseResult } from '../utils/parserTypes';
 
 export interface ITRData {

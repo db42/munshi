@@ -6,7 +6,7 @@ import {
   USCGEquityTransaction, 
   CapitalGainSummary
 } from '../types/usEquityStatement';
-import { calculateCapitalGains } from '../generators/itr/usEquityToITR';
+import { calculateCapitalGains } from '../generators/itr/usCGEquityToITR';
 
 // Define interface for raw CSV record (as parsed from CSV)
 interface RawCapitalGainRecord {
