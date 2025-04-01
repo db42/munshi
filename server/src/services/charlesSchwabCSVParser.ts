@@ -2,6 +2,7 @@ import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import { ParseResult } from '../utils/parserTypes';
 import { USCGEquityTransaction } from '../types/usEquityStatement';
+import omit from 'lodash/omit';
 
 interface TaxpayerInfo {
   name: string;
@@ -116,7 +117,8 @@ async function parseCSVFile(filePath: string): Promise< CharlesSchwabRecord[]> {
       action = TransactionAction.Buy;
     }
     
-    return {
+    // Get the core fields first
+    const coreRecord = {
       date: new Date(rawRecord.Date),
       action,
       symbol: rawRecord.Symbol,
@@ -125,10 +127,16 @@ async function parseCSVFile(filePath: string): Promise< CharlesSchwabRecord[]> {
       price: parseNumericValue(rawRecord.Price),
       fees: parseNumericValue(rawRecord['Fees & Comm']),
       amount: parseNumericValue(rawRecord.Amount),
-      // Copy any additional fields
-      ...Object.entries(rawRecord)
-        .filter(([key]) => !['Date', 'Action', 'Symbol', 'Description', 'Quantity', 'Price', 'Fees & Comm', 'Amount'].includes(key))
-        .reduce((obj, [key, value]) => ({ ...obj, [key]: value }), {})
+    };
+    
+    // Get additional fields by omitting the standard fields we've already processed
+    const standardFields = ['Date', 'Action', 'Symbol', 'Description', 'Quantity', 'Price', 'Fees & Comm', 'Amount'];
+    const additionalFields = omit(rawRecord, standardFields);
+    
+    // Combine core record with additional fields
+    return {
+      ...coreRecord,
+      ...additionalFields
     };
   });
   

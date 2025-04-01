@@ -3,12 +3,14 @@
  * @param dateStr - Date string to parse (format: MM/DD/YYYY, may be quoted)
  * @returns Parsed Date object or new Date(0) if parsing fails
  */
+import { removeQuotes } from './stringUtils';
+
 export const parseDate = (dateStr: string): Date => {
   if (!dateStr) return new Date(0);
   
   try {
     // Remove any quotation marks and trim
-    dateStr = dateStr.replace(/"/g, '').trim();
+    dateStr = removeQuotes(dateStr);
     
     // Parse MM/DD/YYYY format
     const parts = dateStr.split('/');
@@ -36,8 +38,9 @@ export const parseNumericValue = (valueStr: string): number => {
   if (!valueStr) return 0;
   
   try {
-    // Remove quotes, dollar signs, commas, percent signs
-    const cleanedValue = valueStr.replace(/["$,%]/g, '').trim();
+    // Remove quotes first, then clean financial symbols
+    const withoutQuotes = removeQuotes(valueStr);
+    const cleanedValue = withoutQuotes.replace(/[$,%]/g, '');
     
     // Handle negative values in parentheses
     if (cleanedValue.startsWith('(') && cleanedValue.endsWith(')')) {

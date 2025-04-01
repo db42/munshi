@@ -3,6 +3,7 @@ import { parse } from 'csv-parse/sync';
 import { ParseResult } from '../utils/parserTypes';
 import { USInvestmentIncome, DividendIncome } from '../types/usEquityStatement';
 import { parseDate, parseNumericValue } from '../utils/formatters';
+import { removeQuotes } from '../utils/stringUtils';
 
 /**
  * Interface for raw investment income record as parsed from CSV
@@ -163,8 +164,8 @@ async function parseCSVFile(filePath: string): Promise<ProcessedInvestmentIncome
  */
 function processRecord(rawRecord: RawInvestmentIncomeRecord): ProcessedInvestmentIncomeRecord {
   const transactionType = (rawRecord['Transaction Type'] || '').trim();
-  const symbol = (rawRecord['Symbol'] || '').replace(/"/g, '').trim();
-  const securityName = (rawRecord['Security Description'] || '').replace(/"/g, '').trim();
+  const symbol = removeQuotes(rawRecord['Symbol'] || '');
+  const securityName = removeQuotes(rawRecord['Security Description'] || '');
   
   return {
     date: parseDate(rawRecord['Transaction Date']),
@@ -175,7 +176,7 @@ function processRecord(rawRecord: RawInvestmentIncomeRecord): ProcessedInvestmen
     transactionType: transactionType,
     isDividend: transactionType.toLowerCase().includes('dividend'),
     isInterest: transactionType.toLowerCase().includes('interest'),
-    accountNumber: (rawRecord['Account Number'] || '').replace(/"/g, '').trim()
+    accountNumber: removeQuotes(rawRecord['Account Number'] || '')
   };
 }
 

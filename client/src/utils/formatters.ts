@@ -50,6 +50,16 @@ export const formatDate = (date: string | Date | number | undefined | null): str
 };
 
 /**
+ * Removes all quotes from a string and trims it
+ * @param str - The string to process
+ * @returns String with quotes removed
+ */
+export const removeQuotes = (str: string): string => {
+  if (!str) return '';
+  return str.replace(/["']/g, '').trim();
+};
+
+/**
  * Parse a date string in MM/DD/YYYY format into a Date object
  * @param dateStr - Date string to parse (format: MM/DD/YYYY, may be quoted)
  * @returns Parsed Date object or new Date(0) if parsing fails
@@ -59,7 +69,7 @@ export const parseDate = (dateStr: string): Date => {
   
   try {
     // Remove any quotation marks and trim
-    dateStr = dateStr.replace(/"/g, '').trim();
+    dateStr = removeQuotes(dateStr);
     
     // Parse MM/DD/YYYY format
     const parts = dateStr.split('/');
@@ -87,8 +97,11 @@ export const parseNumericValue = (valueStr: string): number => {
   if (!valueStr) return 0;
   
   try {
-    // Remove quotes, dollar signs, commas, percent signs
-    const cleanedValue = valueStr.replace(/["$,%]/g, '').trim();
+    // First remove quotes
+    const withoutQuotes = removeQuotes(valueStr);
+    
+    // Then remove dollar signs, commas, percent signs
+    const cleanedValue = withoutQuotes.replace(/[$,%]/g, '');
     
     // Handle negative values in parentheses
     if (cleanedValue.startsWith('(') && cleanedValue.endsWith(')')) {
@@ -102,4 +115,4 @@ export const parseNumericValue = (valueStr: string): number => {
   }
 };
 
-export default { formatFileSize, formatCurrency, formatDate, parseDate, parseNumericValue }; 
+export default { formatFileSize, formatCurrency, formatDate, parseDate, parseNumericValue, removeQuotes }; 

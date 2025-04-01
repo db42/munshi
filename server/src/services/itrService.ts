@@ -4,6 +4,7 @@ import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA } from '../types/itr';
 import { convertCharlesSchwabCSVToITR } from '../generators/itr/charlesSchwabToITR';
 import { convertUSCGEquityToITR, USEquityITRSections } from '../generators/itr/usCGEquityToITR';
 import { ParseResult } from '../utils/parserTypes';
+import cloneDeep from 'lodash/cloneDeep';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -45,7 +46,7 @@ const mergeCapitalGains = (existingCapGain: CapGain | undefined, newCapGain: Cap
     }
     
     // Create a deep copy to avoid mutations
-    const mergedCapGain = JSON.parse(JSON.stringify(existingCapGain)) as CapGain;
+    const mergedCapGain = cloneDeep(existingCapGain);
     
     // Merge ShortTerm
     if (mergedCapGain.ShortTerm) {
@@ -85,7 +86,7 @@ const mergeCapitalGains = (existingCapGain: CapGain | undefined, newCapGain: Cap
  */
 const updateIncomeTotals = (existingPartBTI: any, capitalGains: CapGain): any => {
     // Create a deep copy to avoid mutations
-    const updatedPartBTI = JSON.parse(JSON.stringify(existingPartBTI));
+    const updatedPartBTI = cloneDeep(existingPartBTI);
     
     // Update GrossTotalIncome and TotalIncome
     const totalCapitalGains = capitalGains.TotalCapGains;
@@ -114,7 +115,7 @@ const updateIncomeTotals = (existingPartBTI: any, capitalGains: CapGain): any =>
  */
 const mergeForeignTaxCredit = (existingPartBTTI: any, foreignTaxCredit: number): any => {
     // Create a deep copy to avoid mutations
-    const updatedPartBTTI = JSON.parse(JSON.stringify(existingPartBTTI));
+    const updatedPartBTTI = cloneDeep(existingPartBTTI);
     
     // Use type assertion to add TaxRelief property
     const partBTTI = updatedPartBTTI as any;
@@ -153,7 +154,7 @@ const mergeUSEquityITRSectionsIntoITR = (existingITR: Itr2, equityITRSections: U
     try {
         const { scheduleCG, partBTICapitalGains, partBTTIForeignTaxCredit } = equityITRSections;
         // Create a deep copy of the ITR to avoid mutations
-        const updatedITR = JSON.parse(JSON.stringify(existingITR)) as Itr2;
+        const updatedITR = cloneDeep(existingITR);
         
         // 1. Merge Schedule CG
         const updatedScheduleCG = mergeScheduleCG(updatedITR.ScheduleCGFor23, scheduleCG);

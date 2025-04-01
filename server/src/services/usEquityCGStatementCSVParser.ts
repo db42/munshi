@@ -8,6 +8,7 @@ import {
 } from '../types/usEquityStatement';
 import { calculateCapitalGains } from '../generators/itr/usCGEquityToITR';
 import { parseDate, parseNumericValue } from '../utils/formatters';
+import { removeQuotes } from '../utils/stringUtils';
 
 // Define interface for raw CSV record (as parsed from CSV)
 interface RawCapitalGainRecord {
@@ -171,8 +172,8 @@ async function parseCSVFile(filePath: string): Promise<ProcessedCapitalGainRecor
       }
       
       return {
-        symbol: (rawRecord.Symbol || '').replace(/"/g, '').trim(),
-        securityName: (rawRecord.Name || '').replace(/"/g, '').trim(),
+        symbol: removeQuotes(rawRecord.Symbol || ''),
+        securityName: removeQuotes(rawRecord.Name || ''),
         sellDate,
         acquisitionDate,
         quantity,
