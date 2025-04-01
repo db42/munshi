@@ -7,6 +7,7 @@ import {
   CapitalGainSummary
 } from '../types/usEquityStatement';
 import { calculateCapitalGains } from '../generators/itr/usCGEquityToITR';
+import { parseDate, parseNumericValue } from '../utils/formatters';
 
 // Define interface for raw CSV record (as parsed from CSV)
 interface RawCapitalGainRecord {
@@ -311,57 +312,4 @@ function convertToUSEquityStatement(
       capitalGainsTax: 0
     }
   };
-}
-
-/**
- * Helper function to parse dates in MM/DD/YYYY format
- */
-function parseDate(dateStr: string): Date {
-  if (!dateStr) return new Date(0);
-  
-  try {
-    // Remove any quotation marks
-    dateStr = dateStr.replace(/"/g, '').trim();
-    
-    // Parse MM/DD/YYYY format
-    const parts = dateStr.split('/');
-    if (parts.length === 3) {
-      const month = parts[0].padStart(2, '0');
-      const day = parts[1].padStart(2, '0');
-      const year = parts[2];
-      return new Date(`${year}-${month}-${day}T00:00:00Z`);
-    }
-    
-    console.log(`[CG_PARSER] Invalid date format: ${dateStr}`);
-    return new Date(0);
-  } catch (e) {
-    console.log(`[CG_PARSER] Error parsing date ${dateStr}: ${e}`);
-    return new Date(0);
-  }
-}
-
-/**
- * Helper function to parse numeric values from strings
- */
-function parseNumericValue(value: string): number {
-  if (!value) return 0;
-  
-  try {
-    // Remove quotes, dollar signs, commas, percent signs
-    const cleanedValue = value.replace(/["$,%]/g, '');
-    
-    // Handle negative values
-    if (cleanedValue.startsWith('(') && cleanedValue.endsWith(')')) {
-      // Negative value in parentheses (123.45) -> -123.45
-      return -1 * parseFloat(cleanedValue.substring(1, cleanedValue.length - 1)) || 0;
-    } else if (cleanedValue.startsWith('-')) {
-      // Standard negative notation -123.45
-      return parseFloat(cleanedValue) || 0;
-    }
-    
-    return parseFloat(cleanedValue) || 0;
-  } catch (e) {
-    console.log(`[CG_PARSER] Error parsing numeric value "${value}": ${e}`);
-    return 0;
-  }
 } 

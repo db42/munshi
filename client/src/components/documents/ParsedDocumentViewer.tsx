@@ -5,11 +5,13 @@ import {
   ParsedDocumentData, 
   USEquityStatementData,
   USEquityCGStatementData,
+  USInvestmentIncomeData,
   getParsedDataType 
 } from '../../types/parsedDocuments';
 import USEquityStatementViewer from './parsedDocumentViewers/USEquityStatementViewer';
 import USEquityCGStatementViewer from './parsedDocumentViewers/USEquityCGStatementViewer';
 import GenericDocumentViewer from './parsedDocumentViewers/GenericDocumentViewer';
+import USInvestmentIncomeViewer from './parsedDocumentViewers/USInvestmentIncomeViewer';
 
 interface ParsedDocumentViewerProps {
   documentType: DocumentType;
@@ -40,6 +42,11 @@ const ParsedDocumentViewer: React.FC<ParsedDocumentViewerProps> = ({
     case DocumentType.US_EQUITY_CG_STATEMENT:
     case DocumentType.US_EQUITY_CG_STATEMENT_CSV:
       return <USEquityCGStatementViewer data={parsedData as USEquityCGStatementData} />;
+    
+    case DocumentType.US_EQUITY_DIVIDEND_CSV:
+      // For dividend data, we can use the existing CG statement viewer 
+      // since it already has dividend display capabilities
+      return <USInvestmentIncomeViewer data={parsedData as USInvestmentIncomeData} />;
     
     // Add more specialized viewers as they are implemented
     

@@ -12,6 +12,7 @@ import { DocumentType, DocumentState } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
 import { parseCharlesSchwabCSV } from '../services/charlesSchwabCSVParser';
 import { parseUSEquityCGStatementCSV } from '../services/usEquityCGStatementCSVParser';
+import { parseUSEquityDividendCSV } from '../services/usEquityDividendCSVParser';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -160,6 +161,15 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
           document.assessmentYear
         );
         // console.log("Extracted Capital Gain CSV data:", JSON.stringify(extractedData, null, 2));
+        break;
+      
+      case DocumentType.US_EQUITY_DIVIDEND_CSV:
+        // Use the dedicated parser for dividend CSV statements
+        extractedData = await parseUSEquityDividendCSV(
+          document.filepath,
+          document.assessmentYear
+        );
+        console.log("Extracted Dividend CSV data:", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.FORM_26AS:

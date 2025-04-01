@@ -6,6 +6,7 @@ import { DocumentType } from './document';
 export type ParsedDocumentData = 
   | USEquityStatementData
   | USEquityCGStatementData
+  | USInvestmentIncomeData
   | Form16Data
   | GenericParsedData;
 
@@ -26,6 +27,46 @@ export interface CharlesSchwabRecord {
   price: number;
   feesAndCommissions: number;
   amount: number;
+}
+
+/**
+ * Interface for US Investment Income (dividends, interest) data
+ */
+export interface USInvestmentIncomeData {
+  // Basic information
+  taxpayerName: string;
+  taxpayerPAN: string;
+  brokerName: string;
+  brokerAccountNumber: string;
+  statementPeriod: {
+    startDate: Date | string;
+    endDate: Date | string;
+  };
+  
+  // Investment income records
+  dividends: DividendIncome[];
+  
+  // Summary information
+  taxWithheld: {
+    dividendTax: number;
+    interestTax: number;
+  };
+  
+  // Investment income specific summaries
+  summary: {
+    totalDividends: number;
+    totalQualifiedDividends: number;
+    totalNonQualifiedDividends: number;
+    totalInterestIncome: number;
+    dividendsBySymbol: Record<string, number>;
+    interestBySource: Record<string, number>;
+    totalInvestmentIncome: number;
+  };
+  
+  // Metadata
+  assessmentYear: string;
+  parserVersion?: string;
+  sourceFileType?: string;
 }
 
 /**
@@ -76,6 +117,10 @@ export interface DividendIncome {
   grossAmount: number;
   taxWithheld: number;
   netAmount: number;
+  incomeType?: string;  // 'dividend', 'interest', etc.
+  isQualifiedDividend?: boolean;
+  isInterest?: boolean;
+  sourceDescription?: string; // Additional description of the income source
 }
 
 export interface CapitalGainSummary {

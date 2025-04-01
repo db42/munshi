@@ -23,15 +23,6 @@ const USEquityCGStatementViewer: React.FC<USEquityCGStatementViewerProps> = ({ d
       minimumFractionDigits: 2,
     }).format(amount);
   };
-  
-  // Format currency without symbol for table values
-  const formatCurrencyWithoutSymbol = (amount: number): string => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'decimal',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  };
 
   // Format date
   const formatDate = (dateString: string | Date | undefined): string => {
@@ -298,10 +289,10 @@ const USEquityCGStatementViewer: React.FC<USEquityCGStatementViewerProps> = ({ d
                   <TableHead>Sell Date</TableHead>
                   <TableHead>Holding Period</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
-                  <TableHead className="text-right">Cost Basis (USD)</TableHead>
-                  <TableHead className="text-right">Proceeds (USD)</TableHead>
-                  <TableHead className="text-right">Fees (USD)</TableHead>
-                  <TableHead className="text-right">Gain/Loss (USD)</TableHead>
+                  <TableHead className="text-right">Cost Basis</TableHead>
+                  <TableHead className="text-right">Proceeds</TableHead>
+                  <TableHead className="text-right">Fees</TableHead>
+                  <TableHead className="text-right">Gain/Loss</TableHead>
                   <TableHead>Type</TableHead>
                 </TableRow>
               </TableHeader>
@@ -327,11 +318,11 @@ const USEquityCGStatementViewer: React.FC<USEquityCGStatementViewerProps> = ({ d
                         <TableCell>{formatDate(transaction.sellDate)}</TableCell>
                         <TableCell>{calculateHoldingPeriod(transaction.acquisitionDate, transaction.sellDate)}</TableCell>
                         <TableCell className="text-right">{transaction.quantity}</TableCell>
-                        <TableCell className="text-right">{formatCurrencyWithoutSymbol(transaction.totalCost)}</TableCell>
-                        <TableCell className="text-right">{formatCurrencyWithoutSymbol(transaction.totalProceeds)}</TableCell>
-                        <TableCell className="text-right text-red-600">{formatCurrencyWithoutSymbol(transaction.feesBrokerage)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(transaction.totalCost)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(transaction.totalProceeds)}</TableCell>
+                        <TableCell className="text-right text-red-600">{formatCurrency(transaction.feesBrokerage)}</TableCell>
                         <TableCell className={`text-right ${gain >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {formatCurrencyWithoutSymbol(gain)}
+                          {formatCurrency(gain)}
                         </TableCell>
                         <TableCell>
                           <span className={`px-2 py-1 text-xs rounded-full ${longTerm ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
