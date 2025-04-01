@@ -6,7 +6,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { documents } from '../services/document';
 import { parsedDocuments } from '../services/parsedDocument';
 import { logger } from '../utils/logger';
-// import { loadPDF } from '../services/pdfParserTabula';
 import { loadPDFGemini } from '../services/pdfParserGemini';
 import { DocumentType, DocumentState } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
@@ -92,7 +91,7 @@ const validateUploadRequest = (req: express.Request, res: express.Response, next
 };
 
 // create new endpoint /process to process an already uploaded pdf file. this function will call 
-// loadPDF function from pdfParserTabula service. it'll insert the extracted json to table called processed_document
+// loadPDFGemini function from pdfParserGemini service. it'll insert the extracted json to table called processed_document
 router.post('/process', async (req: express.Request, res: express.Response) => {
   try {
     const { documentId } = req.body;
