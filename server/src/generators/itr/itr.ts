@@ -8,6 +8,7 @@ import { ParseResult } from '../../utils/parserTypes';
 import cloneDeep from 'lodash/cloneDeep';
 import { logger } from '../../utils/logger';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
+import { calculatePartBTI } from './partBTI';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -472,97 +473,6 @@ const mergeITRSections = (existingITR: Itr2, sections: ITRSection[]): Itr2 => {
         console.error(`Failed to merge ITR sections: ${error}`);
         return existingITR; // Return original ITR if merge fails
     }
-};
-
-/**
- * Calculates PartB_TI based on all merged ITR sections
- * 
- * This centralized function calculates income totals across all sections:
- * - Salary income from ScheduleS
- * - Income from Other Sources (dividends, interest) from ScheduleOS
- * - Capital Gains from ScheduleCG
- * 
- * @param itr - The ITR object with merged sections
- * @returns The calculated PartB_TI section
- */
-const calculatePartBTI = (itr: Itr2): PartBTI => {
-    // Start with a base PartB_TI
-    const partBTI: PartBTI = {
-        TotalIncome: 0,
-        CurrentYearLoss: 0,
-        GrossTotalIncome: 0,
-        AggregateIncome: 0,
-        BalanceAfterSetoffLosses: 0,
-        BroughtFwdLossesSetoff: 0,
-        CapGain: {
-            CapGains30Per115BBH: 0,
-            LongTerm: {
-                LongTerm10Per: 0,
-                LongTerm20Per: 0,
-                LongTermSplRateDTAA: 0,
-                TotalLongTerm: 0
-            },
-            ShortTerm: {
-                ShortTerm15Per: 0,
-                ShortTerm30Per: 0,
-                ShortTermAppRate: 0,
-                ShortTermSplRateDTAA: 0,
-                TotalShortTerm: 0
-            },
-            ShortTermLongTermTotal: 0,
-            TotalCapGains: 0
-        },
-        DeductionsUnderScheduleVIA: 0,
-        DeemedIncomeUs115JC: 0,
-        IncChargeTaxSplRate111A112: 0,
-        IncChargeableTaxSplRates: 0,
-        IncFromOS: {
-            FromOwnRaceHorse: 0,
-            IncChargblSplRate: 0,
-            OtherSrcThanOwnRaceHorse: 0,
-            TotIncFromOS: 0
-        },
-        IncomeFromHP: 0,
-        LossesOfCurrentYearCarriedFwd: 0,
-        NetAgricultureIncomeOrOtherIncomeForRate: 0,
-        Salaries: 0,
-        TotalTI: 0
-    };
-    
-    // Calculate income from salary (ScheduleS)
-    let salaryIncome = 0;
-    if (itr.ScheduleS) {
-        // Get salary details from ScheduleS - implementation depends on actual structure
-        // For now, we're just using a placeholder value
-        salaryIncome = 0; // To be implemented based on actual ScheduleS structure
-    }
-    
-    // Calculate income from other sources (ScheduleOS)
-    let incomeFromOS = 0;
-    if (itr.ScheduleOS) {
-        // ScheduleOS has a direct IncChargeable property 
-        incomeFromOS = itr.ScheduleOS.IncChargeable || 0;
-    }
-    
-    // Calculate capital gains (ScheduleCGFor23)
-    let capitalGains = 0;
-    if (itr.ScheduleCGFor23) {
-        // Need to extract capital gains from the structure
-        // We'll just use a placeholder value for now
-        capitalGains = 0; // To be implemented based on actual ScheduleCGFor23 structure
-    }
-    
-    // Calculate Gross Total Income
-    const grossTotalIncome = salaryIncome + incomeFromOS + capitalGains;
-    
-    // Update PartB_TI values
-    partBTI.Salaries = salaryIncome;
-    partBTI.IncFromOS.TotIncFromOS = incomeFromOS;
-    partBTI.CapGain.TotalCapGains = capitalGains;
-    partBTI.GrossTotalIncome = grossTotalIncome;
-    partBTI.TotalIncome = grossTotalIncome; // For now, without deductions
-    
-    return partBTI;
 };
 
 export const generateITR = () => async (

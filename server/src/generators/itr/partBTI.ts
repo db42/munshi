@@ -1,5 +1,5 @@
 import { Form16 } from '../../types/form16';
-import { PartBTI } from '../../types/itr';
+import { Itr2, PartBTI } from '../../types/itr';
 
 /**
  * Processes Part B-TI (Computation of Total Income) of ITR-2
@@ -150,4 +150,114 @@ export const processPartBTI = (form16: Form16): PartBTI => {
         // Adjusted Total Income for AMT calculation
         DeemedIncomeUs115JC: 0
     };
+};
+
+/**
+ * Calculates PartB_TI based on all merged ITR sections
+ * 
+ * This centralized function calculates income totals across all sections:
+ * - Salary income from ScheduleS
+ * - Income from Other Sources (dividends, interest) from ScheduleOS
+ * - Capital Gains from ScheduleCG
+ * 
+ * @param itr - The ITR object with merged sections
+ * @returns The calculated PartB_TI section
+ */
+export const calculatePartBTI = (itr: Itr2): PartBTI => {
+    // Start with a base PartB_TI
+    const partBTI: PartBTI = {
+        TotalIncome: 0,
+        CurrentYearLoss: 0,
+        GrossTotalIncome: 0,
+        AggregateIncome: 0,
+        BalanceAfterSetoffLosses: 0,
+        BroughtFwdLossesSetoff: 0,
+        CapGain: {
+            CapGains30Per115BBH: 0,
+            LongTerm: {
+                LongTerm10Per: 0,
+                LongTerm20Per: 0,
+                LongTermSplRateDTAA: 0,
+                TotalLongTerm: 0
+            },
+            ShortTerm: {
+                ShortTerm15Per: 0,
+                ShortTerm30Per: 0,
+                ShortTermAppRate: 0,
+                ShortTermSplRateDTAA: 0,
+                TotalShortTerm: 0
+            },
+            ShortTermLongTermTotal: 0,
+            TotalCapGains: 0
+        },
+        DeductionsUnderScheduleVIA: 0,
+        DeemedIncomeUs115JC: 0,
+        IncChargeTaxSplRate111A112: 0,
+        IncChargeableTaxSplRates: 0,
+        IncFromOS: {
+            FromOwnRaceHorse: 0,
+            IncChargblSplRate: 0,
+            OtherSrcThanOwnRaceHorse: 0,
+            TotIncFromOS: 0
+        },
+        IncomeFromHP: 0,
+        LossesOfCurrentYearCarriedFwd: 0,
+        NetAgricultureIncomeOrOtherIncomeForRate: 0,
+        Salaries: 0,
+        TotalTI: 0
+    };
+    
+    // Calculate income from salary (ScheduleS)
+    let salaryIncome = 0;
+    if (itr.ScheduleS) {
+        // Extract salary income from ScheduleS using TotIncUnderHeadSalaries
+        salaryIncome = itr.ScheduleS.TotIncUnderHeadSalaries || 0;
+        
+        // If TotIncUnderHeadSalaries isn't available, calculate from other fields
+        if (salaryIncome === 0 && itr.ScheduleS.TotalGrossSalary !== undefined) {
+            const grossSalary = itr.ScheduleS.TotalGrossSalary || 0;
+            const deductions = itr.ScheduleS.DeductionUS16 || 0;
+            salaryIncome = Math.max(0, grossSalary - deductions);
+        }
+    }
+    
+    // Calculate income from other sources (ScheduleOS)
+    let incomeFromOS = 0;
+    if (itr.ScheduleOS) {
+        // Extract income from other sources
+        incomeFromOS = itr.ScheduleOS.IncChargeable || 0;
+        
+        // Update PartB_TI structure for other sources
+        partBTI.IncFromOS.OtherSrcThanOwnRaceHorse = incomeFromOS;
+        partBTI.IncFromOS.TotIncFromOS = incomeFromOS;
+    }
+    
+    // Calculate capital gains (ScheduleCGFor23)
+    let capitalGains = 0;
+    if (itr.ScheduleCGFor23) {
+        // Use the total capital gains directly from the schedule
+        capitalGains = itr.ScheduleCGFor23.SumOfCGIncm || 0;
+        
+        // Update total capital gains in PartB_TI
+        partBTI.CapGain.TotalCapGains = capitalGains;
+        partBTI.CapGain.ShortTermLongTermTotal = capitalGains;
+    }
+    
+    // Calculate Gross Total Income
+    const grossTotalIncome = salaryIncome + incomeFromOS + capitalGains;
+    
+    // Update PartB_TI values
+    partBTI.Salaries = salaryIncome;
+    partBTI.GrossTotalIncome = grossTotalIncome;
+    partBTI.TotalTI = grossTotalIncome;
+    
+    // Apply deductions if available
+    const deductions = 0;
+    
+    // Calculate final total income
+    const totalIncome = Math.max(0, grossTotalIncome - deductions);
+    partBTI.TotalIncome = totalIncome;
+    partBTI.AggregateIncome = totalIncome;
+    
+    return partBTI;
 };
