@@ -6,7 +6,7 @@ import {
   USCGEquityTransaction, 
   CapitalGainSummary
 } from '../types/usEquityStatement';
-import { calculateCapitalGains } from '../generators/itr/usCGEquityToITR';
+import { calculateCapitalGains } from '../document-processors/usCGEquityToITR';
 import { parseDate, parseNumericValue } from '../utils/formatters';
 import { removeQuotes } from '../utils/stringUtils';
 

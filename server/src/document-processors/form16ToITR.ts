@@ -1,11 +1,11 @@
-import { Form16 } from '../../types/form16';
-import { CreationInfo, FormITR2, PartAGEN1, ScheduleS, Verification } from '../../types/itr';
+import { Form16 } from '../types/form16';
+import { CreationInfo, FormITR2, PartAGEN1, ScheduleS, Verification } from '../types/itr';
 import { processCreationInfo } from './creationInfo';
 import { processFormITR2 } from './formITR2';
 import { processPartAGEN1 } from './partAGEN1';
 import { processScheduleS } from './scheduleS';
 import { initializeVerification } from './initializers';
-import { ParseResult } from '../../utils/parserTypes';
+import { ParseResult } from '../utils/parserTypes';
 
 /**
  * Interface for ITR sections generated from Form 16 data

@@ -1,5 +1,5 @@
 import express from 'express';
-import { itrService } from '../services/itrService';
+import { itrGenerator } from '../generators/itr/itr';
 // import { generateITR } from '@/services/itrService';
 
 const router = express.Router();
@@ -8,7 +8,7 @@ router.get('/:userId/:assessmentYear', async (req: express.Request, res: express
     try {
         const { userId, assessmentYear } = req.params;
         
-        const itrData = await itrService.generateITR(
+        const itrData = await itrGenerator.generateITR(
             parseInt(userId),
             assessmentYear
         );

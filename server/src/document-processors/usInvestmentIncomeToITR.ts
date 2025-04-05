@@ -1,8 +1,8 @@
-import { USInvestmentIncome, DividendIncome } from '../../types/usEquityStatement';
-import { ParseResult } from '../../utils/parserTypes';
+import { USInvestmentIncome, DividendIncome } from '../types/usEquityStatement';
+import { ParseResult } from '../utils/parserTypes';
 import { DateRangeType, ScheduleOS, ScheduleTR1, ScheduleTR, ScheduleFSI, ScheduleFSIDtls, 
          ScheduleFSIIncType, TotalScheduleFSIIncType, CountryCodeExcludingIndia, 
-         ReliefClaimedUsSection, AssetOutIndiaFlag } from '../../types/itr';
+         ReliefClaimedUsSection, AssetOutIndiaFlag } from '../types/itr';
 
 /**
  * Interface for ITR sections generated from US investment income data

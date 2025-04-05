@@ -1,8 +1,8 @@
-import { CharlesSchwabCSVData, TransactionAction, CharlesSchwabRecord} from '../../services/charlesSchwabCSVParser';
-import { ScheduleFA } from '../../types/itr';
-import { getFinancialYear, getRelevantDates, identifyCalendarYear, ParseResult } from '../../utils/parserTypes';
-import { findPeakPrice, findPrice } from '../../utils/equityPriceUtils';
-import { getExchangeRate } from '../../utils/currencyConverter';
+import { CharlesSchwabCSVData, TransactionAction, CharlesSchwabRecord} from '../document-parsers/charlesSchwabCSVParser';
+import { ScheduleFA } from '../types/itr';
+import { getFinancialYear, getRelevantDates, identifyCalendarYear, ParseResult } from '../utils/parserTypes';
+import { findPeakPrice, findPrice } from '../utils/equityPriceUtils';
+import { getExchangeRate } from '../utils/currencyConverter';
 
 // {
 //     "Country": "United States",

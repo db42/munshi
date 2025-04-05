@@ -1,6 +1,6 @@
-import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../../types/usEquityStatement';
-import { ShortTerm, LongTerm } from '../../types/itr';
-import { ParseResult, getFinancialYear } from '../../utils/parserTypes';
+import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../types/usEquityStatement';
+import { ShortTerm, LongTerm } from '../types/itr';
+import { ParseResult, getFinancialYear } from '../utils/parserTypes';
 
 import { 
     ScheduleCGFor23, 
@@ -22,13 +22,12 @@ import {
     DeducClaimInfo,
     MFSectionCode,
     CapGain
-} from '../../types/itr';
-import { getExchangeRate, convertUSDtoINR } from '../../utils/currencyConverter';
+} from '../types/itr';
+import { getExchangeRate, convertUSDtoINR } from '../utils/currencyConverter';
 
 // Define the interface for ITR sections
 export interface USEquityITRSections {
     scheduleCG: ScheduleCGFor23;
-    partBTTIForeignTaxCredit: number;
 }
 
 /**
@@ -481,30 +480,6 @@ const generateScheduleCG = (
 }; 
 
 /**
- * Generates foreign tax credit information from US equity data for PartB-TTI
- * 
- * @param usEquityData - Parsed US equity statement data
- * @returns Foreign tax credit amount for PartB-TTI
- */
-const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): number => {
-  // Get the tax withheld on capital gains directly from the source data
-  const capitalGainsTaxWithheld = usEquityData.taxWithheld?.capitalGainsTax || 0;
-  
-  // Log the foreign tax credit calculation
-  console.log(`Foreign Tax Credit Calculation:`);
-  console.log(`  Capital Gains Tax Withheld: ${capitalGainsTaxWithheld}`);
-  
-  // In a real implementation, you would calculate the allowable foreign tax credit
-  // based on the tax treaty between India and the US
-  // Typically, the foreign tax credit is limited to the lower of:
-  // 1. The foreign tax paid
-  // 2. The domestic tax payable on the foreign income
-  
-  // For now, we'll just return the tax withheld
-  return capitalGainsTaxWithheld;
-};
-
-/**
  * Converts US capital gains equity data to ITR sections
  * 
  * @param usEquityData - Data from US equity capital gain statement
@@ -516,15 +491,11 @@ export const convertUSCGEquityToITR = (usEquityData: USEquityStatement, assessme
         // Generate Schedule CG for capital gains
         const scheduleCG = generateScheduleCG(usEquityData, assessmentYear);
         
-        // Generate foreign tax credit for Part B-TTI
-        const partBTTIForeignTaxCredit = generatePartBTTIForeignTaxCredit(usEquityData);
-        
         // Return the generated ITR sections
         return {
             success: true,
             data: {
-                scheduleCG,
-                partBTTIForeignTaxCredit
+                scheduleCG
             }
         };
     } catch (error) {

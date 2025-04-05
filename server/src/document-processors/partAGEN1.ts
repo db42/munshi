@@ -1,5 +1,5 @@
-import { Form16 } from '../../types/form16';
-import { CountryCode, PartAGEN1, ResidentialStatus, StateCode, Status, TaxRescertifiedFlag } from '../../types/itr';
+import { Form16 } from '../types/form16';
+import { CountryCode, PartAGEN1, ResidentialStatus, StateCode, Status, TaxRescertifiedFlag } from '../types/itr';
 
 export const processPartAGEN1 = (form16: Form16): PartAGEN1 => ({
     PersonalInfo: {

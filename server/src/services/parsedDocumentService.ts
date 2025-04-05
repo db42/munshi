@@ -1,7 +1,7 @@
 import { DocumentType } from '../types/document';
 import { Pool, QueryResult } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
-import { CharlesSchwabCSVData } from './charlesSchwabCSVParser';
+import { CharlesSchwabCSVData } from '../document-parsers/charlesSchwabCSVParser';
 import { ParseResult } from '../utils/parserTypes';
 import { USInvestmentIncome, DividendIncome } from '../types/usEquityStatement';
 

@@ -1,4 +1,4 @@
-import { Capacity, Declaration, ScheduleBFLA, ScheduleCYLA, Verification } from '../../types/itr';
+import { Capacity, Declaration, ScheduleBFLA, ScheduleCYLA, Verification } from '../types/itr';
 
 /**
  * Initializes Schedule BFLA (Brought Forward Loss Adjustment)

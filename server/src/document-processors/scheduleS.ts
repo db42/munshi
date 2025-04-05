@@ -1,5 +1,5 @@
-import { Form16 } from '../../types/form16';
-import { NatureOfEmployment, ScheduleS, StateCode } from '../../types/itr';
+import { Form16 } from '../types/form16';
+import { NatureOfEmployment, ScheduleS, StateCode } from '../types/itr';
 
 export const processScheduleS = (form16: Form16): ScheduleS => ({
   //form16.employer.address is of the following format: 3rd FLOOR, 24TH MAIN RD, INDIQUBE ORION, BANGALORE, - 560102 Karnataka

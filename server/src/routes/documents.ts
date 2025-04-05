@@ -6,12 +6,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { documents } from '../services/document';
 import { parsedDocuments } from '../services/parsedDocument';
 import { logger } from '../utils/logger';
-import { loadPDFGemini } from '../services/pdfParserGemini';
+import { loadPDFGemini } from '../document-parsers/pdfParserGemini';
 import { DocumentType, DocumentState } from '../types/document';
-import { parseUSEquityPDFWithGemini } from '../services/geminiUSEquityPDFParser';
-import { parseCharlesSchwabCSV } from '../services/charlesSchwabCSVParser';
-import { parseUSEquityCGStatementCSV } from '../services/usEquityCGStatementCSVParser';
-import { parseUSEquityDividendCSV } from '../services/usEquityDividendCSVParser';
+import { parseUSEquityPDFWithGemini } from '../document-parsers/geminiUSEquityPDFParser';
+import { parseCharlesSchwabCSV } from '../document-parsers/charlesSchwabCSVParser';
+import { parseUSEquityCGStatementCSV } from '../document-parsers/usEquityCGStatementCSVParser';
+import { parseUSEquityDividendCSV } from '../document-parsers/usEquityDividendCSVParser';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({

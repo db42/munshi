@@ -1,5 +1,5 @@
-import { Form16 } from '../../types/form16';
-import { CreationInfo } from '../../types/itr';
+import { Form16 } from '../types/form16';
+import { CreationInfo } from '../types/itr';
 
 export const processCreationInfo = (form16: Form16): CreationInfo => ({
     SWVersionNo: "1.0",

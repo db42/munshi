@@ -1,5 +1,5 @@
-import { Form16 } from '../../types/form16';
-import { FormITR2 } from '../../types/itr';
+import { Form16 } from '../types/form16';
+import { FormITR2 } from '../types/itr';
 
 export const processFormITR2 = (form16: Form16): FormITR2 => ({
     FormName: "ITR-2",

@@ -7,7 +7,7 @@ import {
   CapitalGainSummary 
 } from '../types/usEquityStatement';
 import * as sampleData from './sampleUSEquityJsonGeminiPrompt.json';
-import { defaultConfig, Config } from "./geminiConfig";
+import { defaultConfig, Config } from "../config/geminiConfig";
 import { ParseResult } from '../utils/parserTypes';
 
 /**

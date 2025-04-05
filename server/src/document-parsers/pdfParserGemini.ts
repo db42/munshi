@@ -8,7 +8,7 @@ import {
   SalaryDetails,
 } from '../types/form16';
 import * as sampleData from './sampleForm16JsonGeminiPrompt.json';
-import { Config, defaultConfig } from "./geminiConfig";
+import { Config, defaultConfig } from "../config/geminiConfig";
 import { ParseResult } from '../utils/parserTypes';
 
 console.log(defaultConfig);

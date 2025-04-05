@@ -1,12 +1,13 @@
-import { parsedDocuments } from './parsedDocument';
-import { convertForm16ToITR, Form16ITRSections } from '../generators/itr/form16ToITR';
-import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI } from '../types/itr';
-import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../generators/itr/charlesSchwabToITR';
-import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../generators/itr/usCGEquityToITR';
-import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../generators/itr/usInvestmentIncomeToITR';
-import { ParseResult } from '../utils/parserTypes';
+import { parsedDocuments } from '../../services/parsedDocument';
+import { convertForm16ToITR, Form16ITRSections } from '../../document-processors/form16ToITR';
+import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI } from '../../types/itr';
+import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
+import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
+import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../../document-processors/usInvestmentIncomeToITR';
+import { ParseResult } from '../../utils/parserTypes';
 import cloneDeep from 'lodash/cloneDeep';
-import { logger } from '../utils/logger';
+import { logger } from '../../utils/logger';
+import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -20,7 +21,6 @@ export interface ITRData {
  */
 export enum ITRSectionType {
     SCHEDULE_CG = 'ScheduleCGFor23',
-    PART_B_TTI_FOREIGN_TAX_CREDIT = 'PartB_TTI.ForeignTaxCredit',
     SCHEDULE_FA = 'ScheduleFA',
     SCHEDULE_OS = 'ScheduleOS',
     SCHEDULE_TR1 = 'ScheduleTR1',
@@ -61,21 +61,6 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
         }
         return itr;
     },
-    [ITRSectionType.PART_B_TTI_FOREIGN_TAX_CREDIT]: (itr, section) => {
-        const foreignTaxCredit = section.data as number;
-        if (!itr.PartB_TTI) {
-            // Handle this case if necessary
-            return itr;
-        }
-        
-        // Update Foreign Tax Credit in PartB-TTI
-        itr = {
-            ...itr,
-            PartB_TTI: mergeForeignTaxCredit(itr.PartB_TTI, foreignTaxCredit)
-        };
-        
-        return itr;
-    },
     [ITRSectionType.SCHEDULE_FA]: (itr, section) => {
         const scheduleFA = section.data as ScheduleFA;
         itr = {
@@ -84,7 +69,6 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
         };
         return itr;
     },
-    
     // New transformers for full section handling
     [ITRSectionType.SCHEDULE_OS]: (itr, section) => {
         const scheduleOS = section.data as Partial<ScheduleOS>;
@@ -184,40 +168,6 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
             itr = {
                 ...itr,
                 ScheduleTR1: updatedScheduleTR1
-            };
-        }
-        
-        // Also update the tax relief in PartB_TTI if it exists
-        if (itr.PartB_TTI && itr.PartB_TTI.ComputationOfTaxLiability && scheduleTR1.TotalTaxReliefOutsideIndia) {
-            const foreignTaxCredit = scheduleTR1.TotalTaxReliefOutsideIndia;
-            const updatedPartBTTI = {
-                ...itr.PartB_TTI,
-                ComputationOfTaxLiability: {
-                    ...itr.PartB_TTI.ComputationOfTaxLiability
-                }
-            };
-            
-            // Add or update TaxRelief
-            if (!updatedPartBTTI.ComputationOfTaxLiability.TaxRelief) {
-                updatedPartBTTI.ComputationOfTaxLiability.TaxRelief = {
-                    Section89: 0,
-                    Section90: foreignTaxCredit,
-                    Section91: 0,
-                    TotTaxRelief: foreignTaxCredit
-                };
-            } else {
-                updatedPartBTTI.ComputationOfTaxLiability.TaxRelief = {
-                    ...updatedPartBTTI.ComputationOfTaxLiability.TaxRelief,
-                    Section90: (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 || 0) + 
-                               foreignTaxCredit,
-                    TotTaxRelief: (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.TotTaxRelief || 0) + 
-                                   foreignTaxCredit
-                };
-            }
-            
-            itr = {
-                ...itr,
-                PartB_TTI: updatedPartBTTI
             };
         }
         
@@ -486,19 +436,14 @@ const mergeForeignTaxCredit = (existingPartBTTI: PartBTTI, foreignTaxCredit: num
  * Converts USEquityITRSections to ITRSection array
  */
 const convertEquityITRSectionsToITRSections = (
-    equityITRSections: USEquityITRSections,
-    source = 'USEquityStatement'
+    equityITRSections: USEquityITRSections
 ): ITRSection[] => {
-    const { scheduleCG, partBTTIForeignTaxCredit } = equityITRSections;
+    const { scheduleCG } = equityITRSections;
     
     return [
         {
             type: ITRSectionType.SCHEDULE_CG,
             data: scheduleCG,
-        },
-        {
-            type: ITRSectionType.PART_B_TTI_FOREIGN_TAX_CREDIT,
-            data: partBTTIForeignTaxCredit,
         }
     ];
 };
@@ -728,9 +673,18 @@ export const generateITR = () => async (
     const partBTI = calculatePartBTI(mergedITR);
     
     // Update the ITR with the calculated PartB_TI
-    const finalITR = {
+    let finalITR: Itr2 = {
         ...mergedITR,
         PartB_TI: partBTI
+    };
+    
+    // Calculate Part B-TTI based on PartB_TI and other sections
+    const partBTTI = calculatePartBTTI(finalITR, TaxRegimePreference.AUTO);
+    
+    // Update the ITR with the calculated PartB_TTI
+    finalITR = {
+        ...finalITR,
+        PartB_TTI: partBTTI
     };
 
     return {
@@ -741,7 +695,7 @@ export const generateITR = () => async (
 };
 
 // Create the service wrapper
-export const itrService = {
+export const itrGenerator = {
     // getForm16Data: getForm16Data(pool),
     generateITR: generateITR()
 };
