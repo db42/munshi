@@ -3,6 +3,7 @@ import { Pool, QueryResult } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import { CharlesSchwabCSVData } from './charlesSchwabCSVParser';
 import { ParseResult } from '../utils/parserTypes';
+import { USInvestmentIncome, DividendIncome } from '../types/usEquityStatement';
 
 // Types
 export type ParsedDocumentState = 'pending' | 'success' | 'error';
@@ -299,5 +300,52 @@ export const getCharlesSchwabCSVData1 = (pool: Pool) => async (
   return {
     success: false,
     error: 'No data found'
+  };
+};
+
+// Get US Equity Dividend Income data for a user and assessment year
+export const getUSEquityDividendIncome = (pool: Pool) => async (
+  userId: number,
+  assessmentYear: string
+): Promise<ParseResult<USInvestmentIncome>> => {
+  const query = `
+    SELECT pd.* 
+    FROM parsed_documents pd
+    JOIN documents d ON pd.document_id = d.id
+    WHERE d.owner_id = $1
+    AND d.assessment_year = $2
+    AND pd.json_schema_type = '${DocumentType.US_EQUITY_DIVIDEND_CSV}'
+    ORDER BY pd.updated_at DESC
+    LIMIT 1
+  `;
+
+  const result = await executeQuery(pool, query, [userId, assessmentYear]);
+  if (result.rows.length && result.rows[0].parsed_data.data) {
+    // Get the parsed investment income data
+    const investmentIncomeData: USInvestmentIncome = result.rows[0].parsed_data.data;
+    
+    // Ensure dates are properly formatted as Date objects
+    const formattedData = {
+      ...investmentIncomeData,
+      statementPeriod: {
+        startDate: new Date(investmentIncomeData.statementPeriod.startDate),
+        endDate: new Date(investmentIncomeData.statementPeriod.endDate)
+      },
+      // Format dividend payment dates
+      dividends: investmentIncomeData.dividends.map((dividend: DividendIncome) => ({
+        ...dividend,
+        paymentDate: new Date(dividend.paymentDate)
+      }))
+    };
+    
+    return {
+      success: true,
+      data: formattedData
+    };
+  }
+  
+  return {
+    success: false,
+    error: 'No US investment income data found'
   };
 };
