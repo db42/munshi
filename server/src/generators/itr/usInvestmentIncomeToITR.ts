@@ -2,7 +2,7 @@ import { USInvestmentIncome, DividendIncome } from '../../types/usEquityStatemen
 import { ParseResult } from '../../utils/parserTypes';
 import { DateRangeType, ScheduleOS, ScheduleTR1, ScheduleTR, ScheduleFSI, ScheduleFSIDtls, 
          ScheduleFSIIncType, TotalScheduleFSIIncType, CountryCodeExcludingIndia, 
-         ReliefClaimedUsSection, AssetOutIndiaFlag, IncFromOS } from '../../types/itr';
+         ReliefClaimedUsSection, AssetOutIndiaFlag } from '../../types/itr';
 
 /**
  * Interface for ITR sections generated from US investment income data
@@ -11,7 +11,6 @@ export interface USInvestmentIncomeITRSections {
   scheduleOS: Partial<ScheduleOS>;
   scheduleTR1: Partial<ScheduleTR1>;
   scheduleFSI: ScheduleFSI;
-  partBTIIncomeFromOS: IncFromOS;
 }
 
 /**
@@ -168,91 +167,43 @@ function generateScheduleFSI(investmentIncomeData: USInvestmentIncome): Schedule
 }
 
 /**
- * Generate Part B-TI Income from Other Sources
- */
-function generatePartBTIIncomeFromOS(investmentIncomeData: USInvestmentIncome): IncFromOS {
-  // Calculate total investment income
-  const totalDividendIncome = investmentIncomeData.summary.totalDividends || 
-    investmentIncomeData.dividends
-      .filter(div => !div.isInterest)
-      .reduce((sum, div) => sum + div.grossAmount, 0);
-  
-  const totalInterestIncome = investmentIncomeData.summary.totalInterestIncome || 
-    investmentIncomeData.dividends
-      .filter(div => div.isInterest)
-      .reduce((sum, div) => sum + div.grossAmount, 0);
-  
-  const totalInvestmentIncome = totalDividendIncome + totalInterestIncome;
-  
-  // Create Part B-TI Income from Other Sources
-  return {
-    FromOwnRaceHorse: 0,
-    OtherSrcThanOwnRaceHorse: totalInvestmentIncome,
-    IncChargblSplRate: 0,
-    TotIncFromOS: totalInvestmentIncome
-  };
-}
-
-/**
  * Convert US Investment Income data to ITR sections
  * 
  * This function creates complete ITR schedule objects that can be
  * directly merged into the main ITR structure.
  * 
- * @param investmentIncomeData - Parsed US investment income data
+ * @param investmentIncomeData - Processed US investment income data
  * @param assessmentYear - Assessment year in format YYYY-YY
- * @returns Object containing complete ITR sections
+ * @returns ParseResult containing the generated ITR sections
  */
 export const convertUSInvestmentIncomeToITRSections = (
   investmentIncomeData: USInvestmentIncome,
   assessmentYear: string
 ): ParseResult<USInvestmentIncomeITRSections> => {
   try {
-    console.log(`[INV_INCOME_TO_ITR] Processing investment income for ${assessmentYear}`);
-    
-    // Generate all ITR sections
+    // Generate Schedule OS for dividend income
     const scheduleOS = generateScheduleOS(investmentIncomeData);
+    
+    // Generate Schedule TR1 for tax relief
     const scheduleTR1 = generateScheduleTR1(investmentIncomeData);
+    
+    // Generate Schedule FSI for foreign source income
     const scheduleFSI = generateScheduleFSI(investmentIncomeData);
-    const partBTIIncomeFromOS = generatePartBTIIncomeFromOS(investmentIncomeData);
     
-    // Calculate totals for logging
-    const totalDividendIncome = investmentIncomeData.summary.totalDividends || 
-      investmentIncomeData.dividends
-        .filter(div => !div.isInterest)
-        .reduce((sum, div) => sum + div.grossAmount, 0);
-    
-    const totalInterestIncome = investmentIncomeData.summary.totalInterestIncome || 
-      investmentIncomeData.dividends
-        .filter(div => div.isInterest)
-        .reduce((sum, div) => sum + div.grossAmount, 0);
-    
-    const totalTaxWithheld = 
-      investmentIncomeData.taxWithheld.dividendTax + 
-      investmentIncomeData.taxWithheld.interestTax;
-    
-    // Create the result object with complete ITR sections
-    const result: USInvestmentIncomeITRSections = {
-      scheduleOS,
-      scheduleTR1,
-      scheduleFSI,
-      partBTIIncomeFromOS
-    };
-    
-    console.log(`[INV_INCOME_TO_ITR] Generated complete ITR sections for investment income`);
-    console.log(`[INV_INCOME_TO_ITR] Total dividend income: ${totalDividendIncome}`);
-    console.log(`[INV_INCOME_TO_ITR] Total interest income: ${totalInterestIncome}`);
-    console.log(`[INV_INCOME_TO_ITR] Total tax withheld: ${totalTaxWithheld}`);
-    
+    // Return the generated ITR sections
     return {
       success: true,
-      data: result
+      data: {
+        scheduleOS,
+        scheduleTR1,
+        scheduleFSI
+      }
     };
   } catch (error) {
-    console.error(`[INV_INCOME_TO_ITR] Error converting investment income to ITR:`, error);
+    console.error("Error generating ITR sections from US investment income:", error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error processing investment income'
+      error: error instanceof Error ? error.message : String(error)
     };
   }
 }; 

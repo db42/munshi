@@ -28,7 +28,6 @@ import { getExchangeRate, convertUSDtoINR } from '../../utils/currencyConverter'
 // Define the interface for ITR sections
 export interface USEquityITRSections {
     scheduleCG: ScheduleCGFor23;
-    partBTICapitalGains: CapGain;
     partBTTIForeignTaxCredit: number;
 }
 
@@ -482,40 +481,6 @@ const generateScheduleCG = (
 }; 
 
 /**
- * Generates Capital Gains section for PartB-TI from US equity data
- * 
- * @param scheduleCG - Schedule CG data containing capital gains information
- * @returns CapGain object with capital gains information for PartB-TI
- */
-const generatePartBTICapitalGains = (scheduleCG: ScheduleCGFor23): CapGain => {
-  const shortTermGains = scheduleCG.ShortTermCapGainFor23.TotalSTCG || 0;
-  const longTermGains = scheduleCG.LongTermCapGain23.TotalLTCG || 0;
-  
-  const shortTerm: ShortTerm = {
-    ShortTerm15Per: shortTermGains,
-    ShortTerm30Per: 0,
-    ShortTermAppRate: 0,
-    ShortTermSplRateDTAA: 0,
-    TotalShortTerm: shortTermGains
-  };
-  
-  const longTerm: LongTerm = {
-    LongTerm10Per: longTermGains,
-    LongTerm20Per: 0,
-    LongTermSplRateDTAA: 0,
-    TotalLongTerm: longTermGains
-  };
-  
-  return {
-    ShortTerm: shortTerm,
-    LongTerm: longTerm,
-    ShortTermLongTermTotal: shortTermGains + longTermGains,
-    TotalCapGains: shortTermGains + longTermGains,
-    CapGains30Per115BBH: 0
-  };
-};
-
-/**
  * Generates foreign tax credit information from US equity data for PartB-TTI
  * 
  * @param usEquityData - Parsed US equity statement data
@@ -540,28 +505,33 @@ const generatePartBTTIForeignTaxCredit = (usEquityData: USEquityStatement): numb
 };
 
 /**
- * Convert US CG Equity data to ITR sections
+ * Converts US capital gains equity data to ITR sections
  * 
- * @param usEquityData - Parsed US equity statement data
+ * @param usEquityData - Data from US equity capital gain statement
  * @param assessmentYear - Assessment year in format YYYY-YY
- * @returns Object containing the generated ITR sections
+ * @returns Generated ITR sections
  */
 export const convertUSCGEquityToITR = (usEquityData: USEquityStatement, assessmentYear: string): ParseResult<USEquityITRSections> => {
-  // Generate Schedule CG
-  const scheduleCG = generateScheduleCG(usEquityData, assessmentYear);
-  
-  // Generate Part B-TI Capital Gains
-  const partBTICapitalGains = generatePartBTICapitalGains(scheduleCG);
-  
-  // Generate Part B-TTI Foreign Tax Credit
-  const partBTTIForeignTaxCredit = generatePartBTTIForeignTaxCredit(usEquityData);
-  
-  return {
-    success: true,
-    data: {
-      scheduleCG,
-      partBTICapitalGains,
-      partBTTIForeignTaxCredit
+    try {
+        // Generate Schedule CG for capital gains
+        const scheduleCG = generateScheduleCG(usEquityData, assessmentYear);
+        
+        // Generate foreign tax credit for Part B-TTI
+        const partBTTIForeignTaxCredit = generatePartBTTIForeignTaxCredit(usEquityData);
+        
+        // Return the generated ITR sections
+        return {
+            success: true,
+            data: {
+                scheduleCG,
+                partBTTIForeignTaxCredit
+            }
+        };
+    } catch (error) {
+        console.error("Error generating ITR sections from US equity data:", error);
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error)
+        };
     }
-  };
 }; 

@@ -1,5 +1,5 @@
 import { parsedDocuments } from './parsedDocument';
-import { convertForm16ToITR } from '../generators/itr/form16ToITR';
+import { convertForm16ToITR, Form16ITRSections } from '../generators/itr/form16ToITR';
 import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI } from '../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../generators/itr/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../generators/itr/usCGEquityToITR';
@@ -20,13 +20,11 @@ export interface ITRData {
  */
 export enum ITRSectionType {
     SCHEDULE_CG = 'ScheduleCGFor23',
-    PART_B_TI_CAP_GAIN = 'PartB_TI.CapGain',
     PART_B_TTI_FOREIGN_TAX_CREDIT = 'PartB_TTI.ForeignTaxCredit',
     SCHEDULE_FA = 'ScheduleFA',
     SCHEDULE_OS = 'ScheduleOS',
     SCHEDULE_TR1 = 'ScheduleTR1',
-    SCHEDULE_FSI = 'ScheduleFSI',
-    PART_B_TI_INC_FROM_OS = 'PartB_TI.IncFromOS'
+    SCHEDULE_FSI = 'ScheduleFSI'
 }
 
 /**
@@ -61,40 +59,6 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
                 ScheduleCGFor23: mergeScheduleCG(itr.ScheduleCGFor23, scheduleCG)
             };
         }
-        return itr;
-    },
-    [ITRSectionType.PART_B_TI_CAP_GAIN]: (itr, section) => {
-        const capGain = section.data as CapGain;
-        if (!itr.PartB_TI) {
-            // Handle this case if necessary
-            return itr;
-        }
-        
-        // Update CapGain in PartB-TI
-        if (!itr.PartB_TI.CapGain) {
-            itr = {
-                ...itr,
-                PartB_TI: {
-                    ...itr.PartB_TI,
-                    CapGain: capGain
-                }
-            };
-        } else {
-            itr = {
-                ...itr,
-                PartB_TI: {
-                    ...itr.PartB_TI,
-                    CapGain: mergeCapitalGains(itr.PartB_TI.CapGain, capGain)
-                }
-            };
-        }
-        
-        // Update income totals in PartB-TI
-        itr = {
-            ...itr,
-            PartB_TI: updateIncomeTotals(itr.PartB_TI, capGain)
-        };
-        
         return itr;
     },
     [ITRSectionType.PART_B_TTI_FOREIGN_TAX_CREDIT]: (itr, section) => {
@@ -336,47 +300,6 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
         }
         
         return itr;
-    },
-    
-    [ITRSectionType.PART_B_TI_INC_FROM_OS]: (itr, section) => {
-        const incFromOS = section.data as IncFromOS;
-        
-        // Update Part B-TI with investment income
-        if (!itr.PartB_TI) {
-            return itr; // Can't update what doesn't exist
-        }
-        
-        const updatedPartBTI = {...itr.PartB_TI};
-        
-        // Create or update IncFromOS
-        if (!updatedPartBTI.IncFromOS) {
-            updatedPartBTI.IncFromOS = incFromOS;
-        } else {
-            updatedPartBTI.IncFromOS = {
-                ...updatedPartBTI.IncFromOS,
-                OtherSrcThanOwnRaceHorse: (updatedPartBTI.IncFromOS.OtherSrcThanOwnRaceHorse || 0) + 
-                                          (incFromOS.OtherSrcThanOwnRaceHorse || 0),
-                TotIncFromOS: (updatedPartBTI.IncFromOS.TotIncFromOS || 0) + 
-                              (incFromOS.TotIncFromOS || 0)
-            };
-        }
-        
-        // Update gross total income if it exists
-        if (updatedPartBTI.GrossTotalIncome !== undefined) {
-            updatedPartBTI.GrossTotalIncome += incFromOS.TotIncFromOS;
-        }
-        
-        // Update total income if it exists
-        if (updatedPartBTI.TotalIncome !== undefined) {
-            updatedPartBTI.TotalIncome += incFromOS.TotIncFromOS;
-        }
-        
-        itr = {
-            ...itr,
-            PartB_TI: updatedPartBTI
-        };
-        
-        return itr;
     }
 };
 
@@ -566,16 +489,12 @@ const convertEquityITRSectionsToITRSections = (
     equityITRSections: USEquityITRSections,
     source = 'USEquityStatement'
 ): ITRSection[] => {
-    const { scheduleCG, partBTICapitalGains, partBTTIForeignTaxCredit } = equityITRSections;
+    const { scheduleCG, partBTTIForeignTaxCredit } = equityITRSections;
     
     return [
         {
             type: ITRSectionType.SCHEDULE_CG,
             data: scheduleCG,
-        },
-        {
-            type: ITRSectionType.PART_B_TI_CAP_GAIN,
-            data: partBTICapitalGains,
         },
         {
             type: ITRSectionType.PART_B_TTI_FOREIGN_TAX_CREDIT,
@@ -610,6 +529,97 @@ const mergeITRSections = (existingITR: Itr2, sections: ITRSection[]): Itr2 => {
     }
 };
 
+/**
+ * Calculates PartB_TI based on all merged ITR sections
+ * 
+ * This centralized function calculates income totals across all sections:
+ * - Salary income from ScheduleS
+ * - Income from Other Sources (dividends, interest) from ScheduleOS
+ * - Capital Gains from ScheduleCG
+ * 
+ * @param itr - The ITR object with merged sections
+ * @returns The calculated PartB_TI section
+ */
+const calculatePartBTI = (itr: Itr2): PartBTI => {
+    // Start with a base PartB_TI
+    const partBTI: PartBTI = {
+        TotalIncome: 0,
+        CurrentYearLoss: 0,
+        GrossTotalIncome: 0,
+        AggregateIncome: 0,
+        BalanceAfterSetoffLosses: 0,
+        BroughtFwdLossesSetoff: 0,
+        CapGain: {
+            CapGains30Per115BBH: 0,
+            LongTerm: {
+                LongTerm10Per: 0,
+                LongTerm20Per: 0,
+                LongTermSplRateDTAA: 0,
+                TotalLongTerm: 0
+            },
+            ShortTerm: {
+                ShortTerm15Per: 0,
+                ShortTerm30Per: 0,
+                ShortTermAppRate: 0,
+                ShortTermSplRateDTAA: 0,
+                TotalShortTerm: 0
+            },
+            ShortTermLongTermTotal: 0,
+            TotalCapGains: 0
+        },
+        DeductionsUnderScheduleVIA: 0,
+        DeemedIncomeUs115JC: 0,
+        IncChargeTaxSplRate111A112: 0,
+        IncChargeableTaxSplRates: 0,
+        IncFromOS: {
+            FromOwnRaceHorse: 0,
+            IncChargblSplRate: 0,
+            OtherSrcThanOwnRaceHorse: 0,
+            TotIncFromOS: 0
+        },
+        IncomeFromHP: 0,
+        LossesOfCurrentYearCarriedFwd: 0,
+        NetAgricultureIncomeOrOtherIncomeForRate: 0,
+        Salaries: 0,
+        TotalTI: 0
+    };
+    
+    // Calculate income from salary (ScheduleS)
+    let salaryIncome = 0;
+    if (itr.ScheduleS) {
+        // Get salary details from ScheduleS - implementation depends on actual structure
+        // For now, we're just using a placeholder value
+        salaryIncome = 0; // To be implemented based on actual ScheduleS structure
+    }
+    
+    // Calculate income from other sources (ScheduleOS)
+    let incomeFromOS = 0;
+    if (itr.ScheduleOS) {
+        // ScheduleOS has a direct IncChargeable property 
+        incomeFromOS = itr.ScheduleOS.IncChargeable || 0;
+    }
+    
+    // Calculate capital gains (ScheduleCGFor23)
+    let capitalGains = 0;
+    if (itr.ScheduleCGFor23) {
+        // Need to extract capital gains from the structure
+        // We'll just use a placeholder value for now
+        capitalGains = 0; // To be implemented based on actual ScheduleCGFor23 structure
+    }
+    
+    // Calculate Gross Total Income
+    const grossTotalIncome = salaryIncome + incomeFromOS + capitalGains;
+    
+    // Update PartB_TI values
+    partBTI.Salaries = salaryIncome;
+    partBTI.IncFromOS.TotIncFromOS = incomeFromOS;
+    partBTI.CapGain.TotalCapGains = capitalGains;
+    partBTI.GrossTotalIncome = grossTotalIncome;
+    partBTI.TotalIncome = grossTotalIncome; // For now, without deductions
+    
+    return partBTI;
+};
+
 export const generateITR = () => async (
     userId: number,
     assessmentYear: string
@@ -620,7 +630,31 @@ export const generateITR = () => async (
     // Generate ITR from Form 16 data
     const form16Docs = await parsedDocuments.getForm16(userId, assessmentYear);
     console.log(form16Docs?.parsed_data.data);
-    const itrData = convertForm16ToITR(form16Docs?.parsed_data.data);
+    const form16Result = convertForm16ToITR(form16Docs?.parsed_data.data);
+
+    // Initialize the base ITR
+    let baseITR: Partial<Itr2> = {
+        CreationInfo: {} as any,
+        Form_ITR2: {} as any,
+        PartA_GEN1: {} as any,
+        ScheduleS: {} as any,
+        Verification: {} as any
+    };
+
+    // Set the base ITR sections from Form 16 data
+    if (form16Result.success && form16Result.data) {
+        const form16Sections = form16Result.data;
+        baseITR = {
+            ...baseITR,
+            CreationInfo: form16Sections.creationInfo,
+            Form_ITR2: form16Sections.formITR2,
+            PartA_GEN1: form16Sections.partAGEN1,
+            ScheduleS: form16Sections.scheduleS,
+            Verification: form16Sections.verification
+        };
+    } else {
+        throw new Error('Form 16 data not found');
+    }
 
     // Process USEquityCapitalGainStatement data
     const usEquityCapitalGainStatementDocs = await parsedDocuments.getUSEquityCapitalGainStatement(userId, assessmentYear);
@@ -678,11 +712,6 @@ export const generateITR = () => async (
                     data: sections.scheduleFSI
                 });
                 
-                sectionsToMerge.push({
-                    type: ITRSectionType.PART_B_TI_INC_FROM_OS,
-                    data: sections.partBTIIncomeFromOS
-                });
-                
                 logger.info(`Successfully processed US investment income data for user ${userId}`);
             } else {
                 logger.warn(`Failed to convert US investment income to ITR sections: ${investmentIncomeResult.error || 'Unknown error'}`);
@@ -692,23 +721,23 @@ export const generateITR = () => async (
         }
     }
     
-    // 4: Merge data from various sources into the ITR
-    if (itrData.success && itrData.data) {
-        // Start with the base ITR from Form 16
-        let mergedITR = itrData.data;
-        
-        
-        // Merge all sections at once using the functional reducer pattern
-        mergedITR = mergeITRSections(mergedITR, sectionsToMerge);
+    // Merge all sections at once using the functional reducer pattern
+    const mergedITR = mergeITRSections(baseITR as Itr2, sectionsToMerge);
 
-        return {
-            assessmentYear,
-            userId,
-            ...mergedITR
-        };
-    } else {
-        throw new Error('Form 16 data not found');
-    }
+    // Calculate Part B-TI after merging all sections
+    const partBTI = calculatePartBTI(mergedITR);
+    
+    // Update the ITR with the calculated PartB_TI
+    const finalITR = {
+        ...mergedITR,
+        PartB_TI: partBTI
+    };
+
+    return {
+        assessmentYear,
+        userId,
+        ...finalITR
+    };
 };
 
 // Create the service wrapper

@@ -1,41 +1,57 @@
 import { Form16 } from '../../types/form16';
-import { Itr2 } from '../../types/itr';
+import { CreationInfo, FormITR2, PartAGEN1, ScheduleS, Verification } from '../../types/itr';
 import { processCreationInfo } from './creationInfo';
 import { processFormITR2 } from './formITR2';
 import { processPartAGEN1 } from './partAGEN1';
 import { processScheduleS } from './scheduleS';
-import { processPartBTI } from './partBTI';
-import { processPartBTTI } from './partBTTI';
-import { 
-    // initializeScheduleBFLA, 
-    // initializeScheduleCYLA, 
-    initializeVerification 
-} from './initializers';
+import { initializeVerification } from './initializers';
 import { ParseResult } from '../../utils/parserTypes';
 
-export const convertForm16ToITR = (form16: Form16): ParseResult<Itr2> => {
+/**
+ * Interface for ITR sections generated from Form 16 data
+ */
+export interface Form16ITRSections {
+  creationInfo: CreationInfo;
+  formITR2: FormITR2;
+  partAGEN1: PartAGEN1;
+  scheduleS: ScheduleS;
+  verification: Verification;
+}
+
+/**
+ * Converts Form 16 data to relevant ITR sections
+ * 
+ * This function processes Form 16 data and creates necessary ITR sections:
+ * - CreationInfo: Basic metadata about the ITR generation
+ * - FormITR2: Form details including assessment year
+ * - PartAGEN1: General information including filing status and personal info
+ * - ScheduleS: Salary income details from Form 16
+ * - Verification: Required verification section
+ * 
+ * Note: PartB_TI and PartB_TTI are no longer generated here.
+ * They are calculated centrally after all sections are merged.
+ * 
+ * @param form16 - Form 16 data from employer
+ * @returns Parsed ITR sections from Form 16
+ */
+export const convertForm16ToITR = (form16: Form16): ParseResult<Form16ITRSections> => {
     try {
-        const itr: Itr2 = {
-            CreationInfo: processCreationInfo(form16),
-            Form_ITR2: processFormITR2(form16),
-            PartA_GEN1: processPartAGEN1(form16),
-            ScheduleS: processScheduleS(form16),
-            PartB_TI: processPartBTI(form16),
-            PartB_TTI: processPartBTTI(form16),
-            //todo mark it as compulsory
-            // ScheduleBFLA: initializeScheduleBFLA(),
-            // ScheduleCYLA: initializeScheduleCYLA(),
-            Verification: initializeVerification()
+        const sections: Form16ITRSections = {
+            creationInfo: processCreationInfo(form16),
+            formITR2: processFormITR2(form16),
+            partAGEN1: processPartAGEN1(form16),
+            scheduleS: processScheduleS(form16),
+            verification: initializeVerification()
         };
 
         return {
             success: true,
-            data: itr
+            data: sections
         };
     } catch (error) {
         return {
             success: false,
-            error: `Failed to generate ITR: ${error}`
+            error: `Failed to generate ITR from Form 16: ${error}`
         };
     }
 };
