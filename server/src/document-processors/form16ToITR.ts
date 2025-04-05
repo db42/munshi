@@ -1,9 +1,10 @@
 import { Form16 } from '../types/form16';
-import { CreationInfo, FormITR2, PartAGEN1, ScheduleS, Verification } from '../types/itr';
+import { CreationInfo, FormITR2, PartAGEN1, ScheduleS, Verification, ScheduleTDS1 } from '../types/itr';
 import { processCreationInfo } from './creationInfo';
 import { processFormITR2 } from './formITR2';
 import { processPartAGEN1 } from './partAGEN1';
 import { processScheduleS } from './scheduleS';
+import { processScheduleTDS1 } from './scheduleTDS1';
 import { initializeVerification } from './initializers';
 import { ParseResult } from '../utils/parserTypes';
 
@@ -15,6 +16,7 @@ export interface Form16ITRSections {
   formITR2: FormITR2;
   partAGEN1: PartAGEN1;
   scheduleS: ScheduleS;
+  scheduleTDS1: ScheduleTDS1;
   verification: Verification;
 }
 
@@ -26,6 +28,7 @@ export interface Form16ITRSections {
  * - FormITR2: Form details including assessment year
  * - PartAGEN1: General information including filing status and personal info
  * - ScheduleS: Salary income details from Form 16
+ * - ScheduleTDS1: Tax Deduction Schedule 1 details from Form 16
  * - Verification: Required verification section
  * 
  * Note: PartB_TI and PartB_TTI are no longer generated here.
@@ -41,6 +44,7 @@ export const convertForm16ToITR = (form16: Form16): ParseResult<Form16ITRSection
             formITR2: processFormITR2(form16),
             partAGEN1: processPartAGEN1(form16),
             scheduleS: processScheduleS(form16),
+            scheduleTDS1: processScheduleTDS1(form16),
             verification: initializeVerification()
         };
 

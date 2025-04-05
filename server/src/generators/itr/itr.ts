@@ -505,6 +505,7 @@ export const generateITR = () => async (
             Form_ITR2: form16Sections.formITR2,
             PartA_GEN1: form16Sections.partAGEN1,
             ScheduleS: form16Sections.scheduleS,
+            ScheduleTDS1: form16Sections.scheduleTDS1,
             Verification: form16Sections.verification
         };
     } else {

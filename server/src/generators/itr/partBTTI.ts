@@ -150,10 +150,15 @@ const calculateTaxAndPreparePartBTTI = (
     logCalculation('TDS Already Paid', tdsPaid);
     
     // Calculate any Advance Tax and Self Assessment Tax paid
-    // These could be from other sections if available
-    const advanceTax = 0; // To be implemented based on actual data
-    const selfAssessmentTax = 0; // To be implemented based on actual data
-    const tcs = 0; // Tax Collected at Source
+    // ScheduleIT contains the total of both Advance Tax and Self Assessment Tax.
+    // Assigning the total to SelfAssessmentTax for now as the structure requires separate fields.
+    const advanceTax = 0; 
+    const selfAssessmentTax = itr.ScheduleIT?.TotalTaxPayments || 0; 
+    logCalculation('Self Assessment Tax Paid (includes Advance Tax)', selfAssessmentTax);
+
+    // Calculate Tax Collected at Source (TCS)
+    const tcs = itr.ScheduleTCS?.TotalSchTCS || 0;
+    logCalculation('Tax Collected at Source (TCS)', tcs);
     
     const totalTaxesPaid = tdsPaid + advanceTax + selfAssessmentTax + tcs;
     logCalculation('Total Taxes Paid', totalTaxesPaid);
