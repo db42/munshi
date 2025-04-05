@@ -1,6 +1,6 @@
 import { parsedDocuments } from './parsedDocument';
 import { convertForm16ToITR } from '../generators/itr/form16ToITR';
-import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS } from '../types/itr';
+import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI } from '../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../generators/itr/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../generators/itr/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../generators/itr/usInvestmentIncomeToITR';
@@ -444,13 +444,13 @@ const mergeCapitalGains = (existingCapGain: CapGain | undefined, newCapGain: Cap
 };
 
 /**
- * Updates income totals in PartB-TI based on Capital Gains
+ * Updates income totals in PartB-TI based on the updated capital gains
  * 
  * @param partBTI - Existing PartB-TI section from ITR
  * @param capGain - Updated Capital Gains section
  * @returns Updated PartB-TI section with recalculated totals
  */
-const updateIncomeTotals = (partBTI: any, capGain: CapGain): any => {
+const updateIncomeTotals = (partBTI: PartBTI, capGain: CapGain): PartBTI => {
     // Create a new copy to avoid mutations
     const updatedPartBTI = {...partBTI};
     
@@ -486,32 +486,75 @@ const updateIncomeTotals = (partBTI: any, capGain: CapGain): any => {
  * @param foreignTaxCredit - Foreign Tax Credit from US equity data
  * @returns Updated PartB-TTI section
  */
-const mergeForeignTaxCredit = (existingPartBTTI: any, foreignTaxCredit: number): any => {
+const mergeForeignTaxCredit = (existingPartBTTI: PartBTTI, foreignTaxCredit: number): PartBTTI => {
     // Create a new copy to avoid mutations
     const updatedPartBTTI = {...existingPartBTTI};
     
+    // Ensure ComputationOfTaxLiability property exists
+    if (!updatedPartBTTI.ComputationOfTaxLiability) {
+        updatedPartBTTI.ComputationOfTaxLiability = {
+            AggregateTaxInterestLiability: 0,
+            CreditUS115JD: 0,
+            EducationCess: 0,
+            GrossTaxLiability: 0,
+            GrossTaxPayable: 0,
+            IntrstPay: {
+                IntrstPayUs234A: 0,
+                IntrstPayUs234B: 0,
+                IntrstPayUs234C: 0,
+                LateFilingFee234F: 0,
+                TotalIntrstPay: 0
+            },
+            NetTaxLiability: 0,
+            Rebate87A: 0,
+            Surcharge25ofSI: 0,
+            Surcharge25ofSIBeforeMarginal: 0,
+            SurchargeOnAboveCrore: 0,
+            SurchargeOnAboveCroreBeforeMarginal: 0,
+            TaxPayAfterCreditUs115JD: 0,
+            TaxPayableOnRebate: 0,
+            TaxPayableOnTI: {
+                RebateOnAgriInc: 0,
+                TaxAtNormalRatesOnAggrInc: 0,
+                TaxAtSpecialRates: 0,
+                TaxPayableOnTotInc: 0
+            },
+            TaxRelief: {
+                TotTaxRelief: 0
+            },
+            TotalSurcharge: 0
+        };
+    } else {
+        // Create a new ComputationOfTaxLiability object
+        updatedPartBTTI.ComputationOfTaxLiability = {
+            ...updatedPartBTTI.ComputationOfTaxLiability
+        };
+    }
+    
     // Ensure TaxRelief property exists
-    if (!updatedPartBTTI.TaxRelief) {
-        updatedPartBTTI.TaxRelief = {
+    if (!updatedPartBTTI.ComputationOfTaxLiability.TaxRelief) {
+        updatedPartBTTI.ComputationOfTaxLiability.TaxRelief = {
             TotTaxRelief: 0
         };
     } else {
         // Create a new TaxRelief object
-        updatedPartBTTI.TaxRelief = {...updatedPartBTTI.TaxRelief};
+        updatedPartBTTI.ComputationOfTaxLiability.TaxRelief = {
+            ...updatedPartBTTI.ComputationOfTaxLiability.TaxRelief
+        };
     }
     
     // Update Section90 (relief for taxes paid outside India)
-    if (updatedPartBTTI.TaxRelief.Section90 !== undefined) {
-        updatedPartBTTI.TaxRelief.Section90 += foreignTaxCredit;
+    if (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 !== undefined) {
+        updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 += foreignTaxCredit;
     } else {
-        updatedPartBTTI.TaxRelief.Section90 = foreignTaxCredit;
+        updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 = foreignTaxCredit;
     }
     
     // Update total tax relief
-    updatedPartBTTI.TaxRelief.TotTaxRelief = 
-        (updatedPartBTTI.TaxRelief.Section89 || 0) + 
-        (updatedPartBTTI.TaxRelief.Section90 || 0) + 
-        (updatedPartBTTI.TaxRelief.Section91 || 0);
+    updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.TotTaxRelief = 
+        (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section89 || 0) + 
+        (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 || 0) + 
+        (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section91 || 0);
     
     return updatedPartBTTI;
 };
