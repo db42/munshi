@@ -1,4 +1,3 @@
-
 /**
  * Parses a date string in MM/DD/YYYY format to a Date object
  * 

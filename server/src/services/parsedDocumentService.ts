@@ -4,6 +4,16 @@ import { v4 as uuidv4 } from 'uuid';
 import { CharlesSchwabCSVData } from '../document-parsers/charlesSchwabCSVParser';
 import { ParseResult } from '../utils/parserTypes';
 import { USInvestmentIncome, DividendIncome } from '../types/usEquityStatement';
+import { 
+  AISTdsTcsDetail, 
+  AISTransactionLine, 
+  AISTaxPaymentDetail, 
+  AISSftDetail, 
+  AISSftBreakdownLine,
+  AISDemandRefundDetail,
+  AISOtherInformation
+} from '../types/ais';
+import { convertDateStringsToDates } from '../document-parsers/aisUtils';
 
 // Types
 export type ParsedDocumentState = 'pending' | 'success' | 'error';
@@ -348,4 +358,42 @@ export const getUSEquityDividendIncome = (pool: Pool) => async (
     success: false,
     error: 'No US investment income data found'
   };
+  
+};
+
+// Get AIS (Annual Information Statement) parsed data for a user and assessment year
+export const getAISData = (pool: Pool) => async (
+  userId: number,
+  assessmentYear: string
+): Promise<ParsedDocument | null> => {
+  try {
+    const query = `
+      SELECT pd.* 
+      FROM parsed_documents pd
+      JOIN documents d ON pd.document_id = d.id
+      WHERE d.owner_id = $1
+      AND d.assessment_year = $2
+      AND pd.json_schema_type = '${DocumentType.AIS}'
+      ORDER BY pd.updated_at DESC
+      LIMIT 1
+    `;
+    
+    const result = await executeQuery(pool, query, [userId, assessmentYear]);
+    
+    if (result.rows.length > 0 && result.rows[0].parsed_data?.data) {
+      // Format dates in AIS data
+      const aisData = result.rows[0].parsed_data.data;
+      
+      // Convert all date strings to Date objects
+      convertDateStringsToDates(aisData);
+      
+      // Update the parsed_data with formatted dates
+      result.rows[0].parsed_data.data = aisData;
+    }
+    
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Error retrieving AIS data:', error);
+    return null;
+  }
 };

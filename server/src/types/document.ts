@@ -13,6 +13,7 @@ export enum DocumentType {
     US_EQUITY_CG_STATEMENT_CSV = 'USEquityCapitalGainStatementCSV',
     US_EQUITY_DIVIDEND_CSV = 'USEquityDividendCSV',
     FORM_26AS = 'form26AS',
+    AIS = 'ais',
     BANK_STATEMENT = 'bankStatement',
     RENT_RECEIPT = 'rentReceipt',
     INSURANCE_PREMIUM = 'insurancePremium',

@@ -13,5 +13,6 @@ export const parsedDocuments = {
     getForm16: parsedDocumentService.getForm16ParsedData(pool),
     getUSEquityCapitalGainStatement: parsedDocumentService.getUSEquityCapitalGainStatementParsedData(pool),
     getCharlesSchwabCSVData: parsedDocumentService.getCharlesSchwabCSVData(pool),
-    getUSEquityDividendIncome: parsedDocumentService.getUSEquityDividendIncome(pool)
+    getUSEquityDividendIncome: parsedDocumentService.getUSEquityDividendIncome(pool),
+    getAISData: parsedDocumentService.getAISData(pool)
 };

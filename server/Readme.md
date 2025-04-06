@@ -11,14 +11,31 @@ Node.js + TypeScript based server for the Munshi tax filing application.
 
 ```
 server/
+├── dist/                 # Compiled JavaScript output
+├── node_modules/         # Project dependencies (usually not committed)
 ├── src/
-│   ├── config/        # Configuration files
-│   ├── routes/        # API routes
-│   ├── middleware/    # Custom middleware
-│   └── index.ts       # Main application entry
-├── tests/            # Test files
-├── dist/             # Compiled JavaScript files
-└── package.json      # Project dependencies
+│   ├── config/           # Configuration (database, APIs like Gemini)
+│   ├── db/               # Database related files (e.g., init scripts)
+│   ├── document-parsers/ # Logic to parse raw document data (PDFs, CSVs) using various methods
+│   ├── document-processors/ # Logic to convert parsed data into specific ITR sections
+│   ├── generators/       # Logic to generate final ITR structure (e.g., calculations like PartB-TI, PartB-TTI)
+│   │   └── itr/          # ITR-specific generation logic
+│   ├── routes/           # API route definitions (Express)
+│   ├── scripts/          # Utility scripts (data parsing, setup, one-off tasks)
+│   ├── services/         # Business logic, database interactions, external API calls
+│   ├── types/            # TypeScript type definitions (shared interfaces for Form16, ITR, etc.)
+│   ├── uploads/          # Directory for uploaded files (may need cleanup strategy)
+│   ├── utils/            # Shared utility functions (dates, logging, currency, formatting)
+│   ├── index.ts          # Main application entry point
+│   └── example.ts        # Example usage or script (if relevant)
+├── tests/                # Test files (if any)
+├── .env                  # Environment variables (local, not committed)
+├── .env.example          # Example environment variables
+├── .gitignore            # Files/directories ignored by Git
+├── package.json          # Project metadata and dependencies
+├── package-lock.json     # Exact dependency versions
+├── README.md             # This file
+└── tsconfig.json         # TypeScript compiler options
 ```
 
 ## Getting Started

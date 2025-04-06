@@ -1,0 +1,150 @@
+{
+  "assessmentYear": "2023-24",
+  "financialYear": "2022-23",
+  "taxpayerInfo": {
+    "pan": "ABCDE1234F",
+    "name": "John Doe",
+    "aadhaar": "123456789012",
+    "dateOfBirth": "1980-01-01",
+    "mobileNumber": "9876543210",
+    "emailAddress": "john.doe@example.com",
+    "address": "123 Main Street, Bangalore, Karnataka"
+  },
+  "tdsDetails": [
+    {
+      "deductorCollectorName": "ABC Company Pvt Ltd",
+      "deductorCollectorTan": "ABCD12345E",
+      "sectionCode": "192",
+      "description": "Salary",
+      "amountPaidCredited": 1200000,
+      "taxDeductedCollected": 120000,
+      "count": 12,
+      "status": "Active",
+      "transactionBreakdown": [
+        {
+          "quarter": "Q1(Apr-Jun)",
+          "dateOfPaymentCredit": "2022-06-30",
+          "amountPaidCredited": 300000,
+          "taxDeductedCollected": 30000,
+          "taxDeposited": 30000
+        },
+        {
+          "quarter": "Q2(Jul-Sep)",
+          "dateOfPaymentCredit": "2022-09-30",
+          "amountPaidCredited": 300000,
+          "taxDeductedCollected": 30000,
+          "taxDeposited": 30000
+        }
+      ]
+    },
+    {
+      "deductorCollectorName": "XYZ Bank Ltd",
+      "deductorCollectorTan": "WXYZ9876T",
+      "sectionCode": "194A",
+      "description": "Interest other than interest on securities",
+      "amountPaidCredited": 50000,
+      "taxDeductedCollected": 5000,
+      "count": 4,
+      "status": "Active"
+    }
+  ],
+  "sftDetails": [
+    {
+      "sftCode": "SFT-001",
+      "description": "Purchase of bank drafts or pay orders in cash",
+      "reportingEntityName": "HDFC Bank (AAAAA1111A)",
+      "reportingEntityPan": "AAAAA1111A",
+      "transactionValue": 150000,
+      "count": 2,
+      "singleOrJointParty": "Single",
+      "numberOfParties": 1,
+      "remarks": "Multiple transactions",
+      "breakdown": [
+        {
+          "reportedOnDate": "2022-07-15",
+          "accountNumber": "1234567890",
+          "accountType": "Savings",
+          "status": "Active"
+        },
+        {
+          "reportedOnDate": "2022-11-22",
+          "accountNumber": "1234567890",
+          "accountType": "Savings",
+          "status": "Active"
+        }
+      ]
+    },
+    {
+      "sftCode": "SFT-016",
+      "description": "Interest income",
+      "reportingEntityName": "ICICI Bank (BBBBB2222B)",
+      "reportingEntityPan": "BBBBB2222B",
+      "transactionValue": 35000,
+      "count": 1,
+      "breakdown": [
+        {
+          "reportedOnDate": "2023-03-31",
+          "accountNumber": "9876543210",
+          "accountType": "Fixed Deposit",
+          "interestAmount": 35000,
+          "status": "Active"
+        }
+      ]
+    }
+  ],
+  "taxPaymentDetails": [
+    {
+      "type": "Advance Tax",
+      "bsrCode": "0013245",
+      "challanSerialNumber": "12345",
+      "dateOfDeposit": "2022-09-15",
+      "amount": 60000,
+      "assessmentYear": "2023-24"
+    },
+    {
+      "type": "Self-Assessment Tax",
+      "bsrCode": "0013245",
+      "challanSerialNumber": "67890",
+      "dateOfDeposit": "2023-03-20",
+      "amount": 25000,
+      "assessmentYear": "2023-24"
+    }
+  ],
+  "demandRefundDetails": [
+    {
+      "assessmentYear": "2022-23",
+      "status": "Refund Issued",
+      "amount": 12500,
+      "date": "2022-10-15",
+      "remarks": "Refund processed"
+    },
+    {
+      "assessmentYear": "2021-22",
+      "status": "Demand Determined",
+      "amount": 5000,
+      "date": "2022-06-10",
+      "sectionCode": "143(1)(a)",
+      "remarks": "Additional tax payable"
+    }
+  ],
+  "otherInformation": [
+    {
+      "informationCode": "DIV-01",
+      "description": "Dividend income",
+      "reportingEntity": "Reliance Industries Ltd",
+      "amount": 15000,
+      "date": "2022-08-25"
+    },
+    {
+      "informationCode": "INT-02",
+      "description": "Interest from Post Office Savings",
+      "reportingEntity": "Department of Posts",
+      "amount": 12500,
+      "date": "2023-03-31"
+    }
+  ],
+  "summary": {
+    "totalIncomeReported": 1462500,
+    "totalTaxDeposited": 210000
+  }
+} 

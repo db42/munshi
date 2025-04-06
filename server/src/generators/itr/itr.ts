@@ -1,9 +1,10 @@
 import { parsedDocuments } from '../../services/parsedDocument';
-import { convertForm16ToITR, Form16ITRSections } from '../../document-processors/form16ToITR';
+import { convertForm16ToITR as convertForm16ToITRSections, Form16ITRSections } from '../../document-processors/form16ToITR';
 import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../../document-processors/usInvestmentIncomeToITR';
+import { convertAISToITRSections, AISITRSections } from '../../document-processors/aisToITR';
 import { ParseResult } from '../../utils/parserTypes';
 import cloneDeep from 'lodash/cloneDeep';
 import { logger } from '../../utils/logger';
@@ -485,7 +486,7 @@ export const generateITR = () => async (
     // Generate ITR from Form 16 data
     const form16Docs = await parsedDocuments.getForm16(userId, assessmentYear);
     console.log(form16Docs?.parsed_data.data);
-    const form16Result = convertForm16ToITR(form16Docs?.parsed_data.data);
+    const form16Result = convertForm16ToITRSections(form16Docs?.parsed_data.data);
 
     // Initialize the base ITR
     let baseITR: Partial<Itr2> = {
@@ -575,6 +576,47 @@ export const generateITR = () => async (
         } catch (error) {
             logger.error(`Error processing US investment income data: ${error instanceof Error ? error.message : String(error)}`);
         }
+    }
+    
+    // Process AIS data for Schedule OS
+    const aisDataParseResult = await parsedDocuments.getAISData(userId, assessmentYear);
+    if (aisDataParseResult && aisDataParseResult.parsed_data) {
+        try {
+            logger.info(`Processing AIS data for user ${userId}`);
+            
+            // Convert AIS data to ITR sections
+            const aisResult = convertAISToITRSections(
+                aisDataParseResult.parsed_data.data,
+                assessmentYear
+            );
+            
+            // Only process if conversion was successful
+            if (aisResult.success && aisResult.data) {
+                const sections = aisResult.data;
+                
+                // Add Schedule OS from AIS data for merging
+                sectionsToMerge.push({
+                    type: ITRSectionType.SCHEDULE_OS,
+                    data: sections.scheduleOS
+                });
+                
+                // TODO: Add other AIS-derived schedules once they're implemented:
+                // - TDS details (Schedule TDS1)
+                // - Tax payment details (Schedule TR1) 
+                // - Capital gains (Schedule CG)
+                // - House property income (Schedule HP)
+                // - Salary information (Schedule S)
+                // - Deductions (Schedule VIA)
+                
+                logger.info(`Successfully processed AIS data for user ${userId}`);
+            } else {
+                logger.warn(`Failed to convert AIS data to ITR sections: ${aisResult.error || 'Unknown error'}`);
+            }
+        } catch (error) {
+            logger.error(`Error processing AIS data: ${error instanceof Error ? error.message : String(error)}`);
+        }
+    } else {
+        logger.info(`No AIS data found for user ${userId} for assessment year ${assessmentYear}`);
     }
     
     // Merge all sections at once using the functional reducer pattern

@@ -6,12 +6,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { documents } from '../services/document';
 import { parsedDocuments } from '../services/parsedDocument';
 import { logger } from '../utils/logger';
-import { loadPDFGemini } from '../document-parsers/pdfParserGemini';
+import { loadPDFGemini } from '../document-parsers/geminiForm16PDFParser';
 import { DocumentType, DocumentState } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../document-parsers/geminiUSEquityPDFParser';
 import { parseCharlesSchwabCSV } from '../document-parsers/charlesSchwabCSVParser';
 import { parseUSEquityCGStatementCSV } from '../document-parsers/usEquityCGStatementCSVParser';
 import { parseUSEquityDividendCSV } from '../document-parsers/usEquityDividendCSVParser';
+import { parseAISPDFWithGemini } from '../document-parsers/geminiAISPDFParser';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -169,6 +170,12 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
           document.assessmentYear
         );
         console.log("Extracted Dividend CSV data:", JSON.stringify(extractedData, null, 2));
+        break;
+      // --- Add AIS Case ---
+      case DocumentType.AIS:
+          logger.info(`Using Gemini AIS PDF parser for document ${documentId}`);
+          extractedData = await parseAISPDFWithGemini(document.filepath);
+          console.log("Extracted AIS data:", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.FORM_26AS:

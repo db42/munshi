@@ -8,6 +8,7 @@ export type ParsedDocumentData =
   | USEquityCGStatementData
   | USInvestmentIncomeData
   | Form16Data
+  | AISData
   | GenericParsedData;
 
 /**
@@ -250,6 +251,45 @@ export interface Form16Data {
 }
 
 /**
+ * Interface for AIS (Annual Information Statement) data
+ */
+export interface AISData {
+  assessmentYear: string;
+  financialYear: string;
+  taxpayerInfo: {
+    pan: string;
+    name: string;
+    [key: string]: any;
+  };
+  tdsDetails?: Array<{
+    deductorCollectorName: string;
+    deductorCollectorTan?: string;
+    amountPaidCredited: number;
+    taxDeductedCollected: number;
+    [key: string]: any;
+  }>;
+  sftDetails?: Array<{
+    description: string;
+    reportingEntityName: string;
+    transactionValue: number;
+    [key: string]: any;
+  }>;
+  taxPaymentDetails?: Array<{
+    type: string;
+    amount: number;
+    dateOfDeposit: string;
+    [key: string]: any;
+  }>;
+  demandRefundDetails?: Array<{
+    assessmentYear: string;
+    status: string;
+    amount: number;
+    [key: string]: any;
+  }>;
+  [key: string]: any;
+}
+
+/**
  * Generic interface for any parsed document data
  */
 export interface GenericParsedData {
@@ -269,6 +309,8 @@ export function getParsedDataType(documentType: DocumentType, data: any): string
       return 'Form 16';
     case DocumentType.FORM_26AS:
       return 'Form 26AS';
+    case DocumentType.AIS:
+      return 'Annual Information Statement';
     case DocumentType.BANK_STATEMENT:
       return 'Bank Statement';
     case DocumentType.RENT_RECEIPT:
