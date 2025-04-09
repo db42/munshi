@@ -11,32 +11,34 @@ Node.js + TypeScript based server for the Munshi tax filing application.
 
 ```
 server/
-├── dist/                 # Compiled JavaScript output
-├── node_modules/         # Project dependencies (usually not committed)
 ├── src/
-│   ├── config/           # Configuration (database, APIs like Gemini)
-│   ├── db/               # Database related files (e.g., init scripts)
-│   ├── document-parsers/ # Logic to parse raw document data (PDFs, CSVs) using various methods
-│   ├── document-processors/ # Logic to convert parsed data into specific ITR sections
-│   ├── generators/       # Logic to generate final ITR structure (e.g., calculations like PartB-TI, PartB-TTI)
-│   │   └── itr/          # ITR-specific generation logic
-│   ├── routes/           # API route definitions (Express)
-│   ├── scripts/          # Utility scripts (data parsing, setup, one-off tasks)
-│   ├── services/         # Business logic, database interactions, external API calls
-│   ├── types/            # TypeScript type definitions (shared interfaces for Form16, ITR, etc.)
-│   ├── uploads/          # Directory for uploaded files (may need cleanup strategy)
-│   ├── utils/            # Shared utility functions (dates, logging, currency, formatting)
-│   ├── index.ts          # Main application entry point
-│   └── example.ts        # Example usage or script (if relevant)
-├── tests/                # Test files (if any)
-├── .env                  # Environment variables (local, not committed)
-├── .env.example          # Example environment variables
-├── .gitignore            # Files/directories ignored by Git
-├── package.json          # Project metadata and dependencies
-├── package-lock.json     # Exact dependency versions
-├── README.md             # This file
-└── tsconfig.json         # TypeScript compiler options
+│   ├── config/        # Configuration files
+│   ├── routes/        # API routes
+│   ├── middleware/    # Custom middleware
+│   └── index.ts       # Main application entry
+├── tests/            # Test files
+├── dist/             # Compiled JavaScript files
+└── package.json      # Project dependencies
 ```
+
+## High level design
+
+1. **Document Parsing**: The system has a flexible document parsing pipeline:
+   - PDF documents are parsed using specialized parsers (Form 16, AIS, US 1099)
+   - Parsers extract structured data into standardized JSON schemas
+   - Parsed data is validated and stored in the database
+
+2. **Modular Document Processor Architecture**: The system uses separate document processors (form16ToITR, aisToITR, usCGEquityToITR) that convert different parsed documents types to ITR sections.
+
+3. **Section Merging Logic**: The system has sophisticated merge logic to combine data from multiple sources into a single ITR:
+   - Section transformers are defined for each ITR section type
+   - Each document contributes partial ITR sections that are merged
+
+4. **Tax Computation**: The software includes automatic calculation of TI and TTI:
+   - Tax slabs application
+   - Surcharge and cess calculation
+   - Net tax liability and refund calculation
+
 
 ## Getting Started
 

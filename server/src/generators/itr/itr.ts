@@ -1,6 +1,6 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections, Form16ITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI, ITRClass, Itr, ScheduleS, ScheduleHP, EquityMFonSTT } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -10,6 +10,7 @@ import cloneDeep from 'lodash/cloneDeep';
 import { logger } from '../../utils/logger';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
 import { calculatePartBTI } from './partBTI';
+import { calculateScheduleCYLA } from './scheduleCYLA';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -476,179 +477,150 @@ const mergeITRSections = (existingITR: Itr2, sections: ITRSection[]): Itr2 => {
     }
 };
 
-export const generateITR = () => async (
+export const generateITR = async (
     userId: number,
-    assessmentYear: string
-): Promise<ITRData> => {
-    // Collect all sections to merge
+    assessmentYear: string,
+): Promise<Itr> => {
+    logger.info(`Starting ITR generation for user ${userId}, AY ${assessmentYear}`);
+
+    // --- 1. Initialize Base ITR Structure ---
+    const baseITR: Partial<Itr2> = initializeBaseITR2(assessmentYear);
+
+    // --- 2. Fetch and Process Documents, Generate Initial Sections ---
     const sectionsToMerge: ITRSection[] = [];
 
-    // Generate ITR from Form 16 data
+    // Process Form 16
     const form16Docs = await parsedDocuments.getForm16(userId, assessmentYear);
-    console.log(form16Docs?.parsed_data.data);
-    const form16Result = convertForm16ToITRSections(form16Docs?.parsed_data.data);
-
-    // Initialize the base ITR
-    let baseITR: Partial<Itr2> = {
-        CreationInfo: {} as any,
-        Form_ITR2: {} as any,
-        PartA_GEN1: {} as any,
-        ScheduleS: {} as any,
-        Verification: {} as any
-    };
-
-    // Set the base ITR sections from Form 16 data
-    if (form16Result.success && form16Result.data) {
-        const form16Sections = form16Result.data;
-        baseITR = {
-            ...baseITR,
-            CreationInfo: form16Sections.creationInfo,
-            Form_ITR2: form16Sections.formITR2,
-            PartA_GEN1: form16Sections.partAGEN1,
-            ScheduleS: form16Sections.scheduleS,
-            ScheduleTDS1: form16Sections.scheduleTDS1,
-            Verification: form16Sections.verification
-        };
+    if (form16Docs?.parsed_data?.data) {
+        const form16Result = convertForm16ToITRSections(form16Docs.parsed_data.data);
+        if (form16Result.success && form16Result.data) {
+            baseITR.CreationInfo = form16Result.data.creationInfo;
+            baseITR.Form_ITR2 = form16Result.data.formITR2;
+            baseITR.PartA_GEN1 = form16Result.data.partAGEN1;
+            baseITR.ScheduleS = form16Result.data.scheduleS;
+            baseITR.ScheduleTDS1 = form16Result.data.scheduleTDS1;
+            baseITR.Verification = form16Result.data.verification;
+        } else {
+            logger.error(`Failed to convert Form 16 for user ${userId}: ${form16Result.error}`);
+            throw new Error('Essential Form 16 processing failed');
+        }
     } else {
-        throw new Error('Form 16 data not found');
+        logger.warn(`No Form 16 data found or processed for user ${userId}, AY ${assessmentYear}`);
     }
 
-    // Process USEquityCapitalGainStatement data
+    // Process US Equity Capital Gains
     const usEquityCapitalGainStatementDocs = await parsedDocuments.getUSEquityCapitalGainStatement(userId, assessmentYear);
-    if (!usEquityCapitalGainStatementDocs?.parsed_data.data) {
-        throw new Error('US CG Equity data not found');
-    }
-    console.log(usEquityCapitalGainStatementDocs?.parsed_data.data);
-        
-    const result = convertUSCGEquityToITRSections(usEquityCapitalGainStatementDocs.parsed_data.data, assessmentYear);
-    if (result.success && result.data) {
-        sectionsToMerge.push(...convertEquityITRSectionsToITRSections(result.data));
-    }
-
-    // Process Charles Schwab CSV data
-    let scheduleFAResult: ParseResult<ScheduleFA> | undefined;
-    const charlesSchwabCSVDataParseResult = await parsedDocuments.getCharlesSchwabCSVData(userId, assessmentYear);
-    if (charlesSchwabCSVDataParseResult.success && charlesSchwabCSVDataParseResult.data) {
-        scheduleFAResult = convertCharlesSchwabCSVToITRSections(charlesSchwabCSVDataParseResult.data, assessmentYear);
-    }
-    
-    if (scheduleFAResult && scheduleFAResult.success && scheduleFAResult.data) {
-        sectionsToMerge.push({
-            type: ITRSectionType.SCHEDULE_FA,
-            data: scheduleFAResult.data,
-        });
-    }
-
-    // Get US equity dividend income
-    const usInvestmentIncomeParseResult = await parsedDocuments.getUSEquityDividendIncome(userId, assessmentYear);
-    if (usInvestmentIncomeParseResult.success && usInvestmentIncomeParseResult.data) {
-        try {
-            // Convert to ITR sections
-            const investmentIncomeResult = convertUSInvestmentIncomeToITRSections(
-                usInvestmentIncomeParseResult.data,
-                assessmentYear
-            );
-            
-            // Only process if conversion was successful
-            if (investmentIncomeResult.success && investmentIncomeResult.data) {
-                const sections = investmentIncomeResult.data;
-                
-                // Add the full sections for merging
-                sectionsToMerge.push({
-                    type: ITRSectionType.SCHEDULE_OS,
-                    data: sections.scheduleOS
-                });
-                
-                sectionsToMerge.push({
-                    type: ITRSectionType.SCHEDULE_TR1,
-                    data: sections.scheduleTR1
-                });
-                
-                sectionsToMerge.push({
-                    type: ITRSectionType.SCHEDULE_FSI,
-                    data: sections.scheduleFSI
-                });
-                
-                logger.info(`Successfully processed US investment income data for user ${userId}`);
-            } else {
-                logger.warn(`Failed to convert US investment income to ITR sections: ${investmentIncomeResult.error || 'Unknown error'}`);
-            }
-        } catch (error) {
-            logger.error(`Error processing US investment income data: ${error instanceof Error ? error.message : String(error)}`);
-        }
-    }
-    
-    // Process AIS data for Schedule OS
-    const aisDataParseResult = await parsedDocuments.getAISData(userId, assessmentYear);
-    if (aisDataParseResult && aisDataParseResult.parsed_data) {
-        try {
-            logger.info(`Processing AIS data for user ${userId}`);
-            
-            // Convert AIS data to ITR sections
-            const aisResult = convertAISToITRSections(
-                aisDataParseResult.parsed_data.data,
-                assessmentYear
-            );
-            
-            // Only process if conversion was successful
-            if (aisResult.success && aisResult.data) {
-                const sections = aisResult.data;
-                
-                // Add Schedule OS from AIS data for merging
-                sectionsToMerge.push({
-                    type: ITRSectionType.SCHEDULE_OS,
-                    data: sections.scheduleOS
-                });
-                
-                // TODO: Add other AIS-derived schedules once they're implemented:
-                // - TDS details (Schedule TDS1)
-                // - Tax payment details (Schedule TR1) 
-                // - Capital gains (Schedule CG)
-                // - House property income (Schedule HP)
-                // - Salary information (Schedule S)
-                // - Deductions (Schedule VIA)
-                
-                logger.info(`Successfully processed AIS data for user ${userId}`);
-            } else {
-                logger.warn(`Failed to convert AIS data to ITR sections: ${aisResult.error || 'Unknown error'}`);
-            }
-        } catch (error) {
-            logger.error(`Error processing AIS data: ${error instanceof Error ? error.message : String(error)}`);
+    if (usEquityCapitalGainStatementDocs?.parsed_data?.data) {
+        const result = convertUSCGEquityToITRSections(usEquityCapitalGainStatementDocs.parsed_data.data, assessmentYear);
+        if (result.success && result.data) {
+            sectionsToMerge.push(...convertEquityITRSectionsToITRSections(result.data));
+        } else {
+            logger.warn(`Failed to convert US Equity CG Statement for user ${userId}: ${result.error}`);
         }
     } else {
-        logger.info(`No AIS data found for user ${userId} for assessment year ${assessmentYear}`);
+        logger.info(`No US Equity CG Statement found for user ${userId}, AY ${assessmentYear}`);
     }
-    
-    // Merge all sections at once using the functional reducer pattern
-    const mergedITR = mergeITRSections(baseITR as Itr2, sectionsToMerge);
 
-    // Calculate Part B-TI after merging all sections
+    // Process Charles Schwab CSV (for Schedule FA)
+    const charlesSchwabCSVDataParseResult = await parsedDocuments.getCharlesSchwabCSVData(userId, assessmentYear);
+    if (charlesSchwabCSVDataParseResult?.success && charlesSchwabCSVDataParseResult?.data) {
+        const scheduleFAResult = convertCharlesSchwabCSVToITRSections(charlesSchwabCSVDataParseResult.data, assessmentYear);
+        if (scheduleFAResult.success && scheduleFAResult.data) {
+            sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_FA, data: scheduleFAResult.data });
+        } else {
+            logger.warn(`Failed to convert Charles Schwab CSV for user ${userId}: ${scheduleFAResult.error}`);
+        }
+    } else {
+        logger.info(`No Charles Schwab CSV found for user ${userId}, AY ${assessmentYear}`);
+    }
+
+    // Process US Investment Income (Dividends etc.)
+    const usInvestmentIncomeParseResult = await parsedDocuments.getUSEquityDividendIncome(userId, assessmentYear);
+    if (usInvestmentIncomeParseResult?.success && usInvestmentIncomeParseResult?.data) {
+        const investmentIncomeResult = convertUSInvestmentIncomeToITRSections(usInvestmentIncomeParseResult.data, assessmentYear);
+        if (investmentIncomeResult.success && investmentIncomeResult.data) {
+            const sections = investmentIncomeResult.data;
+            if (sections.scheduleOS) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_OS, data: sections.scheduleOS });
+            if (sections.scheduleTR1) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_TR1, data: sections.scheduleTR1 });
+            if (sections.scheduleFSI) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_FSI, data: sections.scheduleFSI });
+        } else {
+            logger.warn(`Failed to convert US Investment Income for user ${userId}: ${investmentIncomeResult.error}`);
+        }
+    } else {
+        logger.info(`No US Investment Income data found for user ${userId}, AY ${assessmentYear}`);
+    }
+
+    // Process AIS data
+    const aisDataParseResult = await parsedDocuments.getAISData(userId, assessmentYear);
+    if (aisDataParseResult?.parsed_data?.data) {
+        const aisResult = convertAISToITRSections(aisDataParseResult.parsed_data.data, assessmentYear);
+        if (aisResult.success && aisResult.data) {
+            const sections = aisResult.data;
+            if (sections.scheduleOS) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_OS, data: sections.scheduleOS });
+        } else {
+            logger.warn(`Failed to convert AIS data for user ${userId}: ${aisResult.error}`);
+        }
+    } else {
+        logger.info(`No AIS data found for user ${userId}, AY ${assessmentYear}`);
+    }
+
+    // --- 3. Merge Initial Sections ---
+    let mergedITR = mergeITRSections(baseITR as Itr2, sectionsToMerge);
+    logger.debug('ITR after merging initial document sections.');
+
+    // --- 4. Calculate Schedule CYLA ---
+    const scheduleCYLA = calculateScheduleCYLA(mergedITR);
+    mergedITR.ScheduleCYLA = scheduleCYLA;
+    logger.info('Calculated Schedule CYLA.');
+
+    // --- 5. Calculate PartB-TI (Using income *after* CYLA adjustments) ---
     const partBTI = calculatePartBTI(mergedITR);
-    
-    // Update the ITR with the calculated PartB_TI
-    let finalITR: Itr2 = {
-        ...mergedITR,
-        PartB_TI: partBTI
-    };
-    
-    // Calculate Part B-TTI based on PartB_TI and other sections
-    const partBTTI = calculatePartBTTI(finalITR, TaxRegimePreference.AUTO);
-    
-    // Update the ITR with the calculated PartB_TTI
-    finalITR = {
-        ...finalITR,
-        PartB_TTI: partBTTI
+    mergedITR.PartB_TI = partBTI;
+    logger.info('Calculated PartB-TI.');
+
+    // --- 6. Calculate PartB-TTI ---
+    const partBTTI = calculatePartBTTI(mergedITR, TaxRegimePreference.AUTO);
+    mergedITR.PartB_TTI = partBTTI;
+    logger.info('Calculated PartB-TTI.');
+
+    // --- 7. Final ITR Object ---
+    const finalITR: Itr = {
+        ITR: {
+            ITR2: mergedITR as Itr2
+        }
     };
 
-    return {
-        assessmentYear,
-        userId,
-        ...finalITR
-    };
+    logger.info(`ITR generation complete for user ${userId}, AY ${assessmentYear}`);
+    return finalITR;
 };
+
+// --- Helper Functions ---
+
+function initializeBaseITR2(assessmentYear: string): Partial<Itr2> {
+    logger.debug('Initializing base ITR-2 structure.');
+    // Creates a basic ITR-2 structure 
+    return {
+        Form_ITR2: {
+            FormName: "ITR-2",
+            Description: "For Individuals and HUFs not having income from profits and gains of business or profession",
+            AssessmentYear: assessmentYear.substring(0, 4), 
+            SchemaVer: "Ver1.0", 
+            FormVer: "Ver1.0"
+        },
+        // Initialize other mandatory base sections like CreationInfo, PartA_GEN1 with placeholders
+        ScheduleHP: { 
+            PassThroghIncome: 0,
+            TotalIncomeChargeableUnHP: 0
+        },
+        ScheduleVDA: { 
+            ScheduleVDADtls: [],
+            TotIncCapGain: 0
+        }
+        // Initialize other necessary schedules with default empty structures if needed
+    };
+}
 
 // Create the service wrapper
 export const itrGenerator = {
-    // getForm16Data: getForm16Data(pool),
-    generateITR: generateITR()
+    generateITR: generateITR
 };

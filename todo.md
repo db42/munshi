@@ -15,7 +15,10 @@
 - DONE dividend document process
 - DONE - redesign the system - reducer pattern for immutability
 - documentportal for form-16 - 
-- TODO - support AIS
+- DONE - support AIS
+- WIP - compare with previous return
+- - Section112A - only for indian equity
+- - Schedule BFLA
 - TODO support for previous ITR in the computations for sectionFA, carry forward losses etc.
 - TODO verify the computations for sectionFA last return - WIP
 - TODO json renderer in client and ability to update fields in json - update AL,

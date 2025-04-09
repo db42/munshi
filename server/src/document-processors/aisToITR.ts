@@ -52,14 +52,47 @@ function createDateRangeWithAmount(amount: number): DateRangeType {
 }
 
 /**
- * Extract interest income from AIS SFT details
+ * Extract interest income from AIS SFT details with source breakdown
+ * @returns Object containing different types of interest income
  */
-function extractInterestIncome(sftDetails: AISSftDetail[] = []): number {
-  return sftDetails
+function extractInterestIncomeDetailed(sftDetails: AISSftDetail[] = []): {
+  savingsBank: number;
+  termDeposit: number;
+  incomeTaxRefund: number;
+  others: number;
+  total: number;
+} {
+  let savingsBank = 0;
+  let termDeposit = 0;
+  let incomeTaxRefund = 0;
+  let others = 0;
+
+  sftDetails
     .filter(sft => sft.sftCode === SftCode.SFT_016 || 
                   (sft.description.toLowerCase().includes('interest') && 
                    !sft.description.toLowerCase().includes('dividend')))
-    .reduce((sum, sft) => sum + sft.transactionValue, 0);
+    .forEach(sft => {
+      const desc = sft.description.toLowerCase();
+      if (desc.includes('saving') || desc.includes('savings')) {
+        savingsBank += sft.transactionValue;
+      } else if (desc.includes('deposit') || desc.includes('fd') || desc.includes('fixed')) {
+        termDeposit += sft.transactionValue;
+      } else if (desc.includes('refund') || desc.includes('income tax')) {
+        incomeTaxRefund += sft.transactionValue;
+      } else {
+        others += sft.transactionValue;
+      }
+    });
+  
+  const total = savingsBank + termDeposit + incomeTaxRefund + others;
+  
+  return {
+    savingsBank,
+    termDeposit,
+    incomeTaxRefund,
+    others,
+    total
+  };
 }
 
 /**
@@ -84,18 +117,18 @@ function extractDividendIncome(sftDetails: AISSftDetail[] = [], otherInformation
 function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
   logger.info('Generating Schedule OS from AIS data');
   
-  // Extract interest income from SFT details (code SFT-016)
-  const interestIncome = extractInterestIncome(aisData.sftDetails);
-  logger.debug(`Interest income from AIS: ${interestIncome}`);
+  // Extract interest income from SFT details (code SFT-016) with detailed breakdown
+  const interestDetails = extractInterestIncomeDetailed(aisData.sftDetails);
+  logger.debug(`Interest income breakdown from AIS: ${JSON.stringify(interestDetails)}`);
   
   // Extract dividend income from SFT details (code SFT-017) and other information
   const dividendIncome = extractDividendIncome(aisData.sftDetails, aisData.otherInformation);
   logger.debug(`Dividend income from AIS: ${dividendIncome}`);
   
   // Total income from other sources
-  const totalIncome = interestIncome + dividendIncome;
+  const totalIncome = interestDetails.total + dividendIncome;
   
-  // Create Schedule OS
+  // Create Schedule OS with detailed breakdown
   return {
     // Populate dividend fields
     DividendDTAA: createDateRangeWithAmount(0), // No foreign dividends in AIS typically
@@ -110,7 +143,67 @@ function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
     NOT89A: createEmptyDateRange(),
     
     // Total income chargeable under Other Sources
-    IncChargeable: totalIncome
+    IncChargeable: totalIncome,
+    
+    // Detailed breakdown for Income Other Than Own Race Horse
+    IncOthThanOwnRaceHorse: {
+      // Interest income breakdown
+      InterestGross: interestDetails.total,
+      IntrstFrmSavingBank: interestDetails.savingsBank,
+      IntrstFrmTermDeposit: interestDetails.termDeposit,
+      IntrstFrmIncmTaxRefund: interestDetails.incomeTaxRefund,
+      IntrstFrmOthers: interestDetails.others,
+      
+      // Dividend income
+      DividendGross: dividendIncome,
+      
+      // Other required fields with zero values
+      GrossIncChrgblTaxAtAppRate: totalIncome,
+      RentFromMachPlantBldgs: 0,
+      Tot562x: 0,
+      Aggrtvaluewithoutcons562x: 0,
+      Immovpropwithoutcons562x: 0,
+      Immovpropinadeqcons562x: 0,
+      Anyotherpropwithoutcons562x: 0,
+      Anyotherpropinadeqcons562x: 0,
+      FamilyPension: 0,
+      IncomeNotified89AOS: 0,
+      IncomeNotifiedOther89AOS: 0,
+      IncomeNotifiedPrYr89AOS: 0,
+      AnyOtherIncome: 0,
+      IncChargeableSpecialRates: 0,
+      LtryPzzlChrgblUs115BB: 0,
+      IncChrgblUs115BBE: 0,
+      CashCreditsUs68: 0,
+      UnExplndInvstmntsUs69: 0,
+      UnExplndMoneyUs69A: 0,
+      UnDsclsdInvstmntsUs69B: 0,
+      UnExplndExpndtrUs69C: 0,
+      AmtBrwdRepaidOnHundiUs69D: 0,
+      NatofPassThrghIncome: 0,
+      OthersGross: 0,
+      PassThrIncOSChrgblSplRate: 0,
+      
+      // Deductions section
+      Deductions: {
+        Expenses: 0,
+        DeductionUs57iia: 0,
+        Depreciation: 0,
+        TotDeductions: 0
+      },
+      
+      // Balance after deductions
+      BalanceNoRaceHorse: totalIncome,
+      
+      // Special sections (filled with zeros as they're not normally in AIS)
+      TaxAccumulatedBalRecPF: {
+        TotalIncomeBenefit: 0,
+        TotalTaxBenefit: 0
+      }
+    },
+    
+    // Set total for OS other than race horse
+    TotOthSrcNoRaceHorse: totalIncome
   };
 }
 
