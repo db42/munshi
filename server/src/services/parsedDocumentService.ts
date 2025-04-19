@@ -14,6 +14,8 @@ import {
   AISOtherInformation
 } from '../types/ais';
 import { convertDateStringsToDates } from '../document-parsers/aisUtils';
+import { logger } from '../utils/logger';
+import { CAMSMFCapitalGainData } from '../document-parsers/camsMFCapitalGainParser';
 
 // Types
 export type ParsedDocumentState = 'pending' | 'success' | 'error';
@@ -394,6 +396,40 @@ export const getAISData = (pool: Pool) => async (
     return result.rows[0] || null;
   } catch (error) {
     console.error('Error retrieving AIS data:', error);
+    return null;
+  }
+};
+
+// Function to get CAMS MF Capital Gain Statement data for ITR generation
+export const getCAMSMFCapitalGainData = (pool: Pool) => async (
+  userId: number,
+  assessmentYear: string
+): Promise<ParseResult<CAMSMFCapitalGainData> | null> => {
+  try {
+    const query = `
+      SELECT pd.parsed_data 
+      FROM parsed_documents pd
+      JOIN documents d ON d.id = pd.document_id
+      WHERE d.owner_id = $1 
+      AND d.assessment_year = $2
+      AND d.document_type = $3
+      ORDER BY pd.created_at DESC
+      LIMIT 1
+    `;
+
+    const result = await executeQuery(pool, query, [
+      userId.toString(), 
+      assessmentYear,
+      DocumentType.CAMS_MF_CAPITAL_GAIN
+    ]);
+
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    return result.rows[0].parsed_data;
+  } catch (error) {
+    logger.error(`Error retrieving CAMS MF Capital Gain data: ${error}`);
     return null;
   }
 };

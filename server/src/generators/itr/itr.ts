@@ -1,6 +1,6 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections, Form16ITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI, ITRClass, Itr, ScheduleS, ScheduleHP, EquityMFonSTT } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI, ITRClass, Itr, ScheduleS, ScheduleHP, EquityMFonSTT, ScheduleSI, SplCodeRateTax, SECCode } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -11,6 +11,8 @@ import { logger } from '../../utils/logger';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
 import { calculatePartBTI } from './partBTI';
 import { calculateScheduleCYLA } from './scheduleCYLA';
+import { calculateScheduleSI } from './scheduleSI';
+import { calculateScheduleAMTC, isAMTApplicable } from './scheduleAMTC';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -578,12 +580,26 @@ export const generateITR = async (
     mergedITR.PartB_TI = partBTI;
     logger.info('Calculated PartB-TI.');
 
-    // --- 6. Calculate PartB-TTI ---
+    // --- 6. Calculate Schedule SI (for special income tax rates) ---
+    const scheduleSI = calculateScheduleSI(mergedITR);
+    mergedITR.ScheduleSI = scheduleSI;
+    logger.info('Calculated Schedule SI for special income tax rates.');
+
+    // --- 7. Calculate PartB-TTI ---
     const partBTTI = calculatePartBTTI(mergedITR, TaxRegimePreference.AUTO);
     mergedITR.PartB_TTI = partBTTI;
     logger.info('Calculated PartB-TTI.');
 
-    // --- 7. Final ITR Object ---
+    // --- 8. Calculate Schedule AMTC ---
+    if (isAMTApplicable(mergedITR)) {
+        const scheduleAMTC = calculateScheduleAMTC(mergedITR);
+        mergedITR.ScheduleAMTC = scheduleAMTC;
+        logger.info('Calculated Schedule AMTC for Alternative Minimum Tax Credit.');
+    } else {
+        logger.info('AMT not applicable, skipping Schedule AMTC calculation.');
+    }
+
+    // --- 9. Final ITR Object ---
     const finalITR: Itr = {
         ITR: {
             ITR2: mergedITR as Itr2
@@ -615,7 +631,18 @@ function initializeBaseITR2(assessmentYear: string): Partial<Itr2> {
         ScheduleVDA: { 
             ScheduleVDADtls: [],
             TotIncCapGain: 0
-        }
+        },
+        ScheduleEI: {
+            ExpIncAgri: 0,
+            GrossAgriRecpt: 0,
+            IncNotChrgblToTax: 0,
+            InterestInc: 0,
+            NetAgriIncOrOthrIncRule7: 0,
+            Others: 0,
+            PassThrIncNotChrgblTax: 0,
+            TotalExemptInc: 0,
+            UnabAgriLossPrev8: 0
+        },
         // Initialize other necessary schedules with default empty structures if needed
     };
 }

@@ -279,7 +279,7 @@ const DocumentPortal = () => {
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
-              accept=".pdf,.jpg,.jpeg,.png,.csv,.txt"
+              accept=".pdf,.jpg,.jpeg,.png,.csv,.txt,.xls,.xlsx"
             />
             
             {/* Document Type Selector */}
@@ -324,7 +324,7 @@ const DocumentPortal = () => {
             </button>
             <p className="mt-2 text-sm text-gray-600">or drag and drop your files here</p>
           </div>
-          <p className="text-xs text-gray-500 mt-2">Supported formats: PDF, JPG, PNG, CSV (Max size: 10MB)</p>
+          <p className="text-xs text-gray-500 mt-2">Supported formats: PDF, JPG, PNG, CSV, XLS, XLSX (Max size: 10MB)</p>
         </div>
       </div>
 

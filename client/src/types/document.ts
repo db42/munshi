@@ -14,11 +14,7 @@ export enum DocumentType {
     US_EQUITY_DIVIDEND_CSV = 'USEquityDividendCSV',
     FORM_26AS = 'form26AS',
     AIS = 'ais',
-    BANK_STATEMENT = 'bankStatement',
-    RENT_RECEIPT = 'rentReceipt',
-    INSURANCE_PREMIUM = 'insurancePremium',
-    PPF_RECEIPT = 'ppfReceipt',
-    MUTUAL_FUND_STATEMENT = 'mutualFundStatement',
+    CAMS_MF_CAPITAL_GAIN = 'camsMFCapitalGain',
     OTHER = 'other',
     US_EQUITY_STATEMENT = 'USEquityStatement'
 }

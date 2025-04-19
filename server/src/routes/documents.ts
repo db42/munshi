@@ -13,6 +13,7 @@ import { parseCharlesSchwabCSV } from '../document-parsers/charlesSchwabCSVParse
 import { parseUSEquityCGStatementCSV } from '../document-parsers/usEquityCGStatementCSVParser';
 import { parseUSEquityDividendCSV } from '../document-parsers/usEquityDividendCSVParser';
 import { parseAISPDFWithGemini } from '../document-parsers/geminiAISPDFParser';
+import { parseCAMSCapitalGainStatement } from '../document-parsers/camsMFCapitalGainParser';
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -37,13 +38,14 @@ const fileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.
     'image/jpeg', 
     'image/png',
     'text/csv',                   // Add CSV mime type
-    'application/vnd.ms-excel',   // Excel files can contain CSV
+    'application/vnd.ms-excel',   // Excel files (XLS format)
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // Excel files (XLSX format)
     'text/plain'                  // Some CSVs might be uploaded as text
   ];
   if (allowedMimes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Allowed types: PDF, JPEG, PNG, CSV'));
+    cb(new Error('Invalid file type. Allowed types: PDF, JPEG, PNG, CSV, XLS, XLSX'));
   }
 };
 
@@ -183,6 +185,11 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
         return res.status(501).json({
           message: 'Parser for Form 26AS not yet implemented'
         });
+      
+      case DocumentType.CAMS_MF_CAPITAL_GAIN:
+        // Import the CAMS MF Capital Gain parser
+        extractedData = await parseCAMSCapitalGainStatement(document.filepath);
+        break;
       
       default:
         await documents.updateState(documentId, DocumentState.FAILED, 'No parser available for this document type');

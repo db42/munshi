@@ -1,5 +1,5 @@
 import { CharlesSchwabCSVData, TransactionAction, CharlesSchwabRecord} from '../document-parsers/charlesSchwabCSVParser';
-import { ScheduleFA } from '../types/itr';
+import { ScheduleFA, CountryCodeExcludingIndia } from '../types/itr';
 import { getFinancialYear, getRelevantDates, identifyCalendarYear, ParseResult } from '../utils/parserTypes';
 import { findPeakPrice, findPrice } from '../utils/equityPriceUtils';
 import { getExchangeRate } from '../utils/currencyConverter';
@@ -345,7 +345,7 @@ function generateScheduleFA(securityHoldings: SecurityHolding[]): ScheduleFA {
       AddressOfEntity: holding.address,
       ZipCode: holding.zipCode,
       CountryName: "United States", // Assuming Charles Schwab holdings are US-based
-      CountryCodeExcludingIndia: "USA" as any, // Type assertion as CountryCodeExcludingIndia
+      CountryCodeExcludingIndia: CountryCodeExcludingIndia.The2,
       NatureOfEntity: holding.natureOfAsset,
       InterestAcquiringDate: dateOfAcquisition,
       InitialValOfInvstmnt: holding.initialInvestmentINR,

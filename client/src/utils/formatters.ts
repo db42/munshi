@@ -33,20 +33,18 @@ export const formatCurrency = (value: number | undefined | null, currency: strin
  * @param format - The format to use (default: 'MM/DD/YYYY')
  * @returns Formatted date string
  */
-export const formatDate = (date: string | Date | number | undefined | null): string => {
-  if (!date) return '-';
+export const formatDate = (date: Date | string): string => {
+  if (!date) return '';
   
-  const dateObj = typeof date === 'string' ? new Date(date) : 
-                  date instanceof Date ? date : 
-                  new Date(date);
+  // If date is a string, convert to Date
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
   
-  if (isNaN(dateObj.getTime())) return '-';
-  
-  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-  const day = String(dateObj.getDate()).padStart(2, '0');
-  const year = dateObj.getFullYear();
-  
-  return `${month}/${day}/${year}`;
+  // Format as DD-MMM-YYYY (e.g., 15-Mar-2023)
+  return new Intl.DateTimeFormat('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric'
+  }).format(dateObj);
 };
 
 /**
@@ -115,4 +113,31 @@ export const parseNumericValue = (valueStr: string): number => {
   }
 };
 
-export default { formatFileSize, formatCurrency, formatDate, parseDate, parseNumericValue, removeQuotes }; 
+/**
+ * Format a number as Indian currency
+ */
+export const formatCurrencyINR = (amount: number): string => {
+  if (amount === undefined || amount === null) return '';
+  
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(amount);
+};
+
+/**
+ * Format a percentage value
+ */
+export const formatPercentage = (value: number): string => {
+  if (value === undefined || value === null) return '';
+  
+  return new Intl.NumberFormat('en-IN', {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(value / 100); // Divide by 100 if value is already in percentage form
+};
+
+export default { formatFileSize, formatCurrency, formatDate, parseDate, parseNumericValue, removeQuotes, formatCurrencyINR, formatPercentage }; 

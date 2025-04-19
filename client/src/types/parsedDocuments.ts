@@ -1,6 +1,67 @@
 import { DocumentType } from './document';
 
 /**
+ * Interface for a single mutual fund transaction from CAMS statement (Matches Server)
+ */
+export interface CAMSMutualFundTransaction {
+  folioNo: string;
+  fundName: string;
+  schemeName: string;
+  isin: string;
+  transactionType: string; 
+  units: number;
+  navOnSale: number;
+  saleValue: number;
+  saleDate: Date; // Assuming Date object transfer or conversion client-side
+  purchaseDate: Date; // Assuming Date object transfer or conversion client-side
+  purchaseNav: number;
+  acquisitionValue: number;
+  holdingPeriodDays: number;
+  gainOrLoss: number;
+  capitalGainType: 'STCG' | 'LTCG';
+  assetCategory: 'Equity' | 'Debt' | 'Hybrid';
+}
+
+/**
+ * Interface for scheme-wise summary data (Matches Server)
+ */
+export interface SchemeWiseSummary {
+  schemeName: string;
+  folioNo?: string;
+  isin?: string;
+  units: number;
+  totalAmount: number;
+  costOfAcquisition: number;
+  shortTermGain: number;
+  longTermGainWithIndex?: number;
+  longTermGainWithoutIndex: number;
+  assetCategory: 'Equity' | 'Debt' | 'Hybrid';
+}
+
+/**
+ * CAMS Mutual Fund Capital Gain Statement data (Matches Server)
+ */
+export interface CAMSMFCapitalGainData {
+  investorDetails: {
+    name: string;
+    pan: string; 
+  };
+  statementPeriod: {
+    fromDate: string; // Keep as string to match server
+    toDate: string;   // Keep as string to match server
+  };
+  transactions: CAMSMutualFundTransaction[];
+  schemeWiseSummary?: SchemeWiseSummary[]; 
+  summary: {
+    equityStcg: number;
+    equityLtcg: number;
+    debtStcg: number;
+    debtLtcg: number;
+    totalGainLoss: number;
+  };
+}
+
+/**
  * Union type for all possible parsed document data types
  */
 export type ParsedDocumentData = 
@@ -9,6 +70,7 @@ export type ParsedDocumentData =
   | USInvestmentIncomeData
   | Form16Data
   | AISData
+  | CAMSMFCapitalGainData
   | GenericParsedData;
 
 /**
@@ -311,16 +373,8 @@ export function getParsedDataType(documentType: DocumentType, data: any): string
       return 'Form 26AS';
     case DocumentType.AIS:
       return 'Annual Information Statement';
-    case DocumentType.BANK_STATEMENT:
-      return 'Bank Statement';
-    case DocumentType.RENT_RECEIPT:
-      return 'Rent Receipt';
-    case DocumentType.INSURANCE_PREMIUM:
-      return 'Insurance Premium';
-    case DocumentType.PPF_RECEIPT:
-      return 'PPF Receipt';
-    case DocumentType.MUTUAL_FUND_STATEMENT:
-      return 'Mutual Fund Statement';
+    case DocumentType.CAMS_MF_CAPITAL_GAIN:
+      return 'CAMS Mutual Fund Capital Gain Statement';
     default:
       return 'Unknown Document Type';
   }
