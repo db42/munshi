@@ -29,7 +29,7 @@ export function calculateScheduleAMTC(itr: Itr2): ScheduleAMTC {
     };
 
     // Check if tax is calculated
-    if (!itr.PartB_TI) {
+    if (!itr["PartB-TI"]) {
         return scheduleAMTC;
     }
     

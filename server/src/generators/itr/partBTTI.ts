@@ -93,7 +93,7 @@ const calculateTaxAndPreparePartBTTI = (
     let foreignTaxCredit = 0;
     
     // Extract income from PartB_TI
-    const partBTI = itr.PartB_TI;
+    const partBTI = itr["PartB-TI"];
     if (!partBTI) {
         // If no PartB_TI, return minimal PartB_TTI
         return createEmptyPartBTTI();

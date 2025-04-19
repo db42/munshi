@@ -759,7 +759,7 @@ export const generateITR = async (
 
     // --- 5. Calculate PartB-TI (Using income *after* CYLA adjustments) ---
     const partBTI = calculatePartBTI(mergedITR);
-    mergedITR.PartB_TI = partBTI;
+    mergedITR["PartB-TI"] = partBTI;
     logger.info('Calculated PartB-TI.');
 
     // --- 6. Calculate Schedule SI (for special income tax rates) ---
