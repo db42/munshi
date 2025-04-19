@@ -5,6 +5,7 @@ import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } 
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../../document-processors/usInvestmentIncomeToITR';
 import { convertAISToITRSections, AISITRSections } from '../../document-processors/aisToITR';
+import { convertCAMSMFCapitalGainToITR, CAMSMFCapitalGainITRSections } from '../../document-processors/camsMFCapitalGainToITR';
 import { ParseResult } from '../../utils/parserTypes';
 import cloneDeep from 'lodash/cloneDeep';
 import { logger } from '../../utils/logger';
@@ -454,6 +455,20 @@ const convertEquityITRSectionsToITRSections = (
 };
 
 /**
+ * Converts CAMSMFCapitalGainITRSections to ITRSection array
+ */
+const convertCAMSMFITRSectionsToITRSections = (
+    camsMFITRSections: CAMSMFCapitalGainITRSections
+): ITRSection[] => {
+    return [
+        {
+            type: ITRSectionType.SCHEDULE_CG,
+            data: camsMFITRSections.scheduleCG,
+        }
+    ];
+};
+
+/**
  * Merges multiple ITR sections into an existing ITR using the Functional Reducer Pattern
  * 
  * @param existingITR - Base ITR to merge sections into
@@ -521,6 +536,19 @@ export const generateITR = async (
         }
     } else {
         logger.info(`No US Equity CG Statement found for user ${userId}, AY ${assessmentYear}`);
+    }
+
+    // Process CAMS Mutual Fund Capital Gains
+    const camsMFCapitalGainData = await parsedDocuments.getCAMSMFCapitalGainData(userId, assessmentYear);
+    if (camsMFCapitalGainData?.success && camsMFCapitalGainData?.data) {
+        const result = convertCAMSMFCapitalGainToITR(camsMFCapitalGainData.data, assessmentYear);
+        if (result.success && result.data) {
+            sectionsToMerge.push(...convertCAMSMFITRSectionsToITRSections(result.data));
+        } else {
+            logger.warn(`Failed to convert CAMS MF Capital Gain Statement for user ${userId}: ${result.error}`);
+        }
+    } else {
+        logger.info(`No CAMS MF Capital Gain Statement found for user ${userId}, AY ${assessmentYear}`);
     }
 
     // Process Charles Schwab CSV (for Schedule FA)
