@@ -23,25 +23,25 @@ export const processScheduleS = (form16: Form16): ScheduleS => ({
       //generate Salarys object here from
       GrossSalary: form16.salaryDetails?.grossSalary?.total ?? 0,
       IncomeNotified89A: 0,
-      IncomeNotified89AType: [],
       IncomeNotifiedOther89A: 0,
       IncomeNotifiedPrYr89A: 0,
       NatureOfPerquisites: undefined,
       NatureOfProfitInLieuOfSalary: undefined,
       NatureOfSalary: undefined,
       ProfitsinLieuOfSalary: 0,
-      Salary: form16.salaryDetails?.grossSalary?.total ?? 0,
-      ValueOfPerquisites: 0
+      Salary: form16.salaryDetails?.grossSalary?.salary ?? 0,
+      ValueOfPerquisites: form16.salaryDetails?.grossSalary?.perquisites ?? 0
     }
     // Add more salary details
   }],
   TotalGrossSalary: form16.salaryDetails.grossSalary.total,
   // AllwncExemptUs10: undefined,
-  NetSalary: form16.salaryDetails.grossTotalIncome,
+  NetSalary: form16.salaryDetails.grossSalary.total,
   DeductionUS16: form16.salaryDetails.deductionsUnderSection16.totalDeductions,
   DeductionUnderSection16ia: form16.salaryDetails?.deductionsUnderSection16.standardDeduction || 0,
   EntertainmntalwncUs16ii: form16.salaryDetails.deductionsUnderSection16.entertainmentAllowance || 0,
   ProfessionalTaxUs16iii: form16.salaryDetails.deductionsUnderSection16.taxOnEmployment || 0,
   TotIncUnderHeadSalaries: form16.salaryDetails.grossSalary.total - form16.salaryDetails.deductionsUnderSection16.totalDeductions,
-  AllwncExtentExemptUs10: 0
+  AllwncExtentExemptUs10: 0,
+  Increliefus89A: 0,
 });
