@@ -1,6 +1,6 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections, Form16ITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI, ITRClass, Itr, ScheduleS, ScheduleHP, EquityMFonSTT, ScheduleSI, SplCodeRateTax, SECCode } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI, ITRClass, Itr, ScheduleS, ScheduleHP, EquityMFonSTT, ScheduleSI, SplCodeRateTax, SECCode, Schedule112A } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -30,7 +30,8 @@ export enum ITRSectionType {
     SCHEDULE_FA = 'ScheduleFA',
     SCHEDULE_OS = 'ScheduleOS',
     SCHEDULE_TR1 = 'ScheduleTR1',
-    SCHEDULE_FSI = 'ScheduleFSI'
+    SCHEDULE_FSI = 'ScheduleFSI',
+    SCHEDULE_112A = 'Schedule112A'
 }
 
 /**
@@ -255,6 +256,14 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
             };
         }
         
+        return itr;
+    },
+    [ITRSectionType.SCHEDULE_112A]: (itr, section) => {
+        const schedule112A = section.data as Schedule112A;
+        itr = {
+            ...itr,
+            Schedule112A: schedule112A
+        };
         return itr;
     }
 };
@@ -614,12 +623,22 @@ const convertEquityITRSectionsToITRSections = (
 const convertCAMSMFITRSectionsToITRSections = (
     camsMFITRSections: CAMSMFCapitalGainITRSections
 ): ITRSection[] => {
-    return [
+    const sections: ITRSection[] = [
         {
             type: ITRSectionType.SCHEDULE_CG,
             data: camsMFITRSections.scheduleCG,
         }
     ];
+
+    // Add Schedule112A if it exists
+    if (camsMFITRSections.schedule112A) {
+        sections.push({
+            type: ITRSectionType.SCHEDULE_112A,
+            data: camsMFITRSections.schedule112A,
+        });
+    }
+
+    return sections;
 };
 
 /**

@@ -16,21 +16,24 @@
 - DONE - redesign the system - reducer pattern for immutability
 - documentportal for form-16 - 
 - DONE - support AIS
+- DONE India CG - CAMS
 - WIP - compare with previous return
-- - Section112A - only for indian equity
+- - DONE - Section112A - only for indian equity
 - - Schedule BFLA
+- - number validation - PartB-TI
 - TODO support for previous ITR in the computations for sectionFA, carry forward losses etc.
 - TODO verify the computations for sectionFA last return - WIP
 - TODO json renderer in client and ability to update fields in json - update AL,
 - TODO parse form 26AS - information like fd interest
-- TODO India CG - CAMS
 - TODO add validation
 - TODO schedule AL from previous ITR
 - todo see the working of each section in UI
 - how to get tax deducted from charles schwab
 
+
 Phase 2
 - agent - tax validation
+- camsMFToITR: this information is also available in camsData.summary. can be used to avoid re-processing the transactions.
 
 Phase 3
 - agent - tax planning

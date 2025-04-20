@@ -5,6 +5,7 @@ import DocumentPortal from './pages/DocumentsPortal';
 import DocumentDetail from './pages/DocumentDetail';
 import Review from './pages/Review';
 import { AssessmentYearProvider } from './context/AssessmentYearContext';
+import ItrDiffViewer from './components/ItrDiffViewer';
 
 // Simple placeholder components
 const Dashboard = () => <div>Dashboard Content</div>;
@@ -22,6 +23,7 @@ function App() {
             <Route path="/documents/:documentId" element={<DocumentDetail />} />
             <Route path="/itr-generation/*" element={<ITRGeneration />} />
             <Route path="/review" element={<Review />} />
+            <Route path="/diff-viewer" element={<ItrDiffViewer />} />
           </Route>
         </Routes>
       </BrowserRouter>

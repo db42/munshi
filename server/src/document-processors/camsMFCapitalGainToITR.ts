@@ -1,4 +1,4 @@
-import { CapGain, Itr2, ScheduleCGFor23 } from '../types/itr';
+import { CapGain, Itr2, ScheduleCGFor23, Schedule112A, Schedule112A115ADType, ShareOnOrBefore } from '../types/itr';
 import { CAMSMFCapitalGainData, CAMSMutualFundTransaction } from '../document-parsers/camsMFCapitalGainParser';
 import { ParseResult } from '../utils/parserTypes';
 import { logger } from '../utils/logger';
@@ -28,6 +28,7 @@ import {
  */
 export interface CAMSMFCapitalGainITRSections {
     scheduleCG: ScheduleCGFor23;
+    schedule112A?: Schedule112A;
 }
 
 /**
@@ -290,6 +291,7 @@ const processShortTermCapitalGains = (
 
 /**
  * Process the long-term capital gains from CAMS MF data
+ * todo: this information is also available in camsData.summary. can be used to avoid re-processing the transactions.
  */
 const processLongTermCapitalGains = (
     transactions: CAMSMutualFundTransaction[]
@@ -406,6 +408,90 @@ const generateScheduleCG = (
 };
 
 /**
+ * Generates Schedule 112A from equity LTCG transactions
+ */
+const generateSchedule112A = (
+    transactions: CAMSMutualFundTransaction[]
+): Schedule112A | undefined => {
+    const equityLTCGTransactions = transactions.filter(
+        txn => txn.assetCategory === 'Equity' && txn.capitalGainType === 'LTCG'
+    );
+
+    if (equityLTCGTransactions.length === 0) {
+        return undefined;
+    }
+
+    const schedule112ADtls: Schedule112A115ADType[] = [];
+    let totalSaleValue112A = 0;
+    let totalCostAcqWithoutIndx112A = 0;
+    let totalFairMktValueCapAst112A = 0; // Placeholder - Needs FMV data from parser
+    let totalExpExclCnctTransfer112A = 0; // Assuming zero transfer expenses for now
+    let totalDeductions112A = 0; // Assuming zero deductions for now
+    let totalBalance112A = 0;
+    let totalLTCGBeforelowerB1B2112A = 0; // Placeholder
+
+    const grandfatheringDate = new Date('2018-01-31');
+
+    for (const txn of equityLTCGTransactions) {
+        const shareOnOrBefore = txn.purchaseDate <= grandfatheringDate ? ShareOnOrBefore.Be : ShareOnOrBefore.AE;
+        const costAcquisition = txn.acquisitionValue;
+        const saleValue = txn.saleValue;
+        const balance = txn.gainOrLoss;
+
+        // --- Placeholders/Assumptions ---
+        // These require data potentially missing from the current CAMSMutualFundTransaction type
+        // or require more complex calculation logic (e.g., grandfathering).
+        const fairMarketValuePerUnit = 0; // Needs FMV on 31-Jan-2018 if ShareOnOrBefore.Be
+        const costIfAcquiredBeforeGrandfathering = shareOnOrBefore === ShareOnOrBefore.Be ? 0 : costAcquisition;
+        const ltcgBeforeLowerB1B2 = balance;
+        const fairMarketValueTotal = fairMarketValuePerUnit * txn.units;
+        const deductions = 0;
+        const expenses = 0;
+
+        const detail: Schedule112A115ADType = {
+            ISINCode: txn.isin,
+            ShareUnitName: txn.fundName, // Or schemeName
+            NumSharesUnits: txn.units,
+            SalePricePerShareUnit: txn.navOnSale, // Assuming NAV is per unit price
+            TotSaleValue: saleValue,
+            CostAcqWithoutIndx: costAcquisition,
+            AcquisitionCost: costAcquisition,
+            FairMktValuePerShareunit: fairMarketValuePerUnit,
+            TotFairMktValueCapAst: fairMarketValueTotal,
+            ExpExclCnctTransfer: expenses,
+            LTCGBeforelowerB1B2: ltcgBeforeLowerB1B2,
+            TotalDeductions: deductions,
+            Balance: balance,
+            ShareOnOrBefore: shareOnOrBefore,
+        };
+        schedule112ADtls.push(detail);
+
+        // Aggregate totals
+        totalSaleValue112A += saleValue;
+        totalCostAcqWithoutIndx112A += costAcquisition;
+        totalFairMktValueCapAst112A += fairMarketValueTotal;
+        totalExpExclCnctTransfer112A += expenses;
+        totalDeductions112A += deductions;
+        totalBalance112A += balance;
+        totalLTCGBeforelowerB1B2112A += ltcgBeforeLowerB1B2;
+    }
+
+    const schedule112A: Schedule112A = {
+        Schedule112ADtls: schedule112ADtls,
+        SaleValue112A: Math.round(totalSaleValue112A),
+        CostAcqWithoutIndx112A: Math.round(totalCostAcqWithoutIndx112A),
+        AcquisitionCost112A: Math.round(totalCostAcqWithoutIndx112A),
+        FairMktValueCapAst112A: Math.round(totalFairMktValueCapAst112A),
+        ExpExclCnctTransfer112A: Math.round(totalExpExclCnctTransfer112A),
+        LTCGBeforelowerB1B2112A: Math.round(totalLTCGBeforelowerB1B2112A),
+        Deductions112A: Math.round(totalDeductions112A),
+        Balance112A: Math.round(totalBalance112A),
+    };
+
+    return schedule112A;
+};
+
+/**
  * Main function to convert CAMS MF Capital Gain data to ITR sections
  * 
  * @param camsData - CAMS MF Capital Gain data
@@ -417,38 +503,43 @@ export const convertCAMSMFCapitalGainToITR = (
     assessmentYear: string
 ): CAMSMFCapitalGainITRResult => {
     try {
-        logger.info(`Processing CAMS MF capital gains for assessment year: ${assessmentYear}`);
-        
-        // Generate Schedule CG
+        logger.info(`Starting conversion of CAMS MF Capital Gain data for AY ${assessmentYear}`);
+
+        if (!camsData || !camsData.transactions || camsData.transactions.length === 0) {
+            logger.warn(`No CAMS MF transactions found to process for AY ${assessmentYear}`);
+            return {
+                success: false,
+                error: 'No CAMS MF transactions found'
+            };
+        }
+
+        // 1. Generate Schedule CG (as before)
         const scheduleCG = generateScheduleCG(camsData);
-        
-        // Extract individual gain components for logging purposes
-        const equitySTCG = camsData.transactions
-            .filter(txn => txn.capitalGainType === 'STCG' && txn.assetCategory === 'Equity')
-            .reduce((sum, txn) => sum + txn.gainOrLoss, 0);
-        
-        const equityLTCG = camsData.transactions
-            .filter(txn => txn.capitalGainType === 'LTCG' && txn.assetCategory === 'Equity')
-            .reduce((sum, txn) => sum + txn.gainOrLoss, 0);
-        
-        const debtLTCG = camsData.transactions
-            .filter(txn => txn.capitalGainType === 'LTCG' && (txn.assetCategory === 'Debt' || txn.assetCategory === 'Hybrid'))
-            .reduce((sum, txn) => sum + txn.gainOrLoss, 0);
-        
-        logger.info(`Successfully processed CAMS MF capital gains. Equity STCG: ${equitySTCG}, Equity LTCG: ${equityLTCG}, Debt LTCG: ${debtLTCG}`);
-        
-        // Return only the Schedule CG section, Schedule SI will be computed centrally
+
+        // 2. Generate Schedule 112A (new step)
+        const schedule112A = generateSchedule112A(camsData.transactions);
+        if (schedule112A) {
+            logger.info(`Generated Schedule 112A with ${schedule112A.Schedule112ADtls?.length || 0} detail entries.`);
+        } else {
+             logger.info('No equity LTCG transactions found, skipping Schedule 112A generation.');
+        }
+
+        const resultData: CAMSMFCapitalGainITRSections = {
+            scheduleCG: scheduleCG,
+            schedule112A: schedule112A
+        };
+
+        logger.info(`Successfully converted CAMS MF Capital Gain data for AY ${assessmentYear}`);
+
         return {
             success: true,
-            data: {
-                scheduleCG
-            }
+            data: resultData
         };
-    } catch (error) {
-        logger.error(`Error processing CAMS MF capital gains: ${error instanceof Error ? error.message : String(error)}`);
+    } catch (error: any) {
+        logger.error(`Error converting CAMS MF Capital Gain data: ${error.message}`, { stack: error.stack });
         return {
             success: false,
-            error: error instanceof Error ? error.message : String(error)
+            error: `Error converting CAMS MF Capital Gain data: ${error.message}`
         };
     }
 }; 

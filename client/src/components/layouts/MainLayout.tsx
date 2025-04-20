@@ -41,6 +41,11 @@ export default function MainLayout() {
       id: 'review',
       label: 'Review',
       path: '/review'
+    },
+    {
+      id: 'diff-viewer',
+      label: 'ITR Diff Viewer',
+      path: '/diff-viewer'
     }
   ];
 
