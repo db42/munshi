@@ -51,7 +51,7 @@ const AISViewer: React.FC<AISViewerProps> = ({ data }) => {
                     <tr key={index}>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{tds.deductorCollectorName}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{tds.amountPaidCredited.toLocaleString('en-IN')}</td>
-                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{tds.taxDeductedCollected.toLocaleString('en-IN')}</td>
+                      <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{tds.taxDeductedCollected?.toLocaleString('en-IN')}</td>
                     </tr>
                   ))}
                 </tbody>

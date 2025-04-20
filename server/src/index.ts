@@ -16,10 +16,20 @@ const createServer = () => {
   const setupMiddleware = async () => {
     // Enable CORS for client application
     app.use(cors({
-      origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+      origin: ['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:5174'],
       methods: ['GET', 'POST', 'PUT', 'DELETE'],
-      allowedHeaders: ['Content-Type', 'Authorization']
+      allowedHeaders: ['Content-Type', 'Authorization'],
+      credentials: true // Allow credentials for cross-origin requests
     }));
+    
+    // Disable caching for all routes
+    app.use((req, res, next) => {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Surrogate-Control', 'no-store');
+      next();
+    });
     
     app.use(express.json());
   };

@@ -93,6 +93,7 @@ const ItrDiffViewer = () => {
 
         // Calculate differences using deep-diff
         const diffs = diff(actualSectionData, generatedSectionData);
+        console.log("Differences:", diffs);
         setDifferences(diffs || []);
       } catch (err) {
         console.error(`Error generating diff for section ${selectedSection}:`, err);

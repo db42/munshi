@@ -17,7 +17,7 @@
         "typescript": "^5.2.2"
     },
     "scripts": {
-        "start": "vite",
+        "start": "vite dev",
         "build": "tsc && vite build",
         "serve": "vite preview",
         "lint": "eslint src --ext ts,tsx",

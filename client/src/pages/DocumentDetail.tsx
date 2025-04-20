@@ -10,6 +10,7 @@ import { formatFileSize } from '../utils/formatters';
 import { formatApiError } from '../utils/api-helpers';
 import { Loader, FileText, AlertCircle, Play, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '../components/ui/alert';
+import { config } from '../config/env';
 
 const DocumentDetail = () => {
   const { documentId } = useParams<{ documentId: string }>();
@@ -95,9 +96,8 @@ const DocumentDetail = () => {
   };
 
   const getDocumentUrl = () => {
-    // This would be the URL to fetch the actual document file
-    // You might need to implement an endpoint that serves the file
-    return `/api/documents/${documentId}/file`;
+    // Use the centralized config instead of directly accessing env variables
+    return `${config.api.baseUrl}/documents/${documentId}/file`;
   };
 
   if (loading) {

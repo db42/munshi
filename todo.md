@@ -21,6 +21,7 @@
 - - DONE - Section112A - only for indian equity
 - - Schedule BFLA
 - - number validation - PartB-TI
+- DONE fix pdf viewer
 - TODO support for previous ITR in the computations for sectionFA, carry forward losses etc.
 - TODO verify the computations for sectionFA last return - WIP
 - TODO json renderer in client and ability to update fields in json - update AL,
