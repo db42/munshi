@@ -1,4 +1,4 @@
-import { AISData, AISSftDetail, SftCode } from '../types/ais';
+import { AISData, AISSftDetail, AISTdsTcsDetail, SftCode } from '../types/ais';
 import { ScheduleOS, DateRangeType } from '../types/itr';
 import { ParseResult } from '../utils/parserTypes';
 import { logger } from '../utils/logger';
@@ -55,18 +55,21 @@ function createDateRangeWithAmount(amount: number): DateRangeType {
  * Extract interest income from AIS SFT details with source breakdown
  * @returns Object containing different types of interest income
  */
-function extractInterestIncomeDetailed(sftDetails: AISSftDetail[] = []): {
+function extractInterestIncomeDetailed(sftDetails: AISSftDetail[] = [], tdsDetails: AISTdsTcsDetail[] = []): {
   savingsBank: number;
   termDeposit: number;
   incomeTaxRefund: number;
+  epfInterest: number;  // Added EPF interest as a separate category
   others: number;
   total: number;
 } {
   let savingsBank = 0;
   let termDeposit = 0;
   let incomeTaxRefund = 0;
+  let epfInterest = 0;  // Track EPF interest separately
   let others = 0;
 
+  // Process SFT details
   sftDetails
     .filter(sft => sft.sftCode === SftCode.SFT_016 || 
                   (sft.description.toLowerCase().includes('interest') && 
@@ -79,17 +82,32 @@ function extractInterestIncomeDetailed(sftDetails: AISSftDetail[] = []): {
         termDeposit += sft.transactionValue;
       } else if (desc.includes('refund') || desc.includes('income tax')) {
         incomeTaxRefund += sft.transactionValue;
+      } else if (desc.includes('epf') || desc.includes('e.p.f') || desc.includes('provident fund')) {
+        epfInterest += sft.transactionValue;
       } else {
         others += sft.transactionValue;
       }
     });
   
-  const total = savingsBank + termDeposit + incomeTaxRefund + others;
+  // Process TDS details for EPF interest income (Section 194A)
+  (tdsDetails || [])
+    .filter(tds => 
+      tds.description?.toLowerCase().includes('interest') && 
+      tds.sectionCode === '194A' &&
+      (tds.deductorCollectorName?.toLowerCase().includes('e.p.f') || 
+       tds.deductorCollectorName?.toLowerCase().includes('provident fund'))
+    )
+    .forEach(tds => {
+      epfInterest += tds.amountPaidCredited || 0;
+    });
+  
+  const total = savingsBank + termDeposit + incomeTaxRefund + epfInterest + others;
   
   return {
     savingsBank,
     termDeposit,
     incomeTaxRefund,
+    epfInterest,
     others,
     total
   };
@@ -112,31 +130,118 @@ function extractDividendIncome(sftDetails: AISSftDetail[] = [], otherInformation
 }
 
 /**
+ * Creates a DateRangeType with amounts distributed according to quarters from transaction data
+ */
+function createDateRangeWithQuarterDistribution(transactionBreakdown: any[] = [], totalAmount: number = 0): DateRangeType {
+  // Initialize empty date range
+  const dateRange = {
+    Up16Of12To15Of3: 0,  // Q4: 16 Dec to 15 Mar
+    Up16Of3To31Of3: 0,   // End of FY: 16 Mar to 31 Mar
+    Up16Of9To15Of12: 0,  // Q3: 16 Sep to 15 Dec
+    Upto15Of6: 0,        // Q1: 1 Apr to 15 Jun
+    Upto15Of9: 0         // Q2: 16 Jun to 15 Sep
+  };
+  
+  // If we have transaction breakdown, distribute by quarter
+  if (transactionBreakdown && transactionBreakdown.length > 0) {
+    transactionBreakdown.forEach(transaction => {
+      const quarter = transaction.quarter;
+      const amount = transaction.amountPaidCredited || 0;
+      
+      // Map quarter information to DateRange structure
+      if (quarter?.includes('Q1') || quarter?.includes('Apr-Jun')) {
+        dateRange.Upto15Of6 += amount;
+      } else if (quarter?.includes('Q2') || quarter?.includes('Jul-Sep')) {
+        dateRange.Upto15Of9 += amount;
+      } else if (quarter?.includes('Q3') || quarter?.includes('Oct-Dec')) {
+        dateRange.Up16Of9To15Of12 += amount;
+      } else if (quarter?.includes('Q4') || quarter?.includes('Jan-Mar')) {
+        // Need to handle the division between regular Q4 and end of FY
+        // For simplicity, put it all in regular Q4
+        dateRange.Up16Of12To15Of3 += amount;
+      }
+    });
+  } else if (totalAmount > 0) {
+    // If no breakdown but we have a total, default to Q4
+    dateRange.Up16Of12To15Of3 = totalAmount;
+  }
+  
+  return { DateRange: dateRange };
+}
+
+/**
  * Generate Schedule OS from AIS data
  */
 function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
   logger.info('Generating Schedule OS from AIS data');
   
-  // Extract interest income from SFT details (code SFT-016) with detailed breakdown
-  const interestDetails = extractInterestIncomeDetailed(aisData.sftDetails);
+  // Extract interest income from SFT details and TDS details with breakdown
+  const interestDetails = extractInterestIncomeDetailed(aisData.sftDetails, aisData.tdsDetails);
   logger.debug(`Interest income breakdown from AIS: ${JSON.stringify(interestDetails)}`);
   
-  // Extract dividend income from SFT details (code SFT-017) and other information
+  // Extract dividend income from SFT details and other information
   const dividendIncome = extractDividendIncome(aisData.sftDetails, aisData.otherInformation);
   logger.debug(`Dividend income from AIS: ${dividendIncome}`);
+  
+  // Find EPF interest TDS information for quarterly distribution
+  const epfInterestTdsInfo = (aisData.tdsDetails || [])
+    .filter(tds => 
+      tds.description?.toLowerCase().includes('interest') && 
+      tds.sectionCode === '194A' &&
+      (tds.deductorCollectorName?.toLowerCase().includes('e.p.f') || 
+       tds.deductorCollectorName?.toLowerCase().includes('provident fund'))
+    );
+  
+  // Create quarterly distribution for EPF interest
+  let epfInterestDistribution = createEmptyDateRange();
+  
+  if (epfInterestTdsInfo.length > 0) {
+    const breakdowns = epfInterestTdsInfo.flatMap(tds => tds.transactionBreakdown || []);
+    
+    if (breakdowns.length > 0) {
+      // Initialize distribution object
+      const distribution = {
+        Up16Of12To15Of3: 0,  // Q4: 16 Dec to 15 Mar
+        Up16Of3To31Of3: 0,   // End of FY: 16 Mar to 31 Mar
+        Up16Of9To15Of12: 0,  // Q3: 16 Sep to 15 Dec
+        Upto15Of6: 0,        // Q1: 1 Apr to 15 Jun
+        Upto15Of9: 0         // Q2: 16 Jun to 15 Sep
+      };
+      
+      // Map quarter information to DateRange structure
+      breakdowns.forEach(transaction => {
+        const quarter = transaction.quarter;
+        const amount = transaction.amountPaidCredited || 0;
+        
+        if (quarter?.includes('Q1') || quarter?.includes('Apr-Jun')) {
+          distribution.Upto15Of6 += amount;
+        } else if (quarter?.includes('Q2') || quarter?.includes('Jul-Sep')) {
+          distribution.Upto15Of9 += amount;
+        } else if (quarter?.includes('Q3') || quarter?.includes('Oct-Dec')) {
+          distribution.Up16Of9To15Of12 += amount;
+        } else if (quarter?.includes('Q4') || quarter?.includes('Jan-Mar')) {
+          // Need to handle the division between regular Q4 and end of FY
+          // For simplicity, put it all in regular Q4
+          distribution.Up16Of12To15Of3 += amount;
+        }
+      });
+      
+      epfInterestDistribution = { DateRange: distribution };
+    }
+  }
   
   // Total income from other sources
   const totalIncome = interestDetails.total + dividendIncome;
   
   // Create Schedule OS with detailed breakdown
   return {
-    // Populate dividend fields
-    DividendDTAA: createDateRangeWithAmount(0), // No foreign dividends in AIS typically
+    // Populate dividend fields with proper quarterly distribution
+    DividendDTAA: createEmptyDateRange(),  // No foreign dividends in AIS typically
     DividendIncUs115A1ai: createEmptyDateRange(),
     DividendIncUs115AC: createEmptyDateRange(),
     DividendIncUs115ACA: createEmptyDateRange(),
     DividendIncUs115AD1i: createEmptyDateRange(),
-    DividendIncUs115BBDA: createDateRangeWithAmount(dividendIncome), // Most Indian dividends go here
+    DividendIncUs115BBDA: createDateRangeWithAmount(dividendIncome),  // Most Indian dividends go here
     
     // Income from lottery/gambling - not typically in AIS but required by Schedule OS
     IncFrmLottery: createEmptyDateRange(),
@@ -152,7 +257,9 @@ function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
       IntrstFrmSavingBank: interestDetails.savingsBank,
       IntrstFrmTermDeposit: interestDetails.termDeposit,
       IntrstFrmIncmTaxRefund: interestDetails.incomeTaxRefund,
-      IntrstFrmOthers: interestDetails.others,
+      // EPF interest goes into "others" for ITR schema compatibility
+      // but we've tracked it separately for reference
+      IntrstFrmOthers: interestDetails.others + interestDetails.epfInterest,
       
       // Dividend income
       DividendGross: dividendIncome,
@@ -230,6 +337,9 @@ export const convertAISToITRSections = (
     const scheduleOS = generateScheduleOS(aisData);
     
     // TODO: Generate Schedule TDS1 from TDS details
+    // Note: For EPF interest (section 194A), the TDS amount is typically 10% of the interest
+    // In the sample data: TDS of Rs. 961 on interest of Rs. 9610
+    
     // TODO: Generate Schedule TR1 from tax payment details
     // TODO: Generate Schedule CG from capital gains transactions (SFT-008, SFT-010, SFT-018)
     // TODO: Generate Schedule HP from house property information

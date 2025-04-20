@@ -20,7 +20,8 @@
 - WIP - compare with previous return
 - - DONE - Section112A - only for indian equity
 - - Schedule BFLA
-- - number validation - PartB-TI
+- - number validation - ScheduleS done, ScheduleOS
+- -  validation - PartB-TI
 - DONE fix pdf viewer
 - TODO support for previous ITR in the computations for sectionFA, carry forward losses etc.
 - TODO verify the computations for sectionFA last return - WIP
