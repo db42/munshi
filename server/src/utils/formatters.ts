@@ -32,9 +32,10 @@ export const parseDate = (dateStr: string): Date => {
 /**
  * Parse a string numeric value into a number. Handles financial formatting.
  * @param valueStr - String value to parse (can include $, commas, parentheses for negatives)
+ * @param convertToInt - Whether to convert the result to an integer (defaults to false)
  * @returns Parsed number or 0 if parsing fails
  */
-export const parseNumericValue = (valueStr: string): number => {
+export const parseNumericValue = (valueStr: string, convertToInt: boolean = false): number => {
   if (!valueStr) return 0;
   
   try {
@@ -43,14 +44,18 @@ export const parseNumericValue = (valueStr: string): number => {
     const cleanedValue = withoutQuotes.replace(/[$,%]/g, '');
     
     // Handle negative values in parentheses
+    let result: number;
     if (cleanedValue.startsWith('(') && cleanedValue.endsWith(')')) {
-      return -1 * parseFloat(cleanedValue.substring(1, cleanedValue.length - 1)) || 0;
+      result = -1 * parseFloat(cleanedValue.substring(1, cleanedValue.length - 1)) || 0;
     } else if (cleanedValue.startsWith('-')) {
       // Standard negative notation -123.45
-      return parseFloat(cleanedValue) || 0;
+      result = parseFloat(cleanedValue) || 0;
+    } else {
+      result = parseFloat(cleanedValue) || 0;
     }
     
-    return parseFloat(cleanedValue) || 0;
+    // Convert to integer if requested
+    return convertToInt ? Math.round(result) : result;
   } catch (e) {
     console.error(`[FORMATTER] Error parsing numeric value "${valueStr}":`, e);
     return 0;

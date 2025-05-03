@@ -2,6 +2,7 @@ import fs from 'fs';
 import * as XLSX from 'xlsx';
 import { ParseResult } from '../utils/parserTypes';
 import { logger } from '../utils/logger';
+import { parseNumericValue } from '../utils/formatters';
 
 /**
  * Interface for a single mutual fund transaction from CAMS statement
@@ -23,6 +24,24 @@ export interface CAMSMutualFundTransaction {
   gainOrLoss: number;
   capitalGainType: 'STCG' | 'LTCG';
   assetCategory: 'Equity' | 'Debt' | 'Hybrid';
+  investorName: string;
+  investorStatus: string;
+  investorPAN: string;
+  guardianPAN: string;
+  stt: number;
+  purchaseDescription: string;
+  purchaseUnits: number;
+  redemptionUnits: number;
+  indexedCost: number;
+  grandfatheredUnits: number;
+  grandfatheredNAV: number;
+  grandfatheredValue: number;
+  shortTermGain: number;
+  longTermWithIndexGain: number;
+  longTermWithoutIndexGain: number;
+  taxPercentage: number;
+  taxDeducted: number;
+  taxSurcharge: number;
 }
 
 /**
@@ -176,6 +195,7 @@ export const parseCAMSCapitalGainStatement = async (
     if (transactionSheetName) {
         usedSheetNameForTransactions = transactionSheetName;
         const transactionSheetData = XLSX.utils.sheet_to_json(workbook.Sheets[transactionSheetName]);
+        logger.info(`Transaction sheet data: ${JSON.stringify(transactionSheetData)}`);
         transactions = extractTransactions(transactionSheetData);
         logger.info(`Parsed ${transactions.length} transactions from dedicated sheet "${transactionSheetName}"`);
     } else if (sheetNames.length > 0) {
@@ -448,352 +468,268 @@ function extractValue(row: any, field: string | null, fallback: any): any {
 function extractTransactions(jsonData: any[]): CAMSMutualFundTransaction[] {
   const transactions: CAMSMutualFundTransaction[] = [];
   
-  // Find the header row that indicates the start of transaction data
-  let headerRowIndex = -1;
-  for (let i = 0; i < jsonData.length; i++) {
-    const row = jsonData[i];
-    // Handle cases where row might not be an object or has no keys
-    if (typeof row !== 'object' || row === null || Object.keys(row).length === 0) {
-       logger.debug(`Skipping non-object or empty row at index ${i}`);
-       continue; 
-    }
-    const rowKeys = Object.keys(row);
+  // Validate CAMS report structure
+  if (jsonData.length < 2) {
+    logger.error("CAMS report data has insufficient rows");
+    return [];
+  }
+  
+  // Validation 1: Check report title
+  const firstRow = jsonData[0];
+  if (!firstRow || 
+      !firstRow["Capital Gain / Loss Statement"]) {
+    logger.error("CAMS report doesn't have expected 'Capital Gain / Loss Statement' header");
+    logger.debug(`First row structure: ${JSON.stringify(firstRow)}`);
+    return [];
+  }
+  
+  // Validation 2: Check header structure
+  const headerRow = jsonData[1];
+  
+  // 2.1: Verify header row exists and is an object
+  if (!headerRow || typeof headerRow !== 'object') {
+    logger.error("Header row is missing or not an object");
+    return [];
+  }
+  
+  // 2.2: Check essential column headers exist
+  const requiredColumns = ["__EMPTY", "__EMPTY_1", "__EMPTY_7", "__EMPTY_8", "__EMPTY_9", 
+                           "__EMPTY_10", "__EMPTY_11", "__EMPTY_12", "__EMPTY_14", 
+                           "__EMPTY_16", "__EMPTY_17", "__EMPTY_24"];
+  
+  const missingColumns = requiredColumns.filter(col => !(col in headerRow));
+  if (missingColumns.length > 0) {
+    logger.error(`CAMS report is missing expected columns: ${missingColumns.join(', ')}`);
+    logger.debug(`Header row structure: ${JSON.stringify(headerRow)}`);
+    return [];
+  }
+  
+  // 2.3: Validate header content matches expected pattern
+  const headerValidation = [
+    { field: "__EMPTY", expectedContent: "AMC Name" },
+    { field: "__EMPTY_1", expectedContent: "Folio No" },
+    { field: "__EMPTY_2", expectedContent: "ASSET CLASS" },
+    { field: "__EMPTY_3", expectedContent: "NAME" },
+    { field: "__EMPTY_4", expectedContent: "STATUS" },
+    { field: "__EMPTY_5", expectedContent: "PAN" },
+    { field: "__EMPTY_6", expectedContent: "GUARDIAN_PAN" },
+    { field: "__EMPTY_7", expectedContent: "Scheme Name" },
+    { field: "__EMPTY_8", expectedContent: "Desc" },
+    { field: "__EMPTY_9", expectedContent: "Date" },
+    { field: "__EMPTY_10", expectedContent: "Units" },
+    { field: "__EMPTY_11", expectedContent: "Amount" },
+    { field: "__EMPTY_12", expectedContent: "Price" },
+    { field: "__EMPTY_13", expectedContent: "STT" },
+    { field: "Capital Gain / Loss Statement", expectedContent: "Desc_1" },
+    { field: "__EMPTY_14", expectedContent: "Date_1" },
+    { field: "__EMPTY_15", expectedContent: "PurhUnit" },
+    { field: "__EMPTY_16", expectedContent: "RedUnits" },
+    { field: "__EMPTY_17", expectedContent: "Unit Cost" },
+    { field: "__EMPTY_18", expectedContent: "Indexed Cost" },
+    { field: "__EMPTY_19", expectedContent: "Units As On 31/01/2018" },
+    { field: "__EMPTY_20", expectedContent: "NAV As On 31/01/2018" },
+    { field: "__EMPTY_21", expectedContent: "Market Value As On 31/01/2018" },
+    { field: "__EMPTY_22", expectedContent: "Short Term" },
+    { field: "__EMPTY_23", expectedContent: "Long Term With Index" },
+    { field: "__EMPTY_24", expectedContent: "Long Term Without Index" },
+    { field: "__EMPTY_25", expectedContent: "Tax Perc" },
+    { field: "__EMPTY_26", expectedContent: "Tax Deduct" },
+    { field: "__EMPTY_27", expectedContent: "Tax Surcharge" }
+  ];
+  
+  const contentErrors = headerValidation
+    .filter(item => !headerRow[item.field] || 
+                  !String(headerRow[item.field]).includes(item.expectedContent))
+    .map(item => `${item.field} should contain "${item.expectedContent}" but found "${headerRow[item.field]}"`);
+  
+  if (contentErrors.length > 0) {
+    logger.error(`CAMS report header structure doesn't match expected pattern:`);
+    contentErrors.forEach(err => logger.error(`- ${err}`));
+    logger.debug(`Full header row: ${JSON.stringify(headerRow)}`);
     
-    // Look for typical header patterns
-    if (rowKeys.some(key => 
-        key.toLowerCase().includes('folio') || 
-        key.toLowerCase().includes('scheme') || 
-        key.toLowerCase().includes('transaction') ||
-        key.toLowerCase().includes('units') || // Add more potential header keywords
-        key.toLowerCase().includes('amount') ||
-        key.toLowerCase().includes('nav')
-      )) {
-      headerRowIndex = i;
-      logger.info(`Found potential transaction header row at index ${i}`);
-      break;
+    // If more than half of validations fail, reject the file
+    if (contentErrors.length > headerValidation.length / 2) {
+      logger.error("Too many header validation failures, aborting parser");
+      return [];
     }
+    
+    // Otherwise just warn but continue
+    logger.warn("Continuing with parsing despite some header validation errors");
   }
   
-  if (headerRowIndex === -1) {
-    logger.warn('Could not find transaction header row based on common keywords. Data extraction might be incomplete.');
-    // Optional: Attempt to process from row 0 if no header found?
-    // headerRowIndex = -1; // To start loop below from 0
-    return []; // Current behavior: return empty if no header
+  // 2.4: Check if there are data rows after the header
+  if (jsonData.length < 3) {
+    logger.error("CAMS report doesn't contain any transaction data rows after the header");
+    return [];
   }
   
-  // Process rows after the header
-  for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+  // 2.5: Validate structure of first data row as sanity check
+  const firstDataRow = jsonData[2];
+  if (!firstDataRow.__EMPTY || !firstDataRow.__EMPTY_8 || !firstDataRow.__EMPTY_9) {
+    logger.error("First data row doesn't have expected structure");
+    logger.debug(`First data row: ${JSON.stringify(firstDataRow)}`);
+    return [];
+  }
+  
+  // If we've made it here, validation passed
+  logger.info("Validated CAMS capital gains report structure, processing transactions");
+  
+  // Process each transaction row (skip first two rows)
+  for (let i = 2; i < jsonData.length; i++) {
     const row = jsonData[i];
+    
+    // Skip empty rows
+    if (!row || typeof row !== 'object') continue;
+    
+    // Check if this is a redemption transaction
+    const transactionType = row.__EMPTY_8;
+    if (!transactionType || 
+        (!transactionType.includes('Redemption') && 
+         !transactionType.includes('Redem'))) {
+      continue;
+    }
     
     try {
-      // Skip empty or non-object rows
-      if (!row || typeof row !== 'object' || Object.keys(row).length === 0 || 
-          Object.values(row).every(val => !val)) {
+      // Extract ISIN from scheme name if present
+      const schemeName = row.__EMPTY_7 || '';
+      let isin = '';
+      if (schemeName.includes('ISIN :')) {
+        const parts = schemeName.split('ISIN :');
+        isin = parts[1]?.trim() || '';
+      }
+      
+      // Extract numeric values with more readable variable names
+      const units = parseNumericValue(String(row.__EMPTY_10));  // Units
+      const navOnSale = parseNumericValue(String(row.__EMPTY_12));      // Price/NAV
+      const sttPaid = parseNumericValue(String(row.__EMPTY_13));        // STT
+      
+      const purchaseUnits = parseNumericValue(String(row.__EMPTY_15));  // PurhUnit
+      const lotRedeemedUnits = parseNumericValue(String(row.__EMPTY_16)); // RedUnits
+      const purchaseNav = parseNumericValue(String(row.__EMPTY_17));       // Unit Cost/Purchase NAV
+      const indexedCost = parseNumericValue(String(row.__EMPTY_18));    // Indexed Cost
+      const saleValue = navOnSale * lotRedeemedUnits;
+      
+      const shortTermGain = parseNumericValue(String(row.__EMPTY_22));  // Short Term
+      const longTermWithIndexGain = parseNumericValue(String(row.__EMPTY_23)); // Long Term With Index
+      const longTermWithoutIndexGain = parseNumericValue(String(row.__EMPTY_24)); // Long Term Without Index
+      
+      // Tax information
+      const taxPercentage = parseNumericValue(String(row.__EMPTY_25));  // Tax Perc
+      const taxDeducted = parseNumericValue(String(row.__EMPTY_26));    // Tax Deduct
+      const taxSurcharge = parseNumericValue(String(row.__EMPTY_27));   // Tax Surcharge
+      
+      // Create transaction object with mapped fields
+      const transaction: CAMSMutualFundTransaction = {
+        folioNo: row.__EMPTY_1 || '',
+        fundName: row.__EMPTY || '', // AMC Name
+        schemeName: schemeName.split(',')[0] || '', // Take just the scheme name part
+        isin,
+        transactionType: row.__EMPTY_8 || 'Redemption',
+        units,
+        navOnSale,
+        saleValue,
+        saleDate: parseDate(row.__EMPTY_9 || ''),
+        purchaseDate: parseDate(row.__EMPTY_14 || ''),
+        purchaseNav,
+        acquisitionValue: lotRedeemedUnits * purchaseNav, // Cost of acquisition = redeemed units * unit cost
+        holdingPeriodDays: 0, // Calculate from dates
+        gainOrLoss: longTermWithoutIndexGain || shortTermGain, // Try LTCG first, then STCG
+        capitalGainType: longTermWithoutIndexGain > 0 ? 'LTCG' : 'STCG',
+        assetCategory: row.__EMPTY_2 === 'EQUITY' ? 'Equity' : 'Debt',
+        
+        // Additional fields captured from the report
+        investorName: row.__EMPTY_3 || '',
+        investorStatus: row.__EMPTY_4 || '',
+        investorPAN: row.__EMPTY_5 || '',
+        guardianPAN: row.__EMPTY_6 || '',
+        stt: sttPaid,
+        purchaseDescription: row["Capital Gain / Loss Statement"] || '',
+        purchaseUnits: purchaseUnits,
+        redemptionUnits: lotRedeemedUnits,
+        indexedCost: indexedCost,
+        grandfatheredUnits: parseNumericValue(String(row.__EMPTY_19)),
+        grandfatheredNAV: parseNumericValue(String(row.__EMPTY_20)),
+        grandfatheredValue: parseNumericValue(String(row.__EMPTY_21)),
+        shortTermGain,
+        longTermWithIndexGain,
+        longTermWithoutIndexGain,
+        taxPercentage,
+        taxDeducted,
+        taxSurcharge
+      };
+      
+      // Calculate holding period
+      const msPerDay = 24 * 60 * 60 * 1000;
+      transaction.holdingPeriodDays = Math.floor(
+        (transaction.saleDate.getTime() - transaction.purchaseDate.getTime()) / msPerDay
+      );
+      
+      // Skip transactions with no gain or invalid data
+      if (isNaN(transaction.gainOrLoss) || (transaction.gainOrLoss === 0 && transaction.shortTermGain === 0)) {
+        logger.debug(`Skipping transaction with zero or invalid gain: ${JSON.stringify(transaction)}`);
         continue;
       }
       
-      // Skip rows that appear to be subtotals/footers (heuristic)
-      const rowStr = JSON.stringify(row).toLowerCase();
-      if (rowStr.includes('total') || rowStr.includes('summary') || rowStr.includes('sub-total')) {
-         logger.debug(`Skipping potential total/summary row at index ${i}`);
-        continue;
-      }
-      
-      // Extract values from the row
-      const transaction = mapRowToTransaction(row);
-      if (transaction) {
-        transactions.push(transaction);
-      }
-    } catch (error) {
-      logger.warn(`Error processing transaction row ${i}: ${error}`);
-    }
+      transactions.push(transaction);
+      logger.debug(`Extracted transaction: ${JSON.stringify(transaction)}`);
+  } catch (error) {
+      logger.warn(`Error processing row ${i}: ${error}. Row data: ${JSON.stringify(row)}`);
+  }
   }
   
+  logger.info(`Extracted ${transactions.length} transactions from CAMS report`);
   return transactions;
 }
 
 /**
- * Maps a row from the XLS to a transaction object
- */
-function mapRowToTransaction(row: any): CAMSMutualFundTransaction | null {
-  // This function needs to be adapted to the specific CAMS format
-  // The field names below are examples and should be adjusted
-  
-  try {
-    // Find column name variations for important fields using findField
-    const folioField = findField(row, ['folio', 'folio no', 'folio number']);
-    const schemeField = findField(row, ['scheme', 'scheme name', 'fund', 'fund name', 'security name']);
-    const isinField = findField(row, ['isin', 'isin code']);
-    const transactionTypeField = findField(row, ['transaction', 'transaction type', 'type', 'description']);
-    const unitsField = findField(row, ['units', 'quantity', 'qty']);
-    const navOnSaleField = findField(row, ['nav', 'sale nav', 'nav on sale', 'price']);
-    const saleValueField = findField(row, ['sale value', 'sale amount', 'redemption value', 'redemption amount', 'amount']);
-    const saleDateField = findField(row, ['sale date', 'redemption date', 'transaction date', 'date']);
-    const purchaseDateField = findField(row, ['purchase date', 'acquisition date']);
-    const purchaseNavField = findField(row, ['purchase nav', 'acquisition nav', 'cost price']);
-    const acquisitionValueField = findField(row, ['acquisition value', 'purchase value', 'cost', 'cost value']);
-    const holdingPeriodField = findField(row, ['holding period', 'days', 'period']);
-    const gainLossField = findField(row, ['gain', 'loss', 'profit', 'gain/loss', 'short term', 'long term']); // Broader search for gain
-    const capitalGainTypeField = findField(row, ['stcg/ltcg', 'capital gain type', 'gain type']);
-    
-    if (!schemeField || !unitsField || !saleValueField || !saleDateField) {
-       logger.debug(`Skipping row due to missing essential fields (scheme, units, sale value, or sale date): ${JSON.stringify(row)}`);
-      return null; // Skip rows without essential data
-    }
-    
-    // Extract values with fallbacks
-    const folioNo = extractValue(row, folioField, '') as string;
-    let fundName = extractValue(row, schemeField, '') as string; // Use scheme initially
-    let schemeName = fundName;
-    
-    // Sometimes fund name and scheme name are separate
-    const fundNameField = findField(row, ['fund name', 'fund']);
-    if (fundNameField && fundNameField !== schemeField) {
-       // If a distinct 'fund name' field exists, use it and keep scheme separate
-      fundName = extractValue(row, fundNameField, '') as string;
-      schemeName = extractValue(row, schemeField, '') as string; 
-    }
-    
-    const isin = extractValue(row, isinField, '') as string;
-    let transactionType = extractValue(row, transactionTypeField, 'Redemption') as string;
-    // Refine transaction type if possible (e.g., based on gain/loss presence)
-    if (gainLossField === null && transactionType.toLowerCase() === 'redemption') {
-        // If no gain/loss found, might not be a capital gain transaction
-        // transactionType = 'Unknown'; // Or handle differently
-    }
-
-    const units = parseFloat(String(extractValue(row, unitsField, 0)).replace(/,/g, ''));
-    const navOnSale = parseFloat(String(extractValue(row, navOnSaleField, 0)).replace(/,/g, ''));
-    const saleValue = parseFloat(String(extractValue(row, saleValueField, 0)).replace(/,/g, ''));
-    
-    // Parse dates
-    let saleDate: Date;
-    const saleDateStr = extractValue(row, saleDateField, null);
-    if (saleDateStr !== null) {
-      saleDate = parseDate(String(saleDateStr));
-    } else {
-       logger.warn(`Missing sale date for row: ${JSON.stringify(row)}`);
-      return null; // Essential field missing
-    }
-    
-    let purchaseDate: Date | null = null;
-    const purchaseDateStr = extractValue(row, purchaseDateField, null);
-    if (purchaseDateStr !== null) {
-      purchaseDate = parseDate(String(purchaseDateStr));
-    } else {
-       logger.debug(`Purchase date missing, will estimate if possible. Row: ${JSON.stringify(row)}`);
-      // Defaulting handled later based on holding period
-    }
-    
-    const purchaseNav = parseFloat(String(extractValue(row, purchaseNavField, 0)).replace(/,/g, ''));
-    let acquisitionValue = parseFloat(String(extractValue(row, acquisitionValueField, 0)).replace(/,/g, ''));
-
-    // If acquisition value is missing but purchase NAV and units are present, calculate it
-    if (acquisitionValue === 0 && purchaseNav !== 0 && units !== 0) {
-        acquisitionValue = purchaseNav * units;
-        logger.debug(`Calculated acquisition value (${acquisitionValue}) from purchase NAV (${purchaseNav}) and units (${units})`);
-    }
-    
-    // Calculate or extract holding period
-    let holdingPeriodDays: number = 0; // Initialize to 0
-    const holdingPeriodValue = extractValue(row, holdingPeriodField, null);
-    if (holdingPeriodValue !== null) {
-      holdingPeriodDays = parseInt(String(holdingPeriodValue), 10);
-      // Estimate purchase date if missing and holding period is known
-      if (purchaseDate === null && holdingPeriodDays > 0) {
-          purchaseDate = new Date(saleDate);
-          purchaseDate.setDate(saleDate.getDate() - holdingPeriodDays);
-          logger.debug(`Estimated purchase date (${purchaseDate.toISOString()}) from sale date and holding period (${holdingPeriodDays} days)`);
-      }
-    } else if (purchaseDate !== null) {
-      // Calculate days between purchase and sale if both dates are known
-      const daysDiff = Math.floor((saleDate.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
-      holdingPeriodDays = daysDiff >= 0 ? daysDiff : 0; // Ensure non-negative
-    } else {
-       logger.warn(`Could not determine holding period (missing purchase date and period field) for row: ${JSON.stringify(row)}`);
-        // Cannot determine gain type without holding period
-    }
-    
-    // Default purchase date if still null (e.g., 1 year before sale date)
-    if (purchaseDate === null) {
-        purchaseDate = new Date(saleDate);
-        purchaseDate.setFullYear(purchaseDate.getFullYear() - 1);
-        logger.debug(`Defaulted purchase date to 1 year before sale date: ${purchaseDate.toISOString()}`);
-    }
-
-    // Extract or calculate gain/loss
-    let gainOrLoss: number;
-    const gainLossValue = extractValue(row, gainLossField, null);
-    if (gainLossValue !== null) {
-      gainOrLoss = parseFloat(String(gainLossValue).replace(/,/g, ''));
-      // Handle cases where gain/loss might be split (e.g., Short Term / Long Term columns)
-      // If gainLossField was 'short term', check for 'long term' as well, etc.
-      // This part might need refinement based on specific statement formats.
-    } else if (saleValue !== 0 && acquisitionValue !== 0) {
-      gainOrLoss = saleValue - acquisitionValue;
-    } else {
-      logger.warn(`Could not determine gain/loss for row: ${JSON.stringify(row)}`);
-      gainOrLoss = 0; // Default to 0 if cannot calculate
-    }
-    
-    // Determine capital gain type
-    let capitalGainType: 'STCG' | 'LTCG';
-    const capitalGainTypeValue = extractValue(row, capitalGainTypeField, null);
-    const assetCategory = determineAssetCategory(schemeName); // Determine category first
-
-    if (capitalGainTypeValue !== null) {
-      const cgTypeStr = String(capitalGainTypeValue).toUpperCase();
-      capitalGainType = cgTypeStr.includes('STCG') || cgTypeStr.includes('SHORT') ? 'STCG' : 'LTCG';
-    } else if (holdingPeriodDays > 0) { // Can only determine type if holding period is known
-      // For equity mutual funds, LTCG is > 12 months holding period
-      // For debt mutual funds, LTCG is > 36 months holding period
-      const threshold = assetCategory === 'Debt' ? (3 * 365) : 365;
-      capitalGainType = holdingPeriodDays > threshold ? 'LTCG' : 'STCG';
-    } else {
-      // Cannot determine type if holding period is unknown
-      // Decide on a default or handle as error? Defaulting to LTCG for now.
-      capitalGainType = 'LTCG'; 
-       logger.warn(`Could not determine capital gain type due to unknown holding period. Defaulting to LTCG. Row: ${JSON.stringify(row)}`);
-    }
-    
-    // Asset category already determined above
-    
-    return {
-      folioNo,
-      fundName,
-      schemeName,
-      isin,
-      transactionType,
-      units,
-      navOnSale,
-      saleValue,
-      saleDate,
-      purchaseDate, // Now guaranteed non-null
-      purchaseNav,
-      acquisitionValue,
-      holdingPeriodDays,
-      gainOrLoss,
-      capitalGainType,
-      assetCategory
-    };
-  } catch (error) {
-    logger.warn(`Error mapping row to transaction: ${error}. Row data: ${JSON.stringify(row)}`);
-    return null;
-  }
-}
-
-/**
- * Extract summary information from the OVERALL_SUMMARY_EQUITY sheet
+ * Extract summary information from the CAMS summary sheet
+ * Based on the standard CAMS report format structure
  */
 function extractSummaryFromSheet(jsonData: any[]): CAMSMFCapitalGainData['summary'] {
+  // Default values
   let equityStcg = 0;
   let equityLtcg = 0;
   let debtStcg = 0;
   let debtLtcg = 0;
-  let totalGainLoss = 0;
   
-  logger.info(`Processing ${jsonData.length} rows from summary sheet`);
-  
-  // Debug: Log potential capital gain rows to help with format identification
-  jsonData.forEach((row, index) => {
-    const rowStr = JSON.stringify(row).toLowerCase();
-    if (rowStr.includes('capital') && rowStr.includes('gain')) {
-      logger.info(`Potential capital gain row[${index}]: ${JSON.stringify(row)}`);
-    }
-  });
-
-  // First, look for the specific format where "LongTermWithOutIndex-CapitalGain/Loss" is a key
-  for (let i = 0; i < jsonData.length; i++) {
-    const row = jsonData[i];
-    
-    // Skip empty rows
-    if (!row || Object.keys(row).length === 0) continue;
-    
-    // Convert row to string for easier searching
-    const rowString = JSON.stringify(row).toLowerCase();
-    
-    // Look for exact match from the log format
-    if (row.__EMPTY === "Short Term Capital Gain/Loss" && row.__EMPTY_5 !== undefined) {
-      equityStcg = typeof row.__EMPTY_5 === 'number' ? row.__EMPTY_5 : 0;
-      logger.info(`Found STCG in exact format: ${equityStcg}`);
-    }
-    
-    if (row.__EMPTY === "LongTermWithOutIndex-CapitalGain/Loss" && row.__EMPTY_5 !== undefined) {
-      equityLtcg = typeof row.__EMPTY_5 === 'number' ? row.__EMPTY_5 : 0;
-      logger.info(`Found LTCG in exact format: ${equityLtcg}`);
-    }
-    
-    // Also look for other variations of CAMS format
-    if (row.__EMPTY && typeof row.__EMPTY === 'string') {
-      const fieldName = row.__EMPTY.toLowerCase();
-      
-      // Check various short-term gain formats
-      if (fieldName.includes('short term') && fieldName.includes('capital gain')) {
-        if (row.__EMPTY_5 !== undefined && typeof row.__EMPTY_5 === 'number') {
-          equityStcg = row.__EMPTY_5;
-          logger.info(`Found STCG in variation format: ${equityStcg}`);
-        }
-      }
-      
-      // Check various long-term gain formats (without index)
-      if ((fieldName.includes('long term') || fieldName.includes('longterm')) && 
-          (fieldName.includes('without index') || fieldName.includes('withoutindex'))) {
-        if (row.__EMPTY_5 !== undefined && typeof row.__EMPTY_5 === 'number') {
-          equityLtcg = row.__EMPTY_5;
-          logger.info(`Found LTCG in variation format: ${equityLtcg}`);
-        }
-      }
-    }
+  // Skip if the sheet is empty or too small
+  if (!jsonData || jsonData.length < 13) {
+    logger.warn("Summary sheet has insufficient rows, expected at least 13 rows");
+    return { equityStcg, equityLtcg, debtStcg, debtLtcg, totalGainLoss: 0 };
   }
   
-  // If we haven't found anything in the structured format, try a more generic approach
-  if (equityStcg === 0 && equityLtcg === 0) {
-    logger.info("Using generic approach to find capital gains in summary sheet");
-    
-    for (const row of jsonData) {
-      // Convert row to string for easier searching
-      const rowString = JSON.stringify(row).toLowerCase();
-      
-      // Look for short term capital gain entries
-      if (rowString.includes('short term') || rowString.includes('stcg')) {
-        // Look through all columns for a total value
-        for (const key in row) {
-          // Check for total column or last column
-          if ((key.includes('total') || key === '__EMPTY_5') && typeof row[key] === 'number') {
-            equityStcg = row[key];
-            logger.info(`Found STCG in generic format: ${equityStcg}`);
-            break;
-          } else if (typeof row[key] === 'number' && row[key] !== 0) {
-            // If no specific total column, use any numeric value (less reliable)
-            equityStcg = row[key];
-          }
-        }
-      }
-      
-      // Look for long term capital gain entries
-      if (rowString.includes('long term') || 
-          rowString.includes('ltcg') || 
-          rowString.includes('without index')) {
-        // Look through all columns for a total value
-        for (const key in row) {
-          // Check for total column or last column
-          if ((key.includes('total') || key === '__EMPTY_5') && typeof row[key] === 'number') {
-            equityLtcg = row[key];
-            logger.info(`Found LTCG in generic format: ${equityLtcg}`);
-            break;
-          } else if (typeof row[key] === 'number' && row[key] !== 0) {
-            // If no specific total column, use any numeric value (less reliable)
-            equityLtcg = row[key];
-          }
-        }
-      }
-    }
+  // 1. Validate header row (row index 1)
+  const headerRow = jsonData[1];
+  if (!headerRow || !headerRow.__EMPTY || headerRow.__EMPTY !== "Summary Of Capital Gains") {
+    logger.warn("Summary sheet doesn't have expected header 'Summary Of Capital Gains'");
+    logger.debug(`Header row content: ${JSON.stringify(headerRow)}`);
+    return { equityStcg, equityLtcg, debtStcg, debtLtcg, totalGainLoss: 0 };
+  }
+  
+  logger.info("Validated CAMS summary sheet header, extracting values from fixed positions");
+  
+  // 2. Extract STCG from row index 4 (Short Term Capital Gain/Loss)
+  const stcgRow = jsonData[4];
+  if (stcgRow && stcgRow.__EMPTY === "Short Term Capital Gain/Loss") {
+    equityStcg = parseNumericValue(String(stcgRow.__EMPTY_5));
+    logger.info(`Found STCG in row 4: ${equityStcg}`);
+  } else {
+    logger.warn("Could not find expected Short Term Capital Gain/Loss row at index 4");
+  }
+  
+  // 3. Extract LTCG from row index 12 (LongTermWithOutIndex-CapitalGain/Loss)
+  const ltcgRow = jsonData[12];
+  if (ltcgRow && ltcgRow.__EMPTY === "LongTermWithOutIndex-CapitalGain/Loss") {
+    equityLtcg = parseNumericValue(String(ltcgRow.__EMPTY_5));
+    logger.info(`Found LTCG in row 12: ${equityLtcg}`);
+  } else {
+    logger.warn("Could not find expected LongTermWithOutIndex-CapitalGain/Loss row at index 12");
   }
   
   // Calculate total gain/loss
-  totalGainLoss = equityStcg + equityLtcg + debtStcg + debtLtcg;
+  const totalGainLoss = equityStcg + equityLtcg + debtStcg + debtLtcg;
   
-  logger.info(`Extracted from summary sheet: STCG=${equityStcg}, LTCG=${equityLtcg}, Total=${totalGainLoss}`);
+  logger.info(`Summary totals: STCG=${equityStcg}, LTCG=${equityLtcg}, Total=${totalGainLoss}`);
   
   return {
     equityStcg,

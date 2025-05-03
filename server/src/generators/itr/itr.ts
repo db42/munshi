@@ -715,6 +715,7 @@ export const generateITR = async (
     const camsMFCapitalGainData = await parsedDocuments.getCAMSMFCapitalGainData(userId, assessmentYear);
     if (camsMFCapitalGainData?.success && camsMFCapitalGainData?.data) {
         const result = convertCAMSMFCapitalGainToITR(camsMFCapitalGainData.data, assessmentYear);
+        logger.info(`CAMS MF Capital Gain Statement result: ${JSON.stringify(result)}`);
         if (result.success && result.data) {
             sectionsToMerge.push(...convertCAMSMFITRSectionsToITRSections(result.data));
         } else {

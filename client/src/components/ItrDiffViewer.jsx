@@ -10,6 +10,43 @@ const ItrDiffViewer = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Section descriptions for common ITR sections
+  const sectionDescriptions = {
+    CreationInfo: "Form Creation Information",
+    Form_ITR2: "ITR-2 Form Information",
+    PartA_GEN1: "General Information",
+    "PartB-TI": "Computation of Total Income",
+    PartB_TTI: "Computation of Tax Liability on Total Income",
+    Schedule112A: "Long-term Capital Gains on Sale of Equity Shares or Units",
+    ScheduleAL: "Statement of Assets and Liabilities",
+    ScheduleAMTC: "Minimum Alternate Tax Credit",
+    ScheduleBFLA: "Break-up of Fee for Late Filing of Return",
+    ScheduleCFL: "Capital Gains and Losses Carry Forward",
+    ScheduleCGFor23: "Capital Gains for FY 2022-23",
+    ScheduleCYLA: "Current Year Loss Adjustment",
+    ScheduleEI: "Exempt Income",
+    ScheduleFA: "Foreign Assets",
+    ScheduleHP: "Income from House Property",
+    ScheduleIT: "Tax Payments",
+    ScheduleOS: "Income from Other Sources",
+    ScheduleS: "Details of Income from Salary",
+    ScheduleSI: "Statement of Income",
+    ScheduleTCS: "Tax Collected at Source",
+    ScheduleTDS1: "Tax Deducted at Source from Salary",
+    ScheduleTDS2: "Tax Deducted at Source on Income Other Than Salary",
+    ScheduleTDS3: "TDS on Income from Other Sources",
+    ScheduleTR1: "Tax Relief Details",
+    ScheduleVDA: "Virtual Digital Assets",
+    ScheduleVIA: "Deductions Under Chapter VI-A",
+    Verification: "Verification and Declaration Information",
+    ScheduleBP: "Business and Profession Income",
+    ScheduleCG: "Capital Gains",
+    ScheduleDI: "Details of Income",
+    ScheduleIF: "Information from Balance Sheet",
+    ScheduleTR: "Summary of Tax Relief",
+    ScheduleVI: "Verification Information"
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -49,9 +86,9 @@ const ItrDiffViewer = () => {
         console.log("Available sections:", allSectionsKeys); // For debugging purposes
         setSections(allSectionsKeys);
         
-        // Set default section to ScheduleS if it exists
-        if (allSectionsKeys.includes('ScheduleS')) {
-          setSelectedSection('ScheduleS');
+        // Set default section to ScheduleOS if it exists
+        if (allSectionsKeys.includes('ScheduleOS')) {
+          setSelectedSection('ScheduleOS');
         }
       } catch (err) {
         console.error("Error loading ITR JSON data:", err);
@@ -249,7 +286,14 @@ const ItrDiffViewer = () => {
 
       {selectedSection ? (
         <div>
-          <h3>Comparing {selectedSection}</h3>
+          <h3>
+            Comparing {selectedSection}
+            {sectionDescriptions[selectedSection] && 
+              <span style={{ fontWeight: 'normal', fontSize: '0.9em', marginLeft: '10px', color: '#666' }}>
+                - {sectionDescriptions[selectedSection]}
+              </span>
+            }
+          </h3>
           <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: '4px' }}>
             {/* Left side - Original */}
             <div style={{ flex: 1, borderRight: '1px solid #ddd', overflowX: 'auto' }}>

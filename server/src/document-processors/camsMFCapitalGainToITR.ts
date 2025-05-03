@@ -451,7 +451,7 @@ const generateSchedule112A = (
         const detail: Schedule112A115ADType = {
             ISINCode: txn.isin,
             ShareUnitName: txn.fundName, // Or schemeName
-            NumSharesUnits: txn.units,
+            NumSharesUnits: txn.redemptionUnits,
             SalePricePerShareUnit: txn.navOnSale, // Assuming NAV is per unit price
             TotSaleValue: saleValue,
             CostAcqWithoutIndx: costAcquisition,

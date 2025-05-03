@@ -157,7 +157,7 @@ curl -X POST 'http://localhost:3000/api/documents/process' \
 Goto http://localhost:3000/api/itr/123/2024-25 to see the processes ITR - WIP
 
 **Full integration test**
-1. curl http://localhost:3000/api/itr/123/2024-25 > ../client/public/generated-itr-ay-2024-25.json
+1. `curl http://localhost:3000/api/itr/123/2024-25 > ../client/public/generated-itr-ay-2024-25.json`
 2. goto http://localhost:5173/diff-viewer
 
 ## GET Document Endpoints

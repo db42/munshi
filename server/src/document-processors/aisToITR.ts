@@ -237,6 +237,7 @@ function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
   return {
     // Populate dividend fields with proper quarterly distribution
     DividendDTAA: createEmptyDateRange(),  // No foreign dividends in AIS typically
+    DividendIncUs115A1aA: createEmptyDateRange(),
     DividendIncUs115A1ai: createEmptyDateRange(),
     DividendIncUs115AC: createEmptyDateRange(),
     DividendIncUs115ACA: createEmptyDateRange(),
@@ -249,6 +250,13 @@ function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
     
     // Total income chargeable under Other Sources
     IncChargeable: totalIncome,
+
+    IncFrmOnGames: createEmptyDateRange(),
+    IncFromOwnHorse: {
+      BalanceOwnRaceHorse: 0,
+      DeductSec57: 0,
+      Receipts: 0
+    },
     
     // Detailed breakdown for Income Other Than Own Race Horse
     IncOthThanOwnRaceHorse: {
