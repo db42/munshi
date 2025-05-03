@@ -243,21 +243,21 @@ export const calculatePartBTI = (itr: Itr2): PartBTI => {
         partBTI.CapGain.ShortTermLongTermTotal = capitalGains;
     }
     
-    // Calculate Gross Total Income
-    const grossTotalIncome = salaryIncome + incomeFromOS + capitalGains;
-    
     // Update PartB_TI values
     partBTI.Salaries = salaryIncome;
-    partBTI.GrossTotalIncome = grossTotalIncome;
-    partBTI.TotalTI = grossTotalIncome;
     
     // Apply deductions if available
     const deductions = 0;
+    const broughtForwardLosses = 0;
+    partBTI.BroughtFwdLossesSetoff = broughtForwardLosses;
     
     // Calculate final total income
-    const totalIncome = Math.max(0, grossTotalIncome - deductions);
-    partBTI.TotalIncome = totalIncome;
-    partBTI.AggregateIncome = totalIncome;
-    
+    // const totalIncome = Math.max(0, grossTotalIncome - deductions);
+    partBTI.AggregateIncome = salaryIncome + incomeFromOS;
+    partBTI.TotalTI = salaryIncome + incomeFromOS + capitalGains;
+    partBTI.BalanceAfterSetoffLosses = salaryIncome + incomeFromOS + capitalGains;
+
+    partBTI.GrossTotalIncome = salaryIncome + incomeFromOS + capitalGains - broughtForwardLosses;
+    partBTI.TotalIncome = salaryIncome + incomeFromOS + capitalGains - broughtForwardLosses;
     return partBTI;
 };
