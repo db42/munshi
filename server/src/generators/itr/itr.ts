@@ -1,12 +1,11 @@
 import { parsedDocuments } from '../../services/parsedDocument';
-import { convertForm16ToITR as convertForm16ToITRSections, Form16ITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, CapGain, ScheduleFA, DateRangeType, ScheduleOS, ScheduleTR1, ScheduleFSI, AssetOutIndiaFlag, CountryCodeExcludingIndia, ReliefClaimedUsSection, ScheduleFSIDtls, IncFromOS, PartBTI, PartBTTI, ITRClass, Itr, ScheduleS, ScheduleHP, EquityMFonSTT, ScheduleSI, SplCodeRateTax, SECCode, Schedule112A } from '../../types/itr';
+import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2 } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
-import { convertUSInvestmentIncomeToITRSections, USInvestmentIncomeITRSections } from '../../document-processors/usInvestmentIncomeToITR';
-import { convertAISToITRSections, AISITRSections } from '../../document-processors/aisToITR';
+import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
+import { convertAISToITRSections } from '../../document-processors/aisToITR';
 import { convertCAMSMFCapitalGainToITR, CAMSMFCapitalGainITRSections } from '../../document-processors/camsMFCapitalGainToITR';
-import { ParseResult } from '../../utils/parserTypes';
 import cloneDeep from 'lodash/cloneDeep';
 import { logger } from '../../utils/logger';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
@@ -31,7 +30,8 @@ export enum ITRSectionType {
     SCHEDULE_OS = 'ScheduleOS',
     SCHEDULE_TR1 = 'ScheduleTR1',
     SCHEDULE_FSI = 'ScheduleFSI',
-    SCHEDULE_112A = 'Schedule112A'
+    SCHEDULE_112A = 'Schedule112A',
+    SCHEDULE_TDS2 = 'ScheduleTDS2'
 }
 
 /**
@@ -79,7 +79,7 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
     // New transformers for full section handling
     [ITRSectionType.SCHEDULE_OS]: (itr, section) => {
         const scheduleOS = section.data as Partial<ScheduleOS>;
-        
+
         // If no existing ScheduleOS, add it
         if (!itr.ScheduleOS) {
             itr = {
@@ -97,33 +97,33 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
                 // For DTAA dividend, we combine the values in the DateRange
                 DividendDTAA: {
                     DateRange: {
-                        Up16Of12To15Of3: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0) + 
-                                          (scheduleOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0),
-                        Up16Of3To31Of3: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 || 0) + 
-                                         (scheduleOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 ||
-                                         0),
-                        Up16Of9To15Of12: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0) + 
-                                          (scheduleOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0),
-                        Upto15Of6: (itr.ScheduleOS.DividendDTAA?.DateRange?.Upto15Of6 || 0) + 
-                                    (scheduleOS.DividendDTAA?.DateRange?.Upto15Of6 || 0),
-                        Upto15Of9: (itr.ScheduleOS.DividendDTAA?.DateRange?.Upto15Of9 || 0) + 
-                                    (scheduleOS.DividendDTAA?.DateRange?.Upto15Of9 || 0)
+                        Up16Of12To15Of3: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0) +
+                            (scheduleOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0),
+                        Up16Of3To31Of3: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 || 0) +
+                            (scheduleOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 ||
+                                0),
+                        Up16Of9To15Of12: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0) +
+                            (scheduleOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0),
+                        Upto15Of6: (itr.ScheduleOS.DividendDTAA?.DateRange?.Upto15Of6 || 0) +
+                            (scheduleOS.DividendDTAA?.DateRange?.Upto15Of6 || 0),
+                        Upto15Of9: (itr.ScheduleOS.DividendDTAA?.DateRange?.Upto15Of9 || 0) +
+                            (scheduleOS.DividendDTAA?.DateRange?.Upto15Of9 || 0)
                     }
                 }
             };
-            
+
             itr = {
                 ...itr,
                 ScheduleOS: updatedScheduleOS
             };
         }
-        
+
         return itr;
     },
-    
+
     [ITRSectionType.SCHEDULE_TR1]: (itr, section) => {
         const scheduleTR1 = section.data as Partial<ScheduleTR1>;
-        
+
         // If no existing ScheduleTR1, add it
         if (!itr.ScheduleTR1) {
             itr = {
@@ -134,56 +134,56 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
             // Merge with existing ScheduleTR1
             const existingScheduleTR = itr.ScheduleTR1.ScheduleTR || [];
             const newScheduleTR = scheduleTR1.ScheduleTR || [];
-            
+
             // Merge ScheduleTR entries
             const mergedScheduleTR = [...existingScheduleTR];
-            
+
             // Add or update entries from new ScheduleTR
             newScheduleTR.forEach(newEntry => {
                 const existingEntryIndex = mergedScheduleTR.findIndex(
                     entry => entry.CountryCodeExcludingIndia === newEntry.CountryCodeExcludingIndia
                 );
-                
+
                 if (existingEntryIndex >= 0) {
                     // Update existing country entry
                     mergedScheduleTR[existingEntryIndex] = {
                         ...mergedScheduleTR[existingEntryIndex],
-                        TaxPaidOutsideIndia: (mergedScheduleTR[existingEntryIndex].TaxPaidOutsideIndia || 0) + 
-                                              (newEntry.TaxPaidOutsideIndia || 0),
+                        TaxPaidOutsideIndia: (mergedScheduleTR[existingEntryIndex].TaxPaidOutsideIndia || 0) +
+                            (newEntry.TaxPaidOutsideIndia || 0),
                         TaxReliefOutsideIndia: (mergedScheduleTR[existingEntryIndex].TaxReliefOutsideIndia ||
-                                               0) + (newEntry.TaxReliefOutsideIndia || 0)
+                            0) + (newEntry.TaxReliefOutsideIndia || 0)
                     };
                 } else {
                     // Add new country entry
                     mergedScheduleTR.push(newEntry);
                 }
             });
-            
+
             const updatedScheduleTR1 = {
                 ...itr.ScheduleTR1,
                 ...scheduleTR1,
                 ScheduleTR: mergedScheduleTR,
                 // Update totals
-                TotalTaxPaidOutsideIndia: (itr.ScheduleTR1.TotalTaxPaidOutsideIndia || 0) + 
-                                           (scheduleTR1.TotalTaxPaidOutsideIndia || 0),
-                TotalTaxReliefOutsideIndia: (itr.ScheduleTR1.TotalTaxReliefOutsideIndia || 0) + 
-                                             (scheduleTR1.TotalTaxReliefOutsideIndia || 0),
-                TaxReliefOutsideIndiaDTAA: (itr.ScheduleTR1.TaxReliefOutsideIndiaDTAA || 0) + 
-                                            (scheduleTR1.TaxReliefOutsideIndiaDTAA || 0)
+                TotalTaxPaidOutsideIndia: (itr.ScheduleTR1.TotalTaxPaidOutsideIndia || 0) +
+                    (scheduleTR1.TotalTaxPaidOutsideIndia || 0),
+                TotalTaxReliefOutsideIndia: (itr.ScheduleTR1.TotalTaxReliefOutsideIndia || 0) +
+                    (scheduleTR1.TotalTaxReliefOutsideIndia || 0),
+                TaxReliefOutsideIndiaDTAA: (itr.ScheduleTR1.TaxReliefOutsideIndiaDTAA || 0) +
+                    (scheduleTR1.TaxReliefOutsideIndiaDTAA || 0)
             };
-            
+
             itr = {
                 ...itr,
                 ScheduleTR1: updatedScheduleTR1
             };
         }
-        
+
         return itr;
     },
-    
+
     [ITRSectionType.SCHEDULE_FSI]: (itr, section) => {
         const scheduleFSI = section.data as ScheduleFSI;
-        
+
         // If no existing ScheduleFSI, add it
         if (!itr.ScheduleFSI) {
             itr = {
@@ -194,46 +194,46 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
             // Merge with existing ScheduleFSI
             const existingScheduleFSIDtls = itr.ScheduleFSI.ScheduleFSIDtls || [];
             const newScheduleFSIDtls = scheduleFSI.ScheduleFSIDtls || [];
-            
+
             // Merge ScheduleFSIDtls entries
             const mergedScheduleFSIDtls = [...existingScheduleFSIDtls];
-            
+
             // Add or update entries from new ScheduleFSIDtls
             newScheduleFSIDtls.forEach(newEntry => {
                 const existingEntryIndex = mergedScheduleFSIDtls.findIndex(
                     entry => entry.CountryCodeExcludingIndia === newEntry.CountryCodeExcludingIndia
                 );
-                
+
                 if (existingEntryIndex >= 0) {
                     // Update existing country entry
                     const existingEntry = mergedScheduleFSIDtls[existingEntryIndex];
-                    
+
                     // Update IncOthSrc (Income from Other Sources)
                     const updatedIncOthSrc = {
                         ...existingEntry.IncOthSrc,
-                        IncFrmOutsideInd: (existingEntry.IncOthSrc.IncFrmOutsideInd || 0) + 
-                                          (newEntry.IncOthSrc.IncFrmOutsideInd || 0),
-                        TaxPaidOutsideInd: (existingEntry.IncOthSrc.TaxPaidOutsideInd || 0) + 
-                                           (newEntry.IncOthSrc.TaxPaidOutsideInd || 0),
-                        TaxPayableinInd: (existingEntry.IncOthSrc.TaxPayableinInd || 0) + 
-                                         (newEntry.IncOthSrc.TaxPayableinInd || 0),
-                        TaxReliefinInd: (existingEntry.IncOthSrc.TaxReliefinInd || 0) + 
-                                        (newEntry.IncOthSrc.TaxReliefinInd || 0)
+                        IncFrmOutsideInd: (existingEntry.IncOthSrc.IncFrmOutsideInd || 0) +
+                            (newEntry.IncOthSrc.IncFrmOutsideInd || 0),
+                        TaxPaidOutsideInd: (existingEntry.IncOthSrc.TaxPaidOutsideInd || 0) +
+                            (newEntry.IncOthSrc.TaxPaidOutsideInd || 0),
+                        TaxPayableinInd: (existingEntry.IncOthSrc.TaxPayableinInd || 0) +
+                            (newEntry.IncOthSrc.TaxPayableinInd || 0),
+                        TaxReliefinInd: (existingEntry.IncOthSrc.TaxReliefinInd || 0) +
+                            (newEntry.IncOthSrc.TaxReliefinInd || 0)
                     };
-                    
+
                     // Update TotalCountryWise
                     const updatedTotalCountryWise = {
                         ...existingEntry.TotalCountryWise,
-                        IncFrmOutsideInd: (existingEntry.TotalCountryWise.IncFrmOutsideInd || 0) + 
-                                          (newEntry.TotalCountryWise.IncFrmOutsideInd || 0),
-                        TaxPaidOutsideInd: (existingEntry.TotalCountryWise.TaxPaidOutsideInd || 0) + 
-                                           (newEntry.TotalCountryWise.TaxPaidOutsideInd || 0),
-                        TaxPayableinInd: (existingEntry.TotalCountryWise.TaxPayableinInd || 0) + 
-                                         (newEntry.TotalCountryWise.TaxPayableinInd || 0),
-                        TaxReliefinInd: (existingEntry.TotalCountryWise.TaxReliefinInd || 0) + 
-                                        (newEntry.TotalCountryWise.TaxReliefinInd || 0)
+                        IncFrmOutsideInd: (existingEntry.TotalCountryWise.IncFrmOutsideInd || 0) +
+                            (newEntry.TotalCountryWise.IncFrmOutsideInd || 0),
+                        TaxPaidOutsideInd: (existingEntry.TotalCountryWise.TaxPaidOutsideInd || 0) +
+                            (newEntry.TotalCountryWise.TaxPaidOutsideInd || 0),
+                        TaxPayableinInd: (existingEntry.TotalCountryWise.TaxPayableinInd || 0) +
+                            (newEntry.TotalCountryWise.TaxPayableinInd || 0),
+                        TaxReliefinInd: (existingEntry.TotalCountryWise.TaxReliefinInd || 0) +
+                            (newEntry.TotalCountryWise.TaxReliefinInd || 0)
                     };
-                    
+
                     mergedScheduleFSIDtls[existingEntryIndex] = {
                         ...existingEntry,
                         IncOthSrc: updatedIncOthSrc,
@@ -244,18 +244,18 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
                     mergedScheduleFSIDtls.push(newEntry);
                 }
             });
-            
+
             const updatedScheduleFSI = {
                 ...itr.ScheduleFSI,
                 ScheduleFSIDtls: mergedScheduleFSIDtls
             };
-            
+
             itr = {
                 ...itr,
                 ScheduleFSI: updatedScheduleFSI
             };
         }
-        
+
         return itr;
     },
     [ITRSectionType.SCHEDULE_112A]: (itr, section) => {
@@ -263,6 +263,14 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
         itr = {
             ...itr,
             Schedule112A: schedule112A
+        };
+        return itr;
+    },
+    [ITRSectionType.SCHEDULE_TDS2]: (itr, section) => {
+        const scheduleTDS2 = section.data as ScheduleTDS2;
+        itr = {
+            ...itr,
+            ScheduleTDS2: scheduleTDS2
         };
         return itr;
     }
@@ -280,10 +288,10 @@ const mergeScheduleCG = (existingScheduleCG: ScheduleCGFor23 | undefined, newSch
     if (!existingScheduleCG) {
         return newScheduleCG;
     }
-    
+
     // Create a deep copy to avoid mutations
     const mergedScheduleCG = cloneDeep(existingScheduleCG);
-    
+
     // Merge ShortTermCapGainFor23
     if (mergedScheduleCG.ShortTermCapGainFor23 && newScheduleCG.ShortTermCapGainFor23) {
         // Merge EquityMFonSTT arrays if both exist
@@ -295,177 +303,177 @@ const mergeScheduleCG = (existingScheduleCG: ScheduleCGFor23 | undefined, newSch
         } else if (newScheduleCG.ShortTermCapGainFor23.EquityMFonSTT) {
             mergedScheduleCG.ShortTermCapGainFor23.EquityMFonSTT = newScheduleCG.ShortTermCapGainFor23.EquityMFonSTT;
         }
-        
+
         // Merge SaleOnOtherAssets by adding values
         if (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets && newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets) {
-            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FairMrktValueUnqshr = 
-                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FairMrktValueUnqshr || 0) + 
+            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FairMrktValueUnqshr =
+                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FairMrktValueUnqshr || 0) +
                 (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FairMrktValueUnqshr || 0);
-                
-            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FullConsideration = 
-                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FullConsideration || 0) + 
+
+            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FullConsideration =
+                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FullConsideration || 0) +
                 (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.FullConsideration || 0);
-                
+
             // DeductSec48 handling
-            if (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48 && 
+            if (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48 &&
                 newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48) {
-                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.AquisitCost = 
-                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.AquisitCost || 0) + 
+                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.AquisitCost =
+                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.AquisitCost || 0) +
                     (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.AquisitCost || 0);
-                    
-                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ExpOnTrans = 
-                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ExpOnTrans || 0) + 
+
+                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ExpOnTrans =
+                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ExpOnTrans || 0) +
                     (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ExpOnTrans || 0);
-                    
-                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ImproveCost = 
-                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ImproveCost || 0) + 
+
+                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ImproveCost =
+                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ImproveCost || 0) +
                     (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.ImproveCost || 0);
-                    
-                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.TotalDedn = 
-                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.TotalDedn || 0) + 
+
+                mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.TotalDedn =
+                    (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.TotalDedn || 0) +
                     (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.DeductSec48.TotalDedn || 0);
             }
-                
-            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.BalanceCG = 
-                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.BalanceCG || 0) + 
+
+            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.BalanceCG =
+                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.BalanceCG || 0) +
                 (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.BalanceCG || 0);
-                
-            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.CapgainonAssets = 
-                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.CapgainonAssets || 0) + 
+
+            mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.CapgainonAssets =
+                (mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.CapgainonAssets || 0) +
                 (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets.CapgainonAssets || 0);
         } else if (newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets) {
             mergedScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets = newScheduleCG.ShortTermCapGainFor23.SaleOnOtherAssets;
         }
-        
+
         // Update Total STCG
-        mergedScheduleCG.ShortTermCapGainFor23.TotalSTCG = 
-            (mergedScheduleCG.ShortTermCapGainFor23.TotalSTCG || 0) + 
+        mergedScheduleCG.ShortTermCapGainFor23.TotalSTCG =
+            (mergedScheduleCG.ShortTermCapGainFor23.TotalSTCG || 0) +
             (newScheduleCG.ShortTermCapGainFor23.TotalSTCG || 0);
     } else if (newScheduleCG.ShortTermCapGainFor23) {
         mergedScheduleCG.ShortTermCapGainFor23 = newScheduleCG.ShortTermCapGainFor23;
     }
-    
+
     // Merge LongTermCapGain23
     if (mergedScheduleCG.LongTermCapGain23 && newScheduleCG.LongTermCapGain23) {
         // Merge SaleOfEquityShareUs112A
         if (mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A && newScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A) {
-            mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.BalanceCG = 
-                (mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.BalanceCG || 0) + 
+            mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.BalanceCG =
+                (mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.BalanceCG || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.BalanceCG || 0);
-                
-            mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.CapgainonAssets = 
-                (mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.CapgainonAssets || 0) + 
+
+            mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.CapgainonAssets =
+                (mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.CapgainonAssets || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.CapgainonAssets || 0);
-                
-            mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.DeductionUs54F = 
-                (mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.DeductionUs54F || 0) + 
+
+            mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.DeductionUs54F =
+                (mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.DeductionUs54F || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A.DeductionUs54F || 0);
         } else if (newScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A) {
             mergedScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A = newScheduleCG.LongTermCapGain23.SaleOfEquityShareUs112A;
         }
-        
+
         // Merge SaleofAssetNA (debt funds)
         if (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA && newScheduleCG.LongTermCapGain23.SaleofAssetNA) {
-            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FairMrktValueUnqshr = 
-                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FairMrktValueUnqshr || 0) + 
+            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FairMrktValueUnqshr =
+                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FairMrktValueUnqshr || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleofAssetNA.FairMrktValueUnqshr || 0);
-                
-            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FullConsideration = 
-                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FullConsideration || 0) + 
+
+            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FullConsideration =
+                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.FullConsideration || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleofAssetNA.FullConsideration || 0);
-                
+
             // DeductSec48 handling
-            if (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48 && 
+            if (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48 &&
                 newScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48) {
-                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.AquisitCost = 
-                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.AquisitCost || 0) + 
+                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.AquisitCost =
+                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.AquisitCost || 0) +
                     (newScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.AquisitCost || 0);
-                    
-                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ExpOnTrans = 
-                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ExpOnTrans || 0) + 
+
+                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ExpOnTrans =
+                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ExpOnTrans || 0) +
                     (newScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ExpOnTrans || 0);
-                    
-                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ImproveCost = 
-                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ImproveCost || 0) + 
+
+                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ImproveCost =
+                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ImproveCost || 0) +
                     (newScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.ImproveCost || 0);
-                    
-                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.TotalDedn = 
-                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.TotalDedn || 0) + 
+
+                mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.TotalDedn =
+                    (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.TotalDedn || 0) +
                     (newScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductSec48.TotalDedn || 0);
             }
-                
-            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.BalanceCG = 
-                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.BalanceCG || 0) + 
+
+            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.BalanceCG =
+                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.BalanceCG || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleofAssetNA.BalanceCG || 0);
-                
-            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.CapgainonAssets = 
-                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.CapgainonAssets || 0) + 
+
+            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.CapgainonAssets =
+                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.CapgainonAssets || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleofAssetNA.CapgainonAssets || 0);
-                
-            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductionUs54F = 
-                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductionUs54F || 0) + 
+
+            mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductionUs54F =
+                (mergedScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductionUs54F || 0) +
                 (newScheduleCG.LongTermCapGain23.SaleofAssetNA.DeductionUs54F || 0);
         } else if (newScheduleCG.LongTermCapGain23.SaleofAssetNA) {
             mergedScheduleCG.LongTermCapGain23.SaleofAssetNA = newScheduleCG.LongTermCapGain23.SaleofAssetNA;
         }
-        
+
         // Update Total LTCG
-        mergedScheduleCG.LongTermCapGain23.TotalLTCG = 
-            (mergedScheduleCG.LongTermCapGain23.TotalLTCG || 0) + 
+        mergedScheduleCG.LongTermCapGain23.TotalLTCG =
+            (mergedScheduleCG.LongTermCapGain23.TotalLTCG || 0) +
             (newScheduleCG.LongTermCapGain23.TotalLTCG || 0);
     } else if (newScheduleCG.LongTermCapGain23) {
         mergedScheduleCG.LongTermCapGain23 = newScheduleCG.LongTermCapGain23;
     }
-    
+
     // Merge CurrYrLosses - this part merges detailed breakups of capital gains by tax rates
     if (mergedScheduleCG.CurrYrLosses && newScheduleCG.CurrYrLosses) {
         // Merge equity STCG at 15%
         if (mergedScheduleCG.CurrYrLosses.InStcg15Per && newScheduleCG.CurrYrLosses.InStcg15Per) {
-            mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYearIncome = 
-                (mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYearIncome || 0) + 
+            mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYearIncome =
+                (mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYearIncome || 0) +
                 (newScheduleCG.CurrYrLosses.InStcg15Per.CurrYearIncome || 0);
-            
-            mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYrCapGain = 
-                (mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYrCapGain || 0) + 
+
+            mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYrCapGain =
+                (mergedScheduleCG.CurrYrLosses.InStcg15Per.CurrYrCapGain || 0) +
                 (newScheduleCG.CurrYrLosses.InStcg15Per.CurrYrCapGain || 0);
         }
-        
+
         // Merge debt STCG at applicable rate
         if (mergedScheduleCG.CurrYrLosses.InStcgAppRate && newScheduleCG.CurrYrLosses.InStcgAppRate) {
-            mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYearIncome = 
-                (mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYearIncome || 0) + 
+            mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYearIncome =
+                (mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYearIncome || 0) +
                 (newScheduleCG.CurrYrLosses.InStcgAppRate.CurrYearIncome || 0);
-            
-            mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYrCapGain = 
-                (mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYrCapGain || 0) + 
+
+            mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYrCapGain =
+                (mergedScheduleCG.CurrYrLosses.InStcgAppRate.CurrYrCapGain || 0) +
                 (newScheduleCG.CurrYrLosses.InStcgAppRate.CurrYrCapGain || 0);
         }
-        
+
         // Merge equity LTCG at 10% under section 112A
         if (mergedScheduleCG.CurrYrLosses.InLtcg10Per && newScheduleCG.CurrYrLosses.InLtcg10Per) {
-            mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYearIncome = 
-                (mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYearIncome || 0) + 
+            mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYearIncome =
+                (mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYearIncome || 0) +
                 (newScheduleCG.CurrYrLosses.InLtcg10Per.CurrYearIncome || 0);
-            
-            mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYrCapGain = 
-                (mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYrCapGain || 0) + 
+
+            mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYrCapGain =
+                (mergedScheduleCG.CurrYrLosses.InLtcg10Per.CurrYrCapGain || 0) +
                 (newScheduleCG.CurrYrLosses.InLtcg10Per.CurrYrCapGain || 0);
         }
-        
+
         // Merge debt LTCG at 20% under section 112
         if (mergedScheduleCG.CurrYrLosses.InLtcg20Per && newScheduleCG.CurrYrLosses.InLtcg20Per) {
-            mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYearIncome = 
-                (mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYearIncome || 0) + 
+            mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYearIncome =
+                (mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYearIncome || 0) +
                 (newScheduleCG.CurrYrLosses.InLtcg20Per.CurrYearIncome || 0);
-            
-            mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYrCapGain = 
-                (mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYrCapGain || 0) + 
+
+            mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYrCapGain =
+                (mergedScheduleCG.CurrYrLosses.InLtcg20Per.CurrYrCapGain || 0) +
                 (newScheduleCG.CurrYrLosses.InLtcg20Per.CurrYrCapGain || 0);
         }
     } else if (newScheduleCG.CurrYrLosses) {
         mergedScheduleCG.CurrYrLosses = newScheduleCG.CurrYrLosses;
     }
-    
+
     // Merge AccruOrRecOfCG similarly to CurrYrLosses
     if (mergedScheduleCG.AccruOrRecOfCG && newScheduleCG.AccruOrRecOfCG) {
         // Merge similar to CurrYrLosses for all tax rate types...
@@ -474,51 +482,15 @@ const mergeScheduleCG = (existingScheduleCG: ScheduleCGFor23 | undefined, newSch
     } else if (newScheduleCG.AccruOrRecOfCG) {
         mergedScheduleCG.AccruOrRecOfCG = newScheduleCG.AccruOrRecOfCG;
     }
-    
-    // Update totals
-    mergedScheduleCG.SumOfCGIncm = 
-        ((mergedScheduleCG.ShortTermCapGainFor23?.TotalSTCG || 0) + 
-        (mergedScheduleCG.LongTermCapGain23?.TotalLTCG || 0));
-    
-    mergedScheduleCG.TotScheduleCGFor23 = mergedScheduleCG.SumOfCGIncm;
-    
-    return mergedScheduleCG;
-};
 
-/**
- * Updates income totals in PartB-TI based on the updated capital gains
- * 
- * @param partBTI - Existing PartB-TI section from ITR
- * @param capGain - Updated Capital Gains section
- * @returns Updated PartB-TI section with recalculated totals
- */
-const updateIncomeTotals = (partBTI: PartBTI, capGain: CapGain): PartBTI => {
-    // Create a new copy to avoid mutations
-    const updatedPartBTI = {...partBTI};
-    
-    // Update GrossTotalIncome if it exists
-    if (updatedPartBTI.GrossTotalIncome !== undefined) {
-        // Calculate the difference in capital gains
-        const originalCapGainTotal = (partBTI.CapGain && partBTI.CapGain.TotalCapGains) || 0;
-        const newCapGainTotal = capGain.TotalCapGains || 0;
-        const difference = newCapGainTotal - originalCapGainTotal;
-        
-        // Add the difference to GrossTotalIncome
-        updatedPartBTI.GrossTotalIncome += difference;
-    }
-    
-    // Update TotalIncome if it exists
-    if (updatedPartBTI.TotalIncome !== undefined) {
-        // Calculate the difference in capital gains
-        const originalCapGainTotal = (partBTI.CapGain && partBTI.CapGain.TotalCapGains) || 0;
-        const newCapGainTotal = capGain.TotalCapGains || 0;
-        const difference = newCapGainTotal - originalCapGainTotal;
-        
-        // Add the difference to TotalIncome
-        updatedPartBTI.TotalIncome += difference;
-    }
-    
-    return updatedPartBTI;
+    // Update totals
+    mergedScheduleCG.SumOfCGIncm =
+        ((mergedScheduleCG.ShortTermCapGainFor23?.TotalSTCG || 0) +
+            (mergedScheduleCG.LongTermCapGain23?.TotalLTCG || 0));
+
+    mergedScheduleCG.TotScheduleCGFor23 = mergedScheduleCG.SumOfCGIncm;
+
+    return mergedScheduleCG;
 };
 
 /**
@@ -530,8 +502,8 @@ const updateIncomeTotals = (partBTI: PartBTI, capGain: CapGain): PartBTI => {
  */
 const mergeForeignTaxCredit = (existingPartBTTI: PartBTTI, foreignTaxCredit: number): PartBTTI => {
     // Create a new copy to avoid mutations
-    const updatedPartBTTI = {...existingPartBTTI};
-    
+    const updatedPartBTTI = { ...existingPartBTTI };
+
     // Ensure ComputationOfTaxLiability property exists
     if (!updatedPartBTTI.ComputationOfTaxLiability) {
         updatedPartBTTI.ComputationOfTaxLiability = {
@@ -572,7 +544,7 @@ const mergeForeignTaxCredit = (existingPartBTTI: PartBTTI, foreignTaxCredit: num
             ...updatedPartBTTI.ComputationOfTaxLiability
         };
     }
-    
+
     // Ensure TaxRelief property exists
     if (!updatedPartBTTI.ComputationOfTaxLiability.TaxRelief) {
         updatedPartBTTI.ComputationOfTaxLiability.TaxRelief = {
@@ -584,20 +556,20 @@ const mergeForeignTaxCredit = (existingPartBTTI: PartBTTI, foreignTaxCredit: num
             ...updatedPartBTTI.ComputationOfTaxLiability.TaxRelief
         };
     }
-    
+
     // Update Section90 (relief for taxes paid outside India)
     if (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 !== undefined) {
         updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 += foreignTaxCredit;
     } else {
         updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 = foreignTaxCredit;
     }
-    
+
     // Update total tax relief
-    updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.TotTaxRelief = 
-        (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section89 || 0) + 
-        (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 || 0) + 
+    updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.TotTaxRelief =
+        (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section89 || 0) +
+        (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section90 || 0) +
         (updatedPartBTTI.ComputationOfTaxLiability.TaxRelief.Section91 || 0);
-    
+
     return updatedPartBTTI;
 };
 
@@ -608,7 +580,7 @@ const convertEquityITRSectionsToITRSections = (
     equityITRSections: USEquityITRSections
 ): ITRSection[] => {
     const { scheduleCG } = equityITRSections;
-    
+
     return [
         {
             type: ITRSectionType.SCHEDULE_CG,
@@ -657,7 +629,7 @@ const mergeITRSections = (existingITR: Itr2, sections: ITRSection[]): Itr2 => {
                 console.warn(`No transformer found for section type: ${section.type}`);
                 return itr;
             }
-            
+
             // Apply the transformer for this section type
             return transformer(itr, section);
         }, cloneDeep(existingITR)); // Start with a deep clone of the existing ITR
@@ -699,7 +671,7 @@ export const generateITR = async (
     }
 
     // Process US Equity Capital Gains
-    const usEquityCapitalGainStatementDocs = await parsedDocuments.getUSEquityCapitalGainStatement(userId, assessmentYear);
+    const usEquityCapitalGainStatementDocs = await parsedDocuments.getUSEquityCapitalGainStatementCSV(userId, assessmentYear);
     if (usEquityCapitalGainStatementDocs?.parsed_data?.data) {
         const result = convertUSCGEquityToITRSections(usEquityCapitalGainStatementDocs.parsed_data.data, assessmentYear);
         if (result.success && result.data) {
@@ -760,7 +732,8 @@ export const generateITR = async (
         const aisResult = convertAISToITRSections(aisDataParseResult.parsed_data.data, assessmentYear);
         if (aisResult.success && aisResult.data) {
             const sections = aisResult.data;
-            if (sections.scheduleOS) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_OS, data: sections.scheduleOS });
+            sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_OS, data: sections.scheduleOS });
+            sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_TDS2, data: sections.scheduleTDS2 });
         } else {
             logger.warn(`Failed to convert AIS data for user ${userId}: ${aisResult.error}`);
         }
@@ -821,16 +794,16 @@ function initializeBaseITR2(assessmentYear: string): Partial<Itr2> {
         Form_ITR2: {
             FormName: "ITR-2",
             Description: "For Individuals and HUFs not having income from profits and gains of business or profession",
-            AssessmentYear: assessmentYear.substring(0, 4), 
-            SchemaVer: "Ver1.0", 
+            AssessmentYear: assessmentYear.substring(0, 4),
+            SchemaVer: "Ver1.0",
             FormVer: "Ver1.0"
         },
         // Initialize other mandatory base sections like CreationInfo, PartA_GEN1 with placeholders
-        ScheduleHP: { 
+        ScheduleHP: {
             PassThroghIncome: 0,
             TotalIncomeChargeableUnHP: 0
         },
-        ScheduleVDA: { 
+        ScheduleVDA: {
             ScheduleVDADtls: [],
             TotIncCapGain: 0
         },

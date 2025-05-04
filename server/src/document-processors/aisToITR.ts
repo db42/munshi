@@ -1,5 +1,12 @@
 import { AISData, AISSftDetail, AISTdsTcsDetail, SftCode } from '../types/ais';
-import { ScheduleOS, DateRangeType } from '../types/itr';
+import {
+  ScheduleOS,
+  DateRangeType,
+  ScheduleTDS2,
+  TDSOthThanSalaryDtls,
+  TDSOthThanSalaryDtlHeadOfIncome,
+  TDSCreditName
+} from '../types/itr';
 import { ParseResult } from '../utils/parserTypes';
 import { logger } from '../utils/logger';
 
@@ -9,6 +16,7 @@ import { logger } from '../utils/logger';
 export interface AISITRSections {
   // Only include Schedule OS for now, other sections will be added later
   scheduleOS: Partial<ScheduleOS>;
+  scheduleTDS2: ScheduleTDS2;
   
   // TODO: Add these sections as they are implemented
   // scheduleTDS1: Partial<ScheduleTDS1>;  // For TDS details
@@ -323,6 +331,59 @@ function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
 }
 
 /**
+ * Generate Schedule TDS2 for TDS on Income Other Than Salary (Focusing on EPF Interest)
+ * @param aisData - Parsed AIS data
+ * @returns Partial ScheduleTDS2 containing EPF interest TDS details
+ */
+function generateScheduleTDS2(aisData: AISData): ScheduleTDS2 {
+  logger.info('Generating Schedule TDS2 for EPF interest TDS from AIS data');
+
+  const epfTdsDetails = (aisData.tdsDetails || [])
+    .filter(tds =>
+      tds.sectionCode === '194A'
+    );
+
+  if (epfTdsDetails.length === 0) {
+    logger.debug('No EPF interest TDS details found in AIS data.');
+    return { TotalTDSonOthThanSals: 0 }; // Return empty schedule if no relevant TDS found
+  }
+
+  const tdsEntries: TDSOthThanSalaryDtls[] = epfTdsDetails.map(tds => {
+    const totalTDS = tds.taxDeductedCollected || 0;
+    const grossAmount = tds.amountPaidCredited || 0;
+
+    return {
+      TANOfDeductor: tds.deductorCollectorTan || 'N/A', // Use TAN from AIS
+      // DeductorName is not directly available in TDSOthThanSalaryDtls, but we have it in aisData
+      // This might need adjustment depending on how downstream processing uses this data
+      GrossAmount: grossAmount,
+      AmtCarriedFwd: 0, // Assume no carry forward for now
+      BroughtFwdTDSAmt: 0, // Assume no brought forward for now
+      HeadOfIncome: TDSOthThanSalaryDtlHeadOfIncome.OS, // EPF interest is 'Other Sources'
+      TDSCreditName: TDSCreditName.S, // Assuming credit is for Self
+      TaxDeductCreditDtls: {
+        TaxDeductedOwnHands: totalTDS,
+        TaxDeductedIncome: grossAmount, // Income against which TDS was deducted
+        TaxDeductedTDS: totalTDS, // TDS deducted this year
+        TaxClaimedOwnHands: totalTDS, // Claiming the full TDS amount
+        TaxClaimedIncome: grossAmount, // Claiming against the full income amount
+        TaxClaimedTDS: totalTDS // TDS claimed this year
+        // Other fields (Spouse/Other Person) default to undefined/not applicable
+      }
+    };
+  });
+
+  const totalTDS = tdsEntries.reduce((sum, entry) => sum + (entry.TaxDeductCreditDtls.TaxClaimedOwnHands || 0), 0);
+
+  logger.debug(`Generated Schedule TDS2 with ${tdsEntries.length} entries. Total TDS: ${totalTDS}`);
+
+  return {
+    TDSOthThanSalaryDtls: tdsEntries,
+    TotalTDSonOthThanSals: totalTDS
+  };
+}
+
+/**
  * Convert AIS data to ITR sections
  * 
  * For now, this function only processes Schedule OS (Other Sources).
@@ -343,11 +404,11 @@ export const convertAISToITRSections = (
     
     // Generate Schedule OS for interest and dividend income
     const scheduleOS = generateScheduleOS(aisData);
+
+    // Generate Schedule TDS2 for EPF interest TDS
+    const scheduleTDS2 = generateScheduleTDS2(aisData);
     
-    // TODO: Generate Schedule TDS1 from TDS details
-    // Note: For EPF interest (section 194A), the TDS amount is typically 10% of the interest
-    // In the sample data: TDS of Rs. 961 on interest of Rs. 9610
-    
+    // TODO: Generate Schedule TDS1 from TDS details (Salary - Section 192)
     // TODO: Generate Schedule TR1 from tax payment details
     // TODO: Generate Schedule CG from capital gains transactions (SFT-008, SFT-010, SFT-018)
     // TODO: Generate Schedule HP from house property information
@@ -358,7 +419,8 @@ export const convertAISToITRSections = (
     return {
       success: true,
       data: {
-        scheduleOS
+        scheduleOS,
+        scheduleTDS2
       }
     };
   } catch (error) {
