@@ -1,15 +1,17 @@
 import React from 'react';
-import { Itr2 } from '../../../types/itr';
+import { Itr } from '../../../types/itr';
 import { Card, CardHeader, CardTitle, CardContent } from "../../ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../../ui/table";
 import { getNestedValue } from '../../../utils/helpers'; // Assuming utils file exists
+import { ITRViewerStepConfig } from '../types';
 
 interface CapitalGainsStepProps {
-    data: Itr2;
+    itrData: Itr;
+    config: ITRViewerStepConfig;
 }
 
-export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ data }) => {
-    const cgData = data.ScheduleCGFor23;
+export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, config }) => {
+    const cgData = itrData.ITR?.ITR2?.ScheduleCGFor23;
     const shortTermGains = cgData?.ShortTermCapGainFor23;
     const longTermGains = cgData?.LongTermCapGain23;
 
