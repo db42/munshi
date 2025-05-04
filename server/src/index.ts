@@ -4,6 +4,7 @@ import documentRoutes from './routes/documents';
 import { ensureUploadDir } from './utils/ensureUploadDir';
 import { logger } from './utils/logger';
 import itrRoutes from './routes/itrRoutes';
+import userInputRoutes from './routes/userInputRoutes';
 import { config } from 'dotenv'
 import { resolve } from 'path'
 
@@ -37,6 +38,7 @@ const createServer = () => {
   const setupRoutes = async () => {
     app.use('/api/documents', documentRoutes);
     app.use('/api/itr', itrRoutes);
+    app.use('/api/user-inputs', userInputRoutes);
 
 
     // Basic route for testing

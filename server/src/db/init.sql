@@ -37,3 +37,18 @@ CREATE TABLE IF NOT EXISTS parsed_documents (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     processed_at TIMESTAMP WITH TIME ZONE
 );
+
+-- Create user_itr_inputs table to store manual additions/edits by the user
+CREATE TABLE IF NOT EXISTS user_itr_inputs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    owner_id INT NOT NULL,
+    assessment_year VARCHAR(7) NOT NULL,
+    -- The user's input/additions structured as JSON
+    input_data JSONB NOT NULL,
+    -- Versioning for the input structure itself
+    input_schema_version VARCHAR(20) NOT NULL DEFAULT '1.0',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    -- Ensure only one input set per user/year
+    UNIQUE (owner_id, assessment_year)
+);
