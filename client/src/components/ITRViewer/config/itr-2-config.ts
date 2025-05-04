@@ -1,0 +1,53 @@
+import { ITRViewerStepConfig } from '../types';
+
+// Defines the sequence and configuration of steps for the ITR-2 viewer wizard.
+export const itr2StepsConfig: ITRViewerStepConfig[] = [
+  {
+    id: 'personalInfo',
+    title: 'Personal Information',
+    associatedSchedules: ['PartA'], // Assuming PartA contains general info
+  },
+  {
+    id: 'incomeDetails',
+    title: 'Income Details',
+    associatedSchedules: ['ScheduleS', 'ScheduleHP', 'ScheduleOS'],
+  },
+  {
+    id: 'capitalGains',
+    title: 'Capital Gains',
+    associatedSchedules: ['ScheduleCG'],
+  },
+  {
+    id: 'foreignAssetsIncome',
+    title: 'Foreign Assets & Income',
+    associatedSchedules: ['ScheduleFA'],
+    isConditional: true,
+    // TODO: Define the actual condition field path in ITRData later
+    // e.g., conditionField: 'ITR.ITR2.ScheduleFA.TotalForeignAssetsFlag' 
+  },
+  {
+    id: 'deductionsLosses',
+    title: 'Deductions & Losses',
+    associatedSchedules: ['ScheduleVIA', 'ScheduleCYLA', 'ScheduleBFLA', 'ScheduleCFL'],
+  },
+  {
+    id: 'taxCalculationPayments',
+    title: 'Tax Calculation & Payments',
+    // Assuming PartB-TI and PartB-TTI contain these details + TaxPayments schedule
+    associatedSchedules: ['PartBTI', 'PartBTTI', 'TaxPayments'], 
+  },
+  {
+    id: 'assetsLiabilities',
+    title: 'Assets & Liabilities',
+    associatedSchedules: ['ScheduleAL'],
+    isConditional: true,
+    // TODO: Define the actual condition field path in ITRData later
+    // e.g., conditionField: 'ITR.ITR2.PersonalInfo.TotalIncomeExceeds50Lakh'
+  },
+  {
+    id: 'summaryConfirmation',
+    title: 'Summary & Confirmation',
+    // This step might summarize data from various parts
+    associatedSchedules: [], 
+  },
+]; 

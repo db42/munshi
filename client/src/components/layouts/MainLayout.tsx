@@ -31,11 +31,7 @@ export default function MainLayout() {
     {
       id: 'itr',
       label: 'ITR Generation',
-      path: '/itr-generation',
-      subitems: [
-        { id: 'select', label: 'Select ITR Type', path: '/itr-generation/select' },
-        { id: 'fill', label: 'Fill ITR', path: '/itr-generation/fill' }
-      ]
+      path: '/itr-generation'
     },
     {
       id: 'review',
