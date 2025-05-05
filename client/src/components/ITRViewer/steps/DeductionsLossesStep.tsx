@@ -1,15 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ITRViewerStepConfig } from '../types';
 import { Itr } from '../../../types/itr';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../ui/table';
 import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
-import { AlertCircle, Gift, TrendingUp, ArrowLeftRight } from 'lucide-react';
+import { AlertCircle, Gift, TrendingUp, ArrowLeftRight, Edit, PenTool } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
 import { formatAmount } from '../../../utils/formatters';
 import _ from 'lodash';
+import { useEditMode } from '../context/EditModeContext';
+import { useUserInput } from '../context/UserInputContext';
+import { EditModeToggleButton } from '../ui/EditModeToggleButton';
+import { CarryForwardLossForm } from '../forms/CarryForwardLossForm';
 
 interface StepProps {
   itrData: Itr;
@@ -35,15 +39,37 @@ export const DeductionsLossesStep: React.FC<StepProps> = ({ itrData, config }) =
   // Check if we have any data to display
   const hasData = hasDeductions || hasLossAdjustments;
   
-  if (!hasData) {
+  // Edit mode and user input state
+  const { isEditMode } = useEditMode();
+  const { userInput } = useUserInput();
+  const [activeTab, setActiveTab] = useState<string>(hasDeductions ? "deductions" : "cyla");
+  
+  if (!hasData && !isEditMode && _.isEmpty(userInput.scheduleCFLAdditions?.lossesToCarryForward)) {
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>No Deductions or Losses Data</AlertTitle>
-        <AlertDescription>
-          No deductions or loss adjustment data found in this tax return.
-        </AlertDescription>
-      </Alert>
+      <div className="space-y-4">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Deductions or Losses Data</AlertTitle>
+          <AlertDescription>
+            No deductions or loss adjustment data found in this tax return.
+          </AlertDescription>
+        </Alert>
+        
+        <div className="flex justify-end">
+          <EditModeToggleButton />
+        </div>
+        
+        {isEditMode && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Add Carry Forward Losses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CarryForwardLossForm />
+            </CardContent>
+          </Card>
+        )}
+      </div>
     );
   }
 
@@ -62,15 +88,19 @@ export const DeductionsLossesStep: React.FC<StepProps> = ({ itrData, config }) =
         </AlertDescription>
       </Alert>
       
-      <Tabs defaultValue={hasDeductions ? "deductions" : "cyla"} className="w-full">
-        <TabsList className="grid grid-cols-4 mb-4">
+      <div className="flex justify-end mb-4">
+        <EditModeToggleButton />
+      </div>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-5 mb-4">
           <TabsTrigger value="deductions" className="flex items-center" disabled={!hasDeductions}>
             <Gift className="h-4 w-4 mr-2" />
             Deductions
           </TabsTrigger>
           <TabsTrigger value="cyla" className="flex items-center" disabled={!scheduleCYLA}>
             <ArrowLeftRight className="h-4 w-4 mr-2" />
-            Current Year Loss Adjustment
+            Current Year Loss Adj.
           </TabsTrigger>
           <TabsTrigger value="bfla" className="flex items-center" disabled={!scheduleBFLA}>
             <TrendingUp className="h-4 w-4 mr-2" />
@@ -79,6 +109,10 @@ export const DeductionsLossesStep: React.FC<StepProps> = ({ itrData, config }) =
           <TabsTrigger value="cfl" className="flex items-center" disabled={!scheduleCFL}>
             <AlertCircle className="h-4 w-4 mr-2" />
             Carried Forward Losses
+          </TabsTrigger>
+          <TabsTrigger value="cfl-edit" className="flex items-center">
+            <PenTool className="h-4 w-4 mr-2" />
+            Edit CF Losses
           </TabsTrigger>
         </TabsList>
 
@@ -393,6 +427,18 @@ export const DeductionsLossesStep: React.FC<StepProps> = ({ itrData, config }) =
             </Card>
           </TabsContent>
         )}
+        
+        {/* New tab for editing carry forward losses */}
+        <TabsContent value="cfl-edit" className="mt-0">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Edit Carry Forward Losses</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CarryForwardLossForm />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

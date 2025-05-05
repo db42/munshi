@@ -9,6 +9,8 @@ import { Button } from '../components/ITRViewer/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ITRViewer/ui/card';
 import { Progress } from '../components/ITRViewer/ui/progress';
 import { ChevronLeft, ChevronRight, Save } from 'lucide-react';
+import { EditModeProvider } from '../components/ITRViewer/context/EditModeContext';
+import { UserInputProvider } from '../components/ITRViewer/context/UserInputContext';
 
 // Import Step Components using correct relative paths
 import { PersonalInfoStep } from '../components/ITRViewer/steps/PersonalInfoStep';
@@ -80,69 +82,73 @@ export const ITRViewer: React.FC = () => {
 
   // --- Main Render --- 
   return (
-    <Card className="max-w-4xl mx-auto my-8">
-      <CardHeader className="border-b pb-4">
-        <CardTitle className="text-2xl">Income Tax Return (ITR-2)</CardTitle>
-        <CardDescription>Assessment Year {assessmentYear}</CardDescription>
-      </CardHeader>
+    <EditModeProvider>
+      <UserInputProvider assessmentYear={assessmentYear}>
+        <Card className="max-w-4xl mx-auto my-8">
+          <CardHeader className="border-b pb-4">
+            <CardTitle className="text-2xl">Income Tax Return (ITR-2)</CardTitle>
+            <CardDescription>Assessment Year {assessmentYear}</CardDescription>
+          </CardHeader>
 
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-gray-600">
-            Step {currentStepIndex + 1} of {totalVisibleSteps}
-          </span>
-          <span className="text-sm font-medium text-gray-600">
-            {Math.round(((currentStepIndex + 1) / totalVisibleSteps) * 100)}% Complete
-          </span>
-        </div>
-        <Progress value={((currentStepIndex + 1) / totalVisibleSteps) * 100} className="h-2" />
+          <div className="px-6 py-4">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-600">
+                Step {currentStepIndex + 1} of {totalVisibleSteps}
+              </span>
+              <span className="text-sm font-medium text-gray-600">
+                {Math.round(((currentStepIndex + 1) / totalVisibleSteps) * 100)}% Complete
+              </span>
+            </div>
+            <Progress value={((currentStepIndex + 1) / totalVisibleSteps) * 100} className="h-2" />
 
-        <div className="flex flex-wrap gap-2 mt-4 mb-4 border-b pb-4">
-          {visibleSteps.map((step, index) => (
-            <Button
-              key={step.id}
-              variant={index === currentStepIndex ? "default" : "outline"}
-              size="sm"
-              onClick={() => handleStepClick(index)}
-              className="text-xs h-8"
-            >
-              {step.title}
+            <div className="flex flex-wrap gap-2 mt-4 mb-4 border-b pb-4">
+              {visibleSteps.map((step, index) => (
+                <Button
+                  key={step.id}
+                  variant={index === currentStepIndex ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleStepClick(index)}
+                  className="text-xs h-8"
+                >
+                  {step.title}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <CardContent className="pt-0 pb-6 px-6">
+            {CurrentStepComponent ? (
+              <CurrentStepComponent itrData={itrData} config={currentStepConfig} />
+            ) : (
+              `Step component not found for ID: ${currentStepConfig?.id}`
+            )}
+          </CardContent>
+
+          <CardFooter className="flex justify-between border-t pt-4 px-6 pb-4">
+            <Button variant="outline" onClick={handlePrevious} disabled={currentStepIndex === 0}>
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
             </Button>
-          ))}
-        </div>
-      </div>
 
-      <CardContent className="pt-0 pb-6 px-6">
-        {CurrentStepComponent ? (
-          <CurrentStepComponent itrData={itrData} config={currentStepConfig} />
-        ) : (
-          `Step component not found for ID: ${currentStepConfig?.id}`
-        )}
-      </CardContent>
+            <Button variant="outline" className="mx-2">
+              <Save className="h-4 w-4 mr-2" />
+              Save Draft
+            </Button>
 
-      <CardFooter className="flex justify-between border-t pt-4 px-6 pb-4">
-        <Button variant="outline" onClick={handlePrevious} disabled={currentStepIndex === 0}>
-          <ChevronLeft className="h-4 w-4 mr-2" />
-          Previous
-        </Button>
-
-        <Button variant="outline" className="mx-2">
-          <Save className="h-4 w-4 mr-2" />
-          Save Draft
-        </Button>
-
-        {currentStepIndex < totalVisibleSteps - 1 ? (
-          <Button onClick={handleNext}>
-            Next
-            <ChevronRight className="h-4 w-4 ml-2" />
-          </Button>
-        ) : (
-          <Button className="bg-green-600 hover:bg-green-700" disabled>
-            {/* <FileCheck className="h-4 w-4 mr-2" /> */}
-            Submit ITR (Disabled)
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
+            {currentStepIndex < totalVisibleSteps - 1 ? (
+              <Button onClick={handleNext}>
+                Next
+                <ChevronRight className="h-4 w-4 ml-2" />
+              </Button>
+            ) : (
+              <Button className="bg-green-600 hover:bg-green-700" disabled>
+                {/* <FileCheck className="h-4 w-4 mr-2" /> */}
+                Submit ITR (Disabled)
+              </Button>
+            )}
+          </CardFooter>
+        </Card>
+      </UserInputProvider>
+    </EditModeProvider>
   );
 }; 

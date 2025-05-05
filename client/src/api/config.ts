@@ -13,6 +13,9 @@ export const ENDPOINTS = {
   
   // ITR endpoints
   ITR_BY_USER_AND_YEAR: (userId: string, year: string) => `${API_BASE_URL}/itr/${userId}/${year}`,
+  
+  // User Input endpoints
+  USER_INPUT_BY_USER_AND_YEAR: (userId: string, year: string) => `${API_BASE_URL}/user-inputs/${userId}/${year}`,
 };
 
 // Default headers
