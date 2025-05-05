@@ -1,3 +1,5 @@
+import _ from 'lodash';
+
 /**
  * Format file size in bytes to a human-readable string
  * @param bytes - File size in bytes
@@ -140,4 +142,27 @@ export const formatPercentage = (value: number): string => {
   }).format(value / 100); // Divide by 100 if value is already in percentage form
 };
 
-export default { formatFileSize, formatCurrency, formatDate, parseDate, parseNumericValue, removeQuotes, formatCurrencyINR, formatPercentage }; 
+/**
+ * Safely format a number as Indian currency
+ * Handles null/undefined checks and NaN values
+ * @param value - Value to format (number or undefined)
+ * @returns Formatted currency string or '-' for invalid values
+ */
+export const formatAmount = (value: number | undefined): string => {
+  if (_.isNil(value)) return '-';
+  if (isNaN(value)) return '-';
+  
+  return formatCurrencyINR(value);
+};
+
+export default { 
+  formatFileSize, 
+  formatCurrency, 
+  formatDate, 
+  parseDate, 
+  parseNumericValue, 
+  removeQuotes, 
+  formatCurrencyINR, 
+  formatPercentage,
+  formatAmount 
+}; 

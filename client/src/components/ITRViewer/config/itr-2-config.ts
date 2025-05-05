@@ -31,18 +31,18 @@ export const itr2StepsConfig: ITRViewerStepConfig[] = [
     associatedSchedules: ['ScheduleVIA', 'ScheduleCYLA', 'ScheduleBFLA', 'ScheduleCFL'],
   },
   {
-    id: 'taxCalculationPayments',
-    title: 'Tax Calculation & Payments',
-    // Assuming PartB-TI and PartB-TTI contain these details + TaxPayments schedule
-    associatedSchedules: ['PartBTI', 'PartBTTI', 'TaxPayments'], 
-  },
-  {
     id: 'assetsLiabilities',
     title: 'Assets & Liabilities',
     associatedSchedules: ['ScheduleAL'],
     isConditional: true,
     // TODO: Define the actual condition field path in ITRData later
     // e.g., conditionField: 'ITR.ITR2.PersonalInfo.TotalIncomeExceeds50Lakh'
+  },
+  {
+    id: 'taxCalculationPayments',
+    title: 'Tax Calculation & Payments',
+    // Assuming PartB-TI and PartB-TTI contain these details + TaxPayments schedule
+    associatedSchedules: ['PartBTI', 'PartBTTI', 'TaxPayments'], 
   },
   {
     id: 'summaryConfirmation',

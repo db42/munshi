@@ -3,9 +3,15 @@ import { ITRViewerStepConfig } from '../types';
 import { Input } from '../ui/input'; 
 import { Label } from '../ui/label'; 
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Building, Home, Coffee } from 'lucide-react';
 import { getNestedValue } from '../../../utils/helpers';
 import { Itr } from '../../../types/itr';
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
+import { Separator } from '../ui/separator';
+import { Badge } from '../ui/badge';
+import { formatCurrencyINR } from '../../../utils/formatters';
 
 interface StepProps {
   itrData: Itr;
@@ -13,151 +19,267 @@ interface StepProps {
 }
 
 export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
-  // Assuming itrData contains the structured JSON
-  // Example paths - these need to match the actual ITR JSON structure
-  const scheduleS = itrData?.ITR?.ITR2.ScheduleS;
-  const scheduleHP = itrData?.ITR?.ITR2.ScheduleHP;
-  const scheduleOS = itrData?.ITR?.ITR2.ScheduleOS;
+  // Safely access the ITR data
+  const scheduleS = itrData.ITR?.ITR2?.ScheduleS;
+  const scheduleHP = itrData.ITR?.ITR2?.ScheduleHP;
+  const scheduleOS = itrData.ITR?.ITR2?.ScheduleOS as any; // Cast to any to avoid type errors
+
+  // Get the official total salary income from Part B-TI instead of calculating it manually
+  const totalSalaryIncome = itrData.ITR?.ITR2?.["PartB-TI"]?.Salaries || 0;
+  const totalHousePropertyIncome = itrData.ITR?.ITR2?.["PartB-TI"]?.IncomeFromHP || 0;
+  const totalOtherSourcesIncome = itrData.ITR?.ITR2?.["PartB-TI"]?.IncFromOS?.TotIncFromOS || 0;
+  
+  // Get Gross Total Income from Part B-TI
+  const grossTotalIncome = itrData.ITR?.ITR2?.["PartB-TI"]?.GrossTotalIncome || 0;
 
   return (
     <div className="space-y-6">
+      <Alert variant="default" className="mb-4">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Income Details</AlertTitle>
+        <AlertDescription>
+          Review your income from various sources as reported in your ITR.
+          <div className="mt-2 font-medium">
+            Gross Total Income: {formatCurrencyINR(grossTotalIncome)}
+          </div>
+        </AlertDescription>
+      </Alert>
       
-      {/* --- Section: Income from Salary/Pension --- */}
-      {scheduleS && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Income from Salary/Pension</h3>
-          
-          <Alert variant="default">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Important</AlertTitle>
-            <AlertDescription>
-              Details displayed as per Form 16 / Salary Schedule (Schedule S).
-            </AlertDescription>
-          </Alert>
+      <Tabs defaultValue="salary" className="w-full">
+        <TabsList className="grid grid-cols-3 mb-4">
+          <TabsTrigger value="salary" className="flex items-center">
+            <Building className="h-4 w-4 mr-2" />
+            Salary
+          </TabsTrigger>
+          <TabsTrigger value="house" className="flex items-center">
+            <Home className="h-4 w-4 mr-2" />
+            House Property
+          </TabsTrigger>
+          <TabsTrigger value="other" className="flex items-center">
+            <Coffee className="h-4 w-4 mr-2" />
+            Other Sources
+          </TabsTrigger>
+        </TabsList>
 
-          {/* Assuming ScheduleS is an array of employers */}
-          {Array.isArray(scheduleS) ? scheduleS.map((employer: any, index: number) => (
-            <div key={index} className="space-y-4 p-4 border rounded-md mb-4">
-              <div className="space-y-2">
-                <Label htmlFor={`employer-${index}`}>Employer Name</Label>
-                <Input id={`employer-${index}`} readOnly value={getNestedValue(employer, 'employerName')} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor={`tan-${index}`}>TAN of Employer</Label>
-                <Input id={`tan-${index}`} readOnly value={getNestedValue(employer, 'employerTan')} />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div className="space-y-1">
-                  <Label htmlFor={`salary-${index}`}>Gross Salary</Label>
-                  <Input id={`salary-${index}`} readOnly value={`₹${getNestedValue(employer, 'salary.grossSalary')}`} />
+        {/* --- Salary Tab Content --- */}
+        <TabsContent value="salary" className="mt-0">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center justify-between">
+                Income from Salary/Pension
+                <Badge>{formatCurrencyINR(totalSalaryIncome)}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {Array.isArray(scheduleS) && scheduleS.length > 0 ? (
+                <div className="space-y-6">
+                  {scheduleS.map((employer: any, index: number) => (
+                    <div key={index} className="space-y-4 p-4 border rounded-md mb-4 bg-slate-50">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium">{employer?.employerName || 'Employer'}</h4>
+                        <Badge variant="outline" className="px-2">TAN: {employer?.employerTan || 'N/A'}</Badge>
+                      </div>
+                      <Separator />
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Item</TableHead>
+                            <TableHead className="text-right">Amount</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow>
+                            <TableCell>Gross Salary</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.grossSalary) || 0)}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>Exempt Allowances</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.exemptAllowances) || 0)}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>Deductions u/s 16</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.deductions16) || 0)}</TableCell>
+                          </TableRow>
+                          <TableRow className="font-medium">
+                            <TableCell>Net Salary</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.netSalary) || 0)}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell>TDS on Salary</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.tdsDetails?.tdsSalary) || 0)}</TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ))}
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`allowances-${index}`}>Allowances Exempt</Label>
-                  <Input id={`allowances-${index}`} readOnly value={`₹${getNestedValue(employer, 'salary.exemptAllowances')}`} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`net-salary-${index}`}>Net Salary</Label>
-                  <Input id={`net-salary-${index}`} readOnly value={`₹${getNestedValue(employer, 'salary.netSalary')}`} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`deductions-salary-${index}`}>Deductions u/s 16</Label>
-                  <Input id={`deductions-salary-${index}`} readOnly value={`₹${getNestedValue(employer, 'salary.deductions16')}`} />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor={`tax-paid-${index}`}>Income Tax Paid/TDS (Salary)</Label>
-                <Input id={`tax-paid-${index}`} readOnly value={`₹${getNestedValue(employer, 'tdsDetails.tdsSalary')}`} />
-              </div>
-            </div>
-          )) : (
-            <p className="text-sm text-gray-500 italic">No Salary (Schedule S) data found.</p>
-          )} 
-        </div>
-      )}
+              ) : (
+                <Alert variant="default" className="bg-amber-50">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No Salary Data</AlertTitle>
+                  <AlertDescription>
+                    No income from salary or pension reported in this return.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* --- Section: Income from House Property --- */}
-      {scheduleHP && (
-        <div className="space-y-4 pt-4 border-t border-gray-200">
-          <h3 className="text-lg font-medium">Income from House Property</h3>
-          
-          {/* Assuming ScheduleHP is an array of properties */}
-          {Array.isArray(scheduleHP) ? scheduleHP.map((property: any, index: number) => (
-            <div key={index} className="space-y-4 p-4 border rounded-md mb-4">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                 <div className="space-y-1">
-                   <Label htmlFor={`property-type-${index}`}>Type of Property</Label>
-                   {/* Use Input for now, could replace with Select later */}
-                   <Input id={`property-type-${index}`} readOnly value={getNestedValue(property, 'propertyType')} /> 
-                 </div>
-                 <div className="space-y-1">
-                   <Label htmlFor={`property-address-${index}`}>Property Address</Label>
-                   {/* Combine address fields? Example assumes a single field */}
-                   <Input id={`property-address-${index}`} readOnly value={getNestedValue(property, 'address.fullAddress')} />
-                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div className="space-y-1">
-                  <Label htmlFor={`annual-value-${index}`}>Annual Value / Rent Received</Label>
-                  <Input id={`annual-value-${index}`} readOnly value={`₹${getNestedValue(property, 'incomeDetails.rentReceived')}`} />
+        {/* --- House Property Tab Content --- */}
+        <TabsContent value="house" className="mt-0">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center justify-between">
+                Income from House Property
+                <Badge>{formatCurrencyINR(totalHousePropertyIncome)}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {Array.isArray(scheduleHP) && scheduleHP.length > 0 ? (
+                <div className="space-y-6">
+                  {scheduleHP.map((property: any, index: number) => {
+                    // Calculate net income from house property
+                    const annualValue = parseFloat(property?.incomeDetails?.rentReceived) || 0;
+                    const municipalTax = parseFloat(property?.incomeDetails?.municipalTax) || 0;
+                    const interestPaid = parseFloat(property?.incomeDetails?.interestPaid) || 0;
+                    const netIncome = annualValue - municipalTax - interestPaid;
+                    
+                    return (
+                      <div key={index} className="space-y-4 p-4 border rounded-md mb-4 bg-slate-50">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium">
+                            {property?.propertyType || 'Property'} {index + 1}
+                          </h4>
+                          <Badge variant={netIncome >= 0 ? "default" : "destructive"}>
+                            Net: {formatCurrencyINR(netIncome)}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {property?.address?.fullAddress || 'Address not specified'}
+                        </p>
+                        <Separator />
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Item</TableHead>
+                              <TableHead className="text-right">Amount</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell>Annual Value / Rent Received</TableCell>
+                              <TableCell className="text-right">{formatCurrencyINR(annualValue)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>Municipal Tax Paid</TableCell>
+                              <TableCell className="text-right">{formatCurrencyINR(municipalTax)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                              <TableCell>Interest on Housing Loan</TableCell>
+                              <TableCell className="text-right">{formatCurrencyINR(interestPaid)}</TableCell>
+                            </TableRow>
+                            <TableRow className="font-medium">
+                              <TableCell>Net Income from House Property</TableCell>
+                              <TableCell className="text-right">{formatCurrencyINR(netIncome)}</TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`municipal-tax-${index}`}>Municipal Tax Paid</Label>
-                  <Input id={`municipal-tax-${index}`} readOnly value={`₹${getNestedValue(property, 'incomeDetails.municipalTax')}`} />
-                </div>
-              </div>
+              ) : (
+                <Alert variant="default" className="bg-amber-50">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No House Property Data</AlertTitle>
+                  <AlertDescription>
+                    No income from house property reported in this return.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-              <div className="space-y-1">
-                 <Label htmlFor={`interest-paid-${index}`}>Interest Paid on Housing Loan</Label>
-                 <Input id={`interest-paid-${index}`} readOnly value={`₹${getNestedValue(property, 'incomeDetails.interestPaid')}`} />
-              </div>
-
-              {/* Optional: Add note similar to reference if needed */}
-              {/* <Alert variant="info"> ... </Alert> */} 
-            </div>
-           )) : (
-            <p className="text-sm text-gray-500 italic">No House Property (Schedule HP) data found.</p>
-           )}
-        </div>
-      )}
-
-      {/* --- Section: Income from Other Sources --- */}
-      {scheduleOS && (
-        <div className="space-y-4 pt-4 border-t border-gray-200">
-          <h3 className="text-lg font-medium">Income from Other Sources</h3>
-
-          {/* Assuming ScheduleOS holds the relevant fields directly */}
-          {typeof scheduleOS === 'object' && scheduleOS !== null ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div className="space-y-1">
-                  <Label htmlFor="interest-savings">Interest from Savings Account</Label>
-                  <Input id="interest-savings" readOnly value={`₹${getNestedValue(scheduleOS, 'interestIncome.savingsBank')}`} />
+        {/* --- Other Sources Tab Content --- */}
+        <TabsContent value="other" className="mt-0">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center justify-between">
+                Income from Other Sources
+                <Badge>{formatCurrencyINR(totalOtherSourcesIncome)}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {typeof scheduleOS === 'object' && scheduleOS !== null ? (
+                <div className="p-4 border rounded-md bg-slate-50">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Source</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>Interest from Savings Account</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrencyINR(parseFloat(scheduleOS?.interestIncome?.savingsBank) || 0)}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Interest from Fixed Deposits</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrencyINR(parseFloat(scheduleOS?.interestIncome?.fixedDeposits) || 0)}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Dividends</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrencyINR(parseFloat(scheduleOS?.dividends) || 0)}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Other Income</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrencyINR(parseFloat(scheduleOS?.otherIncome) || 0)}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow>
+                        <TableCell>Deduction under Section 57</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrencyINR(parseFloat(scheduleOS?.deductions57) || 0)}
+                        </TableCell>
+                      </TableRow>
+                      <TableRow className="font-medium">
+                        <TableCell>Net Income from Other Sources</TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrencyINR(
+                            (parseFloat(scheduleOS?.interestIncome?.savingsBank) || 0) +
+                            (parseFloat(scheduleOS?.interestIncome?.fixedDeposits) || 0) +
+                            (parseFloat(scheduleOS?.dividends) || 0) +
+                            (parseFloat(scheduleOS?.otherIncome) || 0) -
+                            (parseFloat(scheduleOS?.deductions57) || 0)
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="interest-fd">Interest from Fixed Deposits</Label>
-                  <Input id="interest-fd" readOnly value={`₹${getNestedValue(scheduleOS, 'interestIncome.fixedDeposits')}`} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="dividends">Dividends</Label>
-                  <Input id="dividends" readOnly value={`₹${getNestedValue(scheduleOS, 'dividends')}`} />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="other-income">Other Income (Specify)</Label>
-                  <Input id="other-income" readOnly value={`₹${getNestedValue(scheduleOS, 'otherIncome')}`} />
-                </div>
-              </div>
-              <div className="space-y-1 pt-2">
-                <Label htmlFor="deduction-57">Deduction under Section 57</Label>
-                <Input id="deduction-57" readOnly value={`₹${getNestedValue(scheduleOS, 'deductions57')}`} />
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 italic">No Other Sources (Schedule OS) data found.</p>
-          )}
-        </div>
-      )}
-
+              ) : (
+                <Alert variant="default" className="bg-amber-50">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>No Other Income Data</AlertTitle>
+                  <AlertDescription>
+                    No income from other sources reported in this return.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }; 

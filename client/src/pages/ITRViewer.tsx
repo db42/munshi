@@ -21,7 +21,7 @@ import { AssetsLiabilitiesStep } from '../components/ITRViewer/steps/AssetsLiabi
 import { SummaryConfirmationStep } from '../components/ITRViewer/steps/SummaryConfirmationStep';
 
 // Map Step IDs to Components
-const stepComponentMap: { [key: string]: React.FC<{ itrData: any; config: ITRViewerStepConfig }> } = {
+const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRViewerStepConfig }> } = {
   personalInfo: PersonalInfoStep,
   incomeDetails: IncomeDetailsStep,
   capitalGains: CapitalGainsStep,
