@@ -16,7 +16,7 @@ const handleGetUser = async (req: Request, res: Response): Promise<void> => {
         if (data) {
             res.status(200).json(data);
         } else {
-            res.status(404).json({ message: 'User input data not found.' });
+            res.status(200).json({ message: 'User input data not found.' });
         }
     } catch (error: any) {
         logger.error(`[Route] Error in GET /api/user-inputs for owner ${ownerId}, year ${assessmentYear}:`, error);
