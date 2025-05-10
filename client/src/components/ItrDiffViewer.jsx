@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { diff } from 'deep-diff';
+import { sortedObject } from '../utils/objectUtils';
 
 const ItrDiffViewer = () => {
   const [actualJson, setActualJson] = useState(null);
@@ -9,6 +10,7 @@ const ItrDiffViewer = () => {
   const [differences, setDifferences] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [copiedStatus, setCopiedStatus] = useState({ actual: false, generated: false });
 
   // Section descriptions for common ITR sections
   const sectionDescriptions = {
@@ -101,23 +103,17 @@ const ItrDiffViewer = () => {
   }, []); // Run once on mount
 
   const getActualSelectedSectionData = () => {
-    let section = actualJson.ITR.ITR2[selectedSection] ?? {};
-    //sort section by keys only one level deep
-    const sortedSection = Object.keys(section).sort().reduce((obj, key) => {
-      obj[key] = section[key];
-      return obj;
-    }, {});
+    return getSelectedSectionData(actualJson);
+  }
+
+  const getSelectedSectionData = (json) => {
+    let section = json.ITR.ITR2[selectedSection] ?? {};
+    const sortedSection = sortedObject(section);
     return sortedSection;
   }
 
   const getGeneratedSelectedSectionData = () => {
-    let section = generatedJson.ITR.ITR2[selectedSection] ?? {};
-    //sort section by keys only one level deep
-    const sortedSection = Object.keys(section).sort().reduce((obj, key) => {
-      obj[key] = section[key];
-      return obj;
-    }, {});
-    return sortedSection;
+    return getSelectedSectionData(generatedJson);
   }
 
   useEffect(() => {
@@ -170,9 +166,10 @@ const ItrDiffViewer = () => {
       differences.forEach(diff => {
         if (!diff.path) return;
         
-        const pathStr = Array.isArray(diff.path) ? diff.path.join('.') : diff.path.toString();
+        const pathStr = Array.isArray(diff.path) ? diff.path[diff.path.length - 1] : diff.path.toString();
         
         switch (diff.kind) {
+          case 'A': // Array change
           case 'E': // Changed
             diffMap[pathStr] = { type: 'changed', lhs: diff.lhs, rhs: diff.rhs };
             break;
@@ -182,55 +179,30 @@ const ItrDiffViewer = () => {
           case 'D': // Deleted
             diffMap[pathStr] = { type: 'deleted', value: diff.lhs };
             break;
-          case 'A': // Array change
-            const arrayPath = `${pathStr}[${diff.index}]`;
-            if (diff.item.kind === 'N') {
-              diffMap[arrayPath] = { type: 'added', value: diff.item.rhs };
-            } else if (diff.item.kind === 'D') {
-              diffMap[arrayPath] = { type: 'deleted', value: diff.item.lhs };
-            } else if (diff.item.kind === 'E') {
-              diffMap[arrayPath] = { type: 'changed', lhs: diff.item.lhs, rhs: diff.item.rhs };
-            }
-            break;
           default:
             break;
         }
       });
     }
-    
+    console.log("Diff map:", diffMap);
     // Simple approach to mark lines - in a more sophisticated version we would need
     // to more precisely track which lines correspond to which paths
     const getHighlightedLine = (line, isLeft) => {
       // This is a simplified approach - real implementation would need to parse JSON to know exactly which lines to highlight
-      const lineContent = line.content.trim();
-      
-      // Look for lines that might contain changed values
-      for (const path in diffMap) {
-        const diff = diffMap[path];
-        const searchValue = isLeft 
-          ? (diff.lhs !== undefined ? JSON.stringify(diff.lhs).replace(/"/g, '') : null)
-          : (diff.rhs !== undefined ? JSON.stringify(diff.rhs).replace(/"/g, '') : null);
-          
-        if (searchValue && lineContent.includes(searchValue)) {
-          if (diff.type === 'changed') {
-            return { ...line, highlight: 'changed' };
-          } else if (diff.type === 'added' && !isLeft) {
-            return { ...line, highlight: 'added' };
-          } else if (diff.type === 'deleted' && isLeft) {
-            return { ...line, highlight: 'deleted' };
-          }
-        }
+      const lineContent = line.content.trim().split('\"');
+      if (lineContent.length > 1) {
+        const objectKey = lineContent[1];
         
-        // Look for lines that might contain the path itself
-        const lastPathPart = path.split('.').pop();
-        if (lastPathPart && lineContent.includes(lastPathPart)) {
+        // Look for lines that might contain changed values
+        if (diffMap[objectKey]) {
+          const diff = diffMap[objectKey];
           if (diff.type === 'changed') {
             return { ...line, highlight: 'changed' };
-          } else if (diff.type === 'added' && !isLeft) {
-            return { ...line, highlight: 'added' };
-          } else if (diff.type === 'deleted' && isLeft) {
-            return { ...line, highlight: 'deleted' };
-          }
+            } else if (diff.type === 'added' && !isLeft) {
+              return { ...line, highlight: 'added' };
+            } else if (diff.type === 'deleted' && isLeft) {
+              return { ...line, highlight: 'deleted' };
+            }
         }
       }
       
@@ -247,6 +219,25 @@ const ItrDiffViewer = () => {
   };
 
   const { left, right } = getSideBySideDiff();
+
+  const handleCopyJson = async (dataToCopy, type) => {
+    if (!dataToCopy || Object.keys(dataToCopy).length === 0) {
+      console.warn("No data to copy for type:", type);
+      // Optionally, provide user feedback that there's nothing to copy
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(dataToCopy, null, 2));
+      setCopiedStatus(prev => ({ ...prev, [type]: true }));
+      setTimeout(() => {
+        setCopiedStatus(prev => ({ ...prev, [type]: false }));
+      }, 2000); // Reset after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy JSON: ', err);
+      // Optionally, display an error to the user (e.g., using a toast notification)
+      alert('Failed to copy JSON. See console for details.');
+    }
+  };
 
   if (loading) {
     return <div>Loading JSON data...</div>;
@@ -297,8 +288,15 @@ const ItrDiffViewer = () => {
           <div style={{ display: 'flex', border: '1px solid #ddd', borderRadius: '4px' }}>
             {/* Left side - Original */}
             <div style={{ flex: 1, borderRight: '1px solid #ddd', overflowX: 'auto' }}>
-              <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
+              <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>Actual JSON</strong>
+                <button 
+                  onClick={() => handleCopyJson(getActualSelectedSectionData(), 'actual')}
+                  style={{ padding: '5px 10px', cursor: 'pointer', fontSize: '12px' }}
+                  disabled={copiedStatus.actual || !selectedSection || !actualJson}
+                >
+                  {copiedStatus.actual ? 'Copied!' : 'Copy JSON'}
+                </button>
               </div>
               <pre style={{ margin: 0, padding: '0', fontSize: '14px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -339,8 +337,15 @@ const ItrDiffViewer = () => {
             
             {/* Right side - Modified */}
             <div style={{ flex: 1, overflowX: 'auto' }}>
-              <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd' }}>
+              <div style={{ padding: '10px', backgroundColor: '#f5f5f5', borderBottom: '1px solid #ddd', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <strong>Generated JSON</strong>
+                <button 
+                  onClick={() => handleCopyJson(getGeneratedSelectedSectionData(), 'generated')}
+                  style={{ padding: '5px 10px', cursor: 'pointer', fontSize: '12px' }}
+                  disabled={copiedStatus.generated || !selectedSection || !generatedJson}
+                >
+                  {copiedStatus.generated ? 'Copied!' : 'Copy JSON'}
+                </button>
               </div>
               <pre style={{ margin: 0, padding: '0', fontSize: '14px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
