@@ -1,23 +1,6 @@
 import { ENDPOINTS, DEFAULT_HEADERS } from './config';
 import { formatApiError } from '../utils/api-helpers';
-
-// Define the CarryForwardLossEntry interface
-export interface CarryForwardLossEntry {
-  lossYearAY: string; // YYYY-YY
-  dateOfFiling?: string; // YYYY-MM-DD
-  housePropertyLossCF?: number;
-  shortTermCapitalLossCF?: number;
-  longTermCapitalLossCF?: number;
-  businessLossCF?: number;
-}
-
-// Main User Input Data Structure matching the server-side type
-export interface UserInputData {
-  scheduleCFLAdditions?: {
-    lossesToCarryForward?: CarryForwardLossEntry[];
-  };
-  // Other fields will be added later...
-}
+import { UserInputData, CarryForwardLossEntry } from '../types/userInput.types';
 
 /**
  * Fetch user input data for a specific user and assessment year
@@ -93,14 +76,95 @@ export const mergeUserInput = (existing: UserInputData, newData: UserInputData):
   return {
     ...existing,
     ...newData,
-    // For nested objects that need special merging logic
-    scheduleCFLAdditions: {
+    // Handle each section with special merging logic
+    
+    // General Info section
+    generalInfoAdditions: newData.generalInfoAdditions ? {
+      ...existing.generalInfoAdditions,
+      ...newData.generalInfoAdditions,
+      // Replace arrays entirely
+      ...(newData.generalInfoAdditions.bankDetails && {
+        bankDetails: newData.generalInfoAdditions.bankDetails 
+      })
+    } : existing.generalInfoAdditions,
+    
+    // Schedule HP (House Property) section
+    scheduleHPAdditions: newData.scheduleHPAdditions 
+      ? newData.scheduleHPAdditions 
+      : existing.scheduleHPAdditions,
+    
+    // Schedule CG (Capital Gains) section
+    scheduleCGAdditions: newData.scheduleCGAdditions ? {
+      ...existing.scheduleCGAdditions,
+      ...newData.scheduleCGAdditions,
+      // Replace arrays entirely
+      ...(newData.scheduleCGAdditions.shortTerm && {
+        shortTerm: newData.scheduleCGAdditions.shortTerm
+      }),
+      ...(newData.scheduleCGAdditions.longTerm && {
+        longTerm: newData.scheduleCGAdditions.longTerm
+      })
+    } : existing.scheduleCGAdditions,
+    
+    // Schedule OS (Other Sources) section
+    scheduleOSAdditions: newData.scheduleOSAdditions 
+      ? newData.scheduleOSAdditions 
+      : existing.scheduleOSAdditions,
+    
+    // Chapter VIA section
+    chapterVIAAdditions: newData.chapterVIAAdditions ? {
+      ...existing.chapterVIAAdditions,
+      ...newData.chapterVIAAdditions,
+      // Section 80C - object
+      ...(newData.chapterVIAAdditions.section80C && {
+        section80C: {
+          ...existing.chapterVIAAdditions?.section80C,
+          ...newData.chapterVIAAdditions.section80C
+        }
+      }),
+      // Section 80D - object
+      ...(newData.chapterVIAAdditions.section80D && {
+        section80D: {
+          ...existing.chapterVIAAdditions?.section80D,
+          ...newData.chapterVIAAdditions.section80D
+        }
+      }),
+      // Section 80G - array
+      ...(newData.chapterVIAAdditions.section80G && {
+        section80G: newData.chapterVIAAdditions.section80G
+      }),
+      // Section 80TTA - object
+      ...(newData.chapterVIAAdditions.section80TTA && {
+        section80TTA: {
+          ...existing.chapterVIAAdditions?.section80TTA,
+          ...newData.chapterVIAAdditions.section80TTA
+        }
+      })
+    } : existing.chapterVIAAdditions,
+    
+    // Taxes Paid section
+    taxesPaidAdditions: newData.taxesPaidAdditions ? {
+      ...existing.taxesPaidAdditions,
+      ...newData.taxesPaidAdditions,
+      // Replace arrays entirely
+      ...(newData.taxesPaidAdditions.selfAssessmentTax && {
+        selfAssessmentTax: newData.taxesPaidAdditions.selfAssessmentTax
+      })
+    } : existing.taxesPaidAdditions,
+    
+    // Schedule CFL (Carry Forward Losses) section
+    scheduleCFLAdditions: newData.scheduleCFLAdditions ? {
       ...existing.scheduleCFLAdditions,
       ...newData.scheduleCFLAdditions,
-      // For array fields, replace entirely rather than merging
-      ...(newData.scheduleCFLAdditions?.lossesToCarryForward && {
+      // Replace arrays entirely
+      ...(newData.scheduleCFLAdditions.lossesToCarryForward && {
         lossesToCarryForward: newData.scheduleCFLAdditions.lossesToCarryForward
       })
-    }
+    } : existing.scheduleCFLAdditions,
+    
+    // Schedule FA (Foreign Assets) section
+    scheduleFAAdditions: newData.scheduleFAAdditions 
+      ? newData.scheduleFAAdditions 
+      : existing.scheduleFAAdditions
   };
 }; 

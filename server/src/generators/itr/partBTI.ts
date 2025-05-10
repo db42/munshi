@@ -1,5 +1,6 @@
 import { Form16 } from '../../types/form16';
 import { Itr2, PartBTI } from '../../types/itr';
+import { logger } from '../../utils/logger';
 
 /**
  * Processes Part B-TI (Computation of Total Income) of ITR-2
@@ -234,25 +235,85 @@ export const calculatePartBTI = (itr: Itr2): PartBTI => {
     
     // Calculate capital gains (ScheduleCGFor23)
     let capitalGains = 0;
+    let shortTermCapitalGains = 0;
+    let longTermCapitalGains = 0;
     if (itr.ScheduleCGFor23) {
         // Use the total capital gains directly from the schedule
         capitalGains = itr.ScheduleCGFor23.SumOfCGIncm || 0;
         
+        // Extract short-term and long-term gains separately
+        shortTermCapitalGains = itr.ScheduleCGFor23.ShortTermCapGainFor23?.TotalSTCG || 0;
+        longTermCapitalGains = itr.ScheduleCGFor23.LongTermCapGain23?.TotalLTCG || 0;
+        
         // Update total capital gains in PartB_TI
         partBTI.CapGain.TotalCapGains = capitalGains;
         partBTI.CapGain.ShortTermLongTermTotal = capitalGains;
+        partBTI.CapGain.ShortTerm.TotalShortTerm = shortTermCapitalGains;
+        partBTI.CapGain.LongTerm.TotalLongTerm = longTermCapitalGains;
     }
     
     // Update PartB_TI values
     partBTI.Salaries = salaryIncome;
     
-    // Apply deductions if available
-    const deductions = 0;
-    const broughtForwardLosses = 0;
+    // Process brought forward losses from ScheduleCFL
+    let broughtForwardLosses = 0;
+    
+    if (itr.ScheduleCFL?.TotalOfBFLossesEarlierYrs?.LossSummaryDetail) {
+        const lossSummary = itr.ScheduleCFL.TotalOfBFLossesEarlierYrs.LossSummaryDetail;
+        
+        // Extract brought forward losses by category
+        const bfHousePropertyLoss = lossSummary.TotalHPPTILossCF || 0;
+        const bfShortTermCapitalLoss = lossSummary.TotalSTCGPTILossCF || 0;
+        const bfLongTermCapitalLoss = lossSummary.TotalLTCGPTILossCF || 0;
+        const bfOtherSourcesLoss = lossSummary.OthSrcLossRaceHorseCF || 0;
+        
+        logger.info('Processing brought forward losses from Schedule CFL');
+        logger.info(`House Property Loss: ${bfHousePropertyLoss}, STCG Loss: ${bfShortTermCapitalLoss}, LTCG Loss: ${bfLongTermCapitalLoss}, Other Sources Loss: ${bfOtherSourcesLoss}`);
+        
+        // Apply short-term capital losses (first against STCG, then against LTCG if remaining)
+        let stcgLossToApply = Math.min(bfShortTermCapitalLoss, shortTermCapitalGains);
+        shortTermCapitalGains -= stcgLossToApply;
+        broughtForwardLosses += stcgLossToApply;
+        
+        // If there are remaining short-term losses, they can offset long-term gains
+        let remainingSTCGLoss = bfShortTermCapitalLoss - stcgLossToApply;
+        if (remainingSTCGLoss > 0) {
+            let stcgLossAgainstLTCG = Math.min(remainingSTCGLoss, longTermCapitalGains);
+            longTermCapitalGains -= stcgLossAgainstLTCG;
+            broughtForwardLosses += stcgLossAgainstLTCG;
+        }
+        
+        // Apply long-term capital losses (only against LTCG)
+        let ltcgLossToApply = Math.min(bfLongTermCapitalLoss, longTermCapitalGains);
+        longTermCapitalGains -= ltcgLossToApply;
+        broughtForwardLosses += ltcgLossToApply;
+        
+        // Update the capital gains figures after loss set-off
+        partBTI.CapGain.ShortTerm.TotalShortTerm = shortTermCapitalGains;
+        partBTI.CapGain.LongTerm.TotalLongTerm = longTermCapitalGains;
+        partBTI.CapGain.TotalCapGains = shortTermCapitalGains + longTermCapitalGains;
+        partBTI.CapGain.ShortTermLongTermTotal = partBTI.CapGain.TotalCapGains;
+        
+        // Apply house property loss (can be set off against other income heads)
+        let hpLossToApply = 0;
+        if (bfHousePropertyLoss > 0) {
+            // House property loss can typically be set off against other income heads
+            // The actual limit is ₹2,00,000 per year
+            const HP_LOSS_SETOFF_LIMIT = 200000;
+            hpLossToApply = Math.min(bfHousePropertyLoss, HP_LOSS_SETOFF_LIMIT);
+            broughtForwardLosses += hpLossToApply;
+        }
+        
+        // Apply other sources loss (from race horses)
+        // This is typically only allowed to be set off against income from owning and maintaining race horses
+        // For simplicity, we're not applying this loss unless there's specific race horse income
+        
+        logger.info(`Total brought forward losses applied: ${broughtForwardLosses}`);
+    }
+    
     partBTI.BroughtFwdLossesSetoff = broughtForwardLosses;
     
     // Calculate final total income
-    // const totalIncome = Math.max(0, grossTotalIncome - deductions);
     partBTI.AggregateIncome = salaryIncome + incomeFromOS;
     partBTI.TotalTI = salaryIncome + incomeFromOS + capitalGains;
     partBTI.BalanceAfterSetoffLosses = salaryIncome + incomeFromOS + capitalGains;

@@ -1,11 +1,12 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2 } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
 import { convertAISToITRSections } from '../../document-processors/aisToITR';
 import { convertCAMSMFCapitalGainToITR, CAMSMFCapitalGainITRSections } from '../../document-processors/camsMFCapitalGainToITR';
+import { convertUserInputToITRSections } from '../../document-processors/userInputToITR';
 import cloneDeep from 'lodash/cloneDeep';
 import { logger } from '../../utils/logger';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
@@ -13,6 +14,8 @@ import { calculatePartBTI } from './partBTI';
 import { calculateScheduleCYLA } from './scheduleCYLA';
 import { calculateScheduleSI } from './scheduleSI';
 import { calculateScheduleAMTC, isAMTApplicable } from './scheduleAMTC';
+import { userInput } from '../../services/userInput';
+import { UserInputData } from '../../types/userInput.types';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -31,7 +34,8 @@ export enum ITRSectionType {
     SCHEDULE_TR1 = 'ScheduleTR1',
     SCHEDULE_FSI = 'ScheduleFSI',
     SCHEDULE_112A = 'Schedule112A',
-    SCHEDULE_TDS2 = 'ScheduleTDS2'
+    SCHEDULE_TDS2 = 'ScheduleTDS2',
+    SCHEDULE_CFL = 'ScheduleCFL'
 }
 
 /**
@@ -273,7 +277,18 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
             ScheduleTDS2: scheduleTDS2
         };
         return itr;
-    }
+    },
+    [ITRSectionType.SCHEDULE_CFL]: (itr, section) => {
+        const scheduleCFL = section.data as ScheduleCFL;
+        // Schedule CFL data comes entirely from user input for previous years,
+        // so we directly assign it, replacing any potential placeholder.
+        itr = {
+            ...itr,
+            ScheduleCFL: scheduleCFL
+        };
+        logger.info('Merged Schedule CFL from user input.');
+        return itr;
+    },
 };
 
 /**
@@ -651,6 +666,31 @@ export const generateITR = async (
     // --- 2. Fetch and Process Documents, Generate Initial Sections ---
     const sectionsToMerge: ITRSection[] = [];
 
+    // --- 2a. Fetch User Input Data ---
+    const userInputData = await userInput.get(userId.toString(), assessmentYear);
+    if (userInputData) {
+        logger.info(`Fetched user input data for user ${userId}, AY ${assessmentYear}.`);
+        
+        // Convert user input to ITR sections
+        const userInputSectionsResult = convertUserInputToITRSections(userInputData, assessmentYear);
+        
+        if (userInputSectionsResult.success && userInputSectionsResult.data) {
+            // Convert the specific sections to ITRSection array
+            const sections = userInputSectionsResult.data;
+            if (sections.scheduleCFL) {
+                sectionsToMerge.push({ 
+                    type: ITRSectionType.SCHEDULE_CFL, 
+                    data: sections.scheduleCFL 
+                });
+            }
+            // Add other section conversions as they become available
+        } else {
+            logger.warn(`Failed to convert user input data for user ${userId}: ${userInputSectionsResult.error}`);
+        }
+    } else {
+        logger.info(`No user input data found for user ${userId}, AY ${assessmentYear}.`);
+    }
+
     // Process Form 16
     const form16Docs = await parsedDocuments.getForm16(userId, assessmentYear);
     if (form16Docs?.parsed_data?.data) {
@@ -741,9 +781,9 @@ export const generateITR = async (
         logger.info(`No AIS data found for user ${userId}, AY ${assessmentYear}`);
     }
 
-    // --- 3. Merge Initial Sections ---
+    // --- 3. Merge All Sections ---
     let mergedITR = mergeITRSections(baseITR as Itr2, sectionsToMerge);
-    logger.debug('ITR after merging initial document sections.');
+    logger.debug('ITR after merging initial document and user input sections.');
 
     // --- 4. Calculate Schedule CYLA ---
     const scheduleCYLA = calculateScheduleCYLA(mergedITR);
