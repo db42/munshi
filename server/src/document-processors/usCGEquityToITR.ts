@@ -1,5 +1,5 @@
 import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../types/usEquityStatement';
-import { ShortTerm, LongTerm } from '../types/itr';
+import { ShortTerm, LongTerm, Proviso112SectionCode } from '../types/itr';
 import { ParseResult, getFinancialYear } from '../utils/parserTypes';
 
 import { 
@@ -70,13 +70,14 @@ const createInLossSetOff = (): InLossSetOff => ({
  * Creates a default AccruOrRecOfCG object
  */
 const createAccruOrRecOfCG = (shortTermGain: number, longTermGain: number): AccruOrRecOfCG => ({
-    LongTermUnder10Per: createDateRange(longTermGain),
-    LongTermUnder20Per: createDateRange(0),
-    LongTermUnderDTAARate: createDateRange(0),
-    ShortTermUnder15Per: createDateRange(shortTermGain),
+    LongTermUnder10Per: createDateRange(0), // US equity LTCG not under 112A (10% with STT)
+    LongTermUnder20Per: createDateRange(Math.max(0, longTermGain)), // US equity LTCG typically 20% or DTAA; Accrual schedule expects positive income
+    LongTermUnderDTAARate: createDateRange(0), // Assuming DTAA specific rates will be handled separately if needed for accrual
+    ShortTermUnder15Per: createDateRange(0), // US equity STCG not under 111A (15% with STT)
     ShortTermUnder30Per: createDateRange(0),
-    ShortTermUnderAppRate: createDateRange(0),
-    ShortTermUnderDTAARate: createDateRange(0)
+    ShortTermUnderAppRate: createDateRange(Math.max(0, shortTermGain)), // US equity STCG at applicable rates; Accrual schedule expects positive income
+    ShortTermUnderDTAARate: createDateRange(0), // Assuming DTAA specific rates will be handled separately if needed for accrual
+    VDATrnsfGainsUnder30Per: createDateRange(0)
 });
 
 /**
@@ -99,9 +100,9 @@ const createSaleTransaction = (proceeds: number, costBasis: number, gain: number
  */
 const createCurrYrLosses = (shortTermGain: number, longTermGain: number) => ({
     InLossSetOff: createInLossSetOff(),
-    InLtcg10Per: {
-        CurrYearIncome: longTermGain,
-        CurrYrCapGain: longTermGain,
+    InLtcg10Per: { // Zeroed out for US equities (no STT, not Sec 112A)
+        CurrYearIncome: 0,
+        CurrYrCapGain: 0,
         LtclSetOff20Per: 0,
         LtclSetOffDTAARate: 0,
         StclSetoff15Per: 0,
@@ -109,9 +110,9 @@ const createCurrYrLosses = (shortTermGain: number, longTermGain: number) => ({
         StclSetoffAppRate: 0,
         StclSetoffDTAARate: 0
     } as InLtcg10Per,
-    InLtcg20Per: {
-        CurrYearIncome: 0,
-        CurrYrCapGain: 0,
+    InLtcg20Per: { // US LTCG (foreign asset) - taxed at 20% or DTAA rates
+        CurrYearIncome: longTermGain, // Can be negative if it's a loss
+        CurrYrCapGain: longTermGain,  // Can be negative if it's a loss
         LtclSetOff10Per: 0,
         LtclSetOffDTAARate: 0,
         StclSetoff15Per: 0,
@@ -120,7 +121,7 @@ const createCurrYrLosses = (shortTermGain: number, longTermGain: number) => ({
         StclSetoffDTAARate: 0
     } as InLtcg20Per,
     InLtcgDTAARate: {
-        CurrYearIncome: 0,
+        CurrYearIncome: 0, // Assuming specific DTAA rate gains/losses are handled if/when DTAA logic is more detailed
         CurrYrCapGain: 0,
         LtclSetOff10Per: 0,
         LtclSetOff20Per: 0,
@@ -129,9 +130,9 @@ const createCurrYrLosses = (shortTermGain: number, longTermGain: number) => ({
         StclSetoffAppRate: 0,
         StclSetoffDTAARate: 0
     } as InLtcgDTAARate,
-    InStcg15Per: {
-        CurrYearIncome: shortTermGain,
-        CurrYrCapGain: shortTermGain,
+    InStcg15Per: { // Zeroed out for US equities (no STT, not Sec 111A)
+        CurrYearIncome: 0,
+        CurrYrCapGain: 0,
         StclSetoff30Per: 0,
         StclSetoffAppRate: 0,
         StclSetoffDTAARate: 0
@@ -143,15 +144,15 @@ const createCurrYrLosses = (shortTermGain: number, longTermGain: number) => ({
         StclSetoffAppRate: 0,
         StclSetoffDTAARate: 0
     } as InStcg30Per,
-    InStcgAppRate: {
-        CurrYearIncome: 0,
-        CurrYrCapGain: 0,
+    InStcgAppRate: { // US STCG (foreign asset) - taxed at applicable slab rates
+        CurrYearIncome: shortTermGain, // Can be negative if it's a loss
+        CurrYrCapGain: shortTermGain,  // Can be negative if it's a loss
         StclSetoff15Per: 0,
         StclSetoff30Per: 0,
         StclSetoffDTAARate: 0
     } as InStcgAppRate,
     InStcgDTAARate: {
-        CurrYearIncome: 0,
+        CurrYearIncome: 0, // Assuming specific DTAA rate gains/losses are handled if/when DTAA logic is more detailed
         CurrYrCapGain: 0,
         StclSetoff15Per: 0,
         StclSetoff30Per: 0,
@@ -371,14 +372,6 @@ const processShortTermCapitalGains = (shortTermGains: CapitalGainSummary): Short
     
     return {
         AmtDeemedStcg: 0,
-        EquityMFonSTT: [{
-            EquityMFonSTTDtls: createSaleTransaction(
-                shortTermGains.totalProceeds,
-                shortTermGains.totalCostBasis,
-                shortTermGains.totalGain
-            ),
-            MFSectionCode: MFSectionCode.The1A // Section 111A for equity shares/units
-        }],
         NRISecur115AD: createSaleTransaction(0, 0, 0),
         NRITransacSec48Dtl: createNRITransacSec48Dtl(),
         PassThrIncNatureSTCG: 0,
@@ -402,7 +395,7 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
     
     return {
         AmtDeemedLtcg: 0,
-        NRISaleOfEquityShareUs112A: {
+        NRISaleOfEquityShareUs112A: { 
             BalanceCG: 0,
             CapgainonAssets: 0,
             DeductionUs54F: 0
@@ -418,12 +411,10 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
         PassThrIncNatureLTCG: 0,
         PassThrIncNatureLTCGUs112A: 0,
         SaleOfEquityShareUs112A: {
-            BalanceCG: longTermGains.totalGain,
-            CapgainonAssets: longTermGains.totalGain,
+            BalanceCG: 0, 
+            CapgainonAssets: 0,
             DeductionUs54F: 0
         },
-        // For SaleofAssetNA and SaleofBondsDebntr, we need to create custom transaction types
-        // that include the DeductionUs54F property
         SaleofAssetNA: {
             ...createSaleTransaction(
                 longTermGains.totalProceeds,
@@ -439,7 +430,7 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
         TotalAmtDeemedLtcg: 0,
         TotalAmtNotTaxUsDTAALtcg: 0,
         TotalAmtTaxUsDTAALtcg: longTermGains.totalForeignTaxPaid,
-        TotalLTCG: longTermGains.totalGain
+        TotalLTCG: longTermGains.totalGain,
     };
 };
 

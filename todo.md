@@ -39,6 +39,7 @@
 Phase 2
 - agent - tax validation
 - camsMFToITR: this information is also available in camsData.summary. can be used to avoid re-processing the transactions.
+- [] use https://github.com/zgrossbart/jdd/blob/main/jdd.js for diff viewer
 
 Phase 3
 - agent - tax planning

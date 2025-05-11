@@ -16,6 +16,7 @@ import { calculateScheduleSI } from './scheduleSI';
 import { calculateScheduleAMTC, isAMTApplicable } from './scheduleAMTC';
 import { userInput } from '../../services/userInput';
 import { UserInputData } from '../../types/userInput.types';
+import { postProcessScheduleCG } from './scheduleCGPostProcessing';
 
 export interface ITRData {
     // Define your ITR structure here
@@ -436,6 +437,16 @@ const mergeScheduleCG = (existingScheduleCG: ScheduleCGFor23 | undefined, newSch
         mergedScheduleCG.LongTermCapGain23.TotalLTCG =
             (mergedScheduleCG.LongTermCapGain23.TotalLTCG || 0) +
             (newScheduleCG.LongTermCapGain23.TotalLTCG || 0);
+        
+        //Merge Proviso112Applicable
+        if (mergedScheduleCG.LongTermCapGain23.Proviso112Applicable && newScheduleCG.LongTermCapGain23.Proviso112Applicable) {
+            mergedScheduleCG.LongTermCapGain23.Proviso112Applicable = [
+                ...mergedScheduleCG.LongTermCapGain23.Proviso112Applicable,
+                ...newScheduleCG.LongTermCapGain23.Proviso112Applicable
+            ];
+        } else if (newScheduleCG.LongTermCapGain23.Proviso112Applicable) {
+            mergedScheduleCG.LongTermCapGain23.Proviso112Applicable = newScheduleCG.LongTermCapGain23.Proviso112Applicable;
+        }
     } else if (newScheduleCG.LongTermCapGain23) {
         mergedScheduleCG.LongTermCapGain23 = newScheduleCG.LongTermCapGain23;
     }
@@ -491,9 +502,23 @@ const mergeScheduleCG = (existingScheduleCG: ScheduleCGFor23 | undefined, newSch
 
     // Merge AccruOrRecOfCG similarly to CurrYrLosses
     if (mergedScheduleCG.AccruOrRecOfCG && newScheduleCG.AccruOrRecOfCG) {
-        // Merge similar to CurrYrLosses for all tax rate types...
-        // Implementation similar to the above CurrYrLosses merging
-        // Only merged if both sections exist
+        // For LongTermUnder20Per (and similarly for other categories like ShortTermUnderAppRate etc.)
+        if (mergedScheduleCG.AccruOrRecOfCG.LongTermUnder20Per && newScheduleCG.AccruOrRecOfCG.LongTermUnder20Per) {
+            const existingDR = mergedScheduleCG.AccruOrRecOfCG.LongTermUnder20Per.DateRange;
+            const newDR = newScheduleCG.AccruOrRecOfCG.LongTermUnder20Per.DateRange;
+            
+            existingDR.Up16Of12To15Of3 = (existingDR.Up16Of12To15Of3 || 0) + (newDR.Up16Of12To15Of3 || 0);
+            existingDR.Up16Of3To31Of3 = (existingDR.Up16Of3To31Of3 || 0) + (newDR.Up16Of3To31Of3 || 0);
+            existingDR.Up16Of9To15Of12 = (existingDR.Up16Of9To15Of12 || 0) + (newDR.Up16Of9To15Of12 || 0);
+            existingDR.Upto15Of6 = (existingDR.Upto15Of6 || 0) + (newDR.Upto15Of6 || 0);
+            existingDR.Upto15Of9 = (existingDR.Upto15Of9 || 0) + (newDR.Upto15Of9 || 0);
+        } else if (newScheduleCG.AccruOrRecOfCG.LongTermUnder20Per) {
+            // If existing doesn't have it, but new one does, assign it (deep clone for safety)
+            mergedScheduleCG.AccruOrRecOfCG.LongTermUnder20Per = cloneDeep(newScheduleCG.AccruOrRecOfCG.LongTermUnder20Per);
+        }
+        // This pattern needs to be repeated for all relevant fields within AccruOrRecOfCG:
+        // LongTermUnder10Per, LongTermUnderDTAARate, ShortTermUnder15Per, ShortTermUnder30Per,
+        // ShortTermUnderAppRate, ShortTermUnderDTAARate, VDATrnsfGainsUnder30Per.
     } else if (newScheduleCG.AccruOrRecOfCG) {
         mergedScheduleCG.AccruOrRecOfCG = newScheduleCG.AccruOrRecOfCG;
     }
@@ -784,6 +809,16 @@ export const generateITR = async (
     // --- 3. Merge All Sections ---
     let mergedITR = mergeITRSections(baseITR as Itr2, sectionsToMerge);
     logger.debug('ITR after merging initial document and user input sections.');
+
+    // --- 3a. Post-Process Schedule CG for Intra-Head Set-offs ---
+    if (mergedITR.ScheduleCGFor23) {
+        // The postProcessScheduleCG function will handle intra-head set-offs
+        // and populate derived fields like InLossSetOff, LossRemainSetOff, etc.
+        mergedITR.ScheduleCGFor23 = postProcessScheduleCG(mergedITR.ScheduleCGFor23);
+        logger.info('Post-processed Schedule CG for intra-head set-offs.');
+    } else {
+        logger.info('No Schedule CG found to post-process.');
+    }
 
     // --- 4. Calculate Schedule CYLA ---
     const scheduleCYLA = calculateScheduleCYLA(mergedITR);

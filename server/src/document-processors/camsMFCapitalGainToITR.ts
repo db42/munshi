@@ -1,4 +1,4 @@
-import { CapGain, Itr2, ScheduleCGFor23, Schedule112A, Schedule112A115ADType, ShareOnOrBefore } from '../types/itr';
+import { CapGain, Itr2, ScheduleCGFor23, Schedule112A, Schedule112A115ADType, ShareOnOrBefore, Proviso112SectionCode } from '../types/itr';
 import { CAMSMFCapitalGainData, CAMSMutualFundTransaction } from '../document-parsers/camsMFCapitalGainParser';
 import { ParseResult } from '../utils/parserTypes';
 import { logger } from '../utils/logger';
@@ -105,7 +105,8 @@ const createAccruOrRecOfCG = (
     // Other rates not applicable for domestic MF
     ShortTermUnder30Per: createDateRange(0),
     ShortTermUnderDTAARate: createDateRange(0),
-    LongTermUnderDTAARate: createDateRange(0)
+    LongTermUnderDTAARate: createDateRange(0),
+    VDATrnsfGainsUnder30Per: createDateRange(0)
 });
 
 /**
@@ -265,7 +266,39 @@ const processShortTermCapitalGains = (
                 equityTotalGain
             ),
             MFSectionCode: MFSectionCode.The1A // Section 111A
-        }] : undefined,
+        }] : [ //default array if no STCG
+            {
+                EquityMFonSTTDtls: {
+                    BalanceCG: 0,
+                    CapgainonAssets: 0,
+                    DeductSec48: {
+                      AquisitCost: 0,
+                      ExpOnTrans: 0,
+                      ImproveCost: 0,
+                      TotalDedn: 0
+                    },
+                    FullConsideration: 0,
+                    LossSec94of7Or94of8: 0
+                },
+                MFSectionCode: MFSectionCode.The1A
+            }, 
+            {
+                EquityMFonSTTDtls: {
+                    BalanceCG: 0,
+                    CapgainonAssets: 0,
+                    DeductSec48: {
+                      AquisitCost: 0,
+                      ExpOnTrans: 0,
+                      ImproveCost: 0,
+                      TotalDedn: 0
+                    },
+                    FullConsideration: 0,
+                    LossSec94of7Or94of8: 0
+                },
+                MFSectionCode: MFSectionCode.The5AD1Biip
+            }
+
+        ],
         
         // For debt funds, gains are taxed at slab rate, so we put them in SaleOnOtherAssets
         SaleOnOtherAssets: debtTotalGain !== 0 ? 
@@ -308,6 +341,10 @@ const processLongTermCapitalGains = (
     const equityTotalCost = equityLTCGTransactions.reduce((sum, txn) => sum + txn.acquisitionValue, 0);
     const equityTotalGain = equityLTCGTransactions.reduce((sum, txn) => sum + txn.gainOrLoss, 0);
     
+    // TODO: Clarify if txn.acquisitionValue for debt LTCG already includes indexation.
+    // If not, indexation (using Cost Inflation Index - CII) needs to be applied here 
+    // or ensured that the parser provides the indexed cost of acquisition for debt LTCG.
+    // Taxable LTCG on debt funds (Section 112) is calculated on indexed cost.
     const debtTotalProceeds = debtLTCGTransactions.reduce((sum, txn) => sum + txn.saleValue, 0);
     const debtTotalCost = debtLTCGTransactions.reduce((sum, txn) => sum + txn.acquisitionValue, 0);
     const debtTotalGain = debtLTCGTransactions.reduce((sum, txn) => sum + txn.gainOrLoss, 0);
@@ -354,7 +391,38 @@ const processLongTermCapitalGains = (
         TotalAmtTaxUsDTAALtcg: 0,
         
         // Total long-term capital gain is sum of equity and debt
-        TotalLTCG: equityTotalGain + debtTotalGain
+        TotalLTCG: equityTotalGain + debtTotalGain,
+        Proviso112Applicable: [{
+          Proviso112Applicabledtls: {
+            BalanceCG: 0,
+            CapgainonAssets: 0,
+            DeductSec48: {
+              AquisitCost: 0,
+              ExpOnTrans: 0,
+              ImproveCost: 0,
+              TotalDedn: 0
+            },
+            DeductionUs54F: 0,
+            FullConsideration: 0
+          },
+          Proviso112SectionCode: Proviso112SectionCode.The22
+          },
+          {
+            Proviso112Applicabledtls: {
+            BalanceCG: 0,
+            CapgainonAssets: 0,
+            DeductSec48: {
+              AquisitCost: 0,
+              ExpOnTrans: 0,
+              ImproveCost: 0,
+              TotalDedn: 0
+            },
+            DeductionUs54F: 0,
+            FullConsideration: 0
+          },
+          Proviso112SectionCode: Proviso112SectionCode.The5ACA1B
+        },
+       ]
     };
 };
 
@@ -420,6 +488,14 @@ const generateSchedule112A = (
     if (equityLTCGTransactions.length === 0) {
         return undefined;
     }
+
+    // TODO: Implement proper grandfathering logic for Section 112A.
+    // This requires: 
+    // 1. Access to Fair Market Value (FMV) as of Jan 31, 2018, for units acquired on or before this date.
+    //    This FMV should be provided by the CAMSMutualFundTransaction type (from the parser).
+    // 2. Correct calculation of Cost of Acquisition based on grandfathering rules:
+    //    Higher of (actual cost) AND (lower of (FMV as of Jan 31, 2018) AND (sale price)).
+    // 3. Update FairMktValuePerShareunit, TotFairMktValueCapAst, AcquisitionCost, and LTCGBeforelowerB1B2 accordingly.
 
     const schedule112ADtls: Schedule112A115ADType[] = [];
     let totalSaleValue112A = 0;

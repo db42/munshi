@@ -5,7 +5,8 @@ const logWithTimestamp = (level: string, message: string, ...args: any[]) => {
     const prefix = `[${timestamp}] [${level}]`;
     
     if (args.length > 0) {
-      console.log(prefix, message, ...args);
+      const argsString = args.map(arg => JSON.stringify(arg)).join(', ');
+      console.log(prefix, message, argsString);
     } else {
       console.log(prefix, message);
     }

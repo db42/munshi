@@ -1,0 +1,323 @@
+{
+  "scheduleCG": {
+    "ShortTermCapGainFor23": {
+      "AmtDeemedStcg": 0,
+      "NRISecur115AD": {
+        "BalanceCG": 0,
+        "CapgainonAssets": 0,
+        "DeductSec48": {
+          "AquisitCost": 0,
+          "ExpOnTrans": 0,
+          "ImproveCost": 0,
+          "TotalDedn": 0
+        },
+        "FullConsideration": 0,
+        "LossSec94of7Or94of8": 0,
+        "FairMrktValueUnqshr": 0,
+        "FullValueConsdOthUnqshr": 0,
+        "FullValueConsdRecvUnqshr": 0,
+        "FullValueConsdSec50CA": 0
+      },
+      "NRITransacSec48Dtl": {
+        "NRItaxSTTNotPaid": 0,
+        "NRItaxSTTPaid": 0
+      },
+      "PassThrIncNatureSTCG": 0,
+      "SaleOnOtherAssets": {
+        "BalanceCG": -149683.28000000003,
+        "CapgainonAssets": -149683.28000000003,
+        "DeductSec48": {
+          "AquisitCost": 480076.77,
+          "ExpOnTrans": 0,
+          "ImproveCost": 0,
+          "TotalDedn": 480076.77
+        },
+        "FullConsideration": 330393.49,
+        "LossSec94of7Or94of8": 0,
+        "FairMrktValueUnqshr": 330393.49,
+        "FullValueConsdOthUnqshr": 0,
+        "FullValueConsdRecvUnqshr": 0,
+        "FullValueConsdSec50CA": 0
+      },
+      "TotalAmtDeemedStcg": 0,
+      "TotalAmtNotTaxUsDTAAStcg": 0,
+      "TotalAmtTaxUsDTAAStcg": 0,
+      "TotalSTCG": -149683.28000000003
+    },
+    "LongTermCapGain23": {
+      "AmtDeemedLtcg": 0,
+      "NRISaleOfEquityShareUs112A": {
+        "BalanceCG": 0,
+        "CapgainonAssets": 0,
+        "DeductionUs54F": 0
+      },
+      "NRISaleofForeignAsset": {
+        "BalOtherthanSpecAsset": 0,
+        "BalonSpeciAsset": 0,
+        "DednOtherSpecAssetus115": 0,
+        "DednSpecAssetus115": 0,
+        "SaleOtherSpecAsset": 0,
+        "SaleonSpecAsset": 0
+      },
+      "PassThrIncNatureLTCG": 0,
+      "PassThrIncNatureLTCGUs112A": 0,
+      "SaleOfEquityShareUs112A": {
+        "BalanceCG": 643839.1206353998,
+        "CapgainonAssets": 643839.1206353998,
+        "DeductionUs54F": 0
+      },
+      "SaleofAssetNA": {
+        "BalanceCG": -193226.85999999996,
+        "CapgainonAssets": -193226.85999999996,
+        "DeductSec48": {
+          "AquisitCost": 1423461.5999999999,
+          "ExpOnTrans": 0,
+          "ImproveCost": 0,
+          "TotalDedn": 1423461.5999999999
+        },
+        "FullConsideration": 1230234.74,
+        "LossSec94of7Or94of8": 0,
+        "FairMrktValueUnqshr": 1230234.74,
+        "FullValueConsdOthUnqshr": 0,
+        "FullValueConsdRecvUnqshr": 0,
+        "FullValueConsdSec50CA": 0,
+        "DeductionUs54F": 0
+      },
+      "SaleofBondsDebntr": {
+        "BalanceCG": 0,
+        "CapgainonAssets": 0,
+        "DeductSec48": {
+          "AquisitCost": 0,
+          "ExpOnTrans": 0,
+          "ImproveCost": 0,
+          "TotalDedn": 0
+        },
+        "FullConsideration": 0,
+        "LossSec94of7Or94of8": 0,
+        "FairMrktValueUnqshr": 0,
+        "FullValueConsdOthUnqshr": 0,
+        "FullValueConsdRecvUnqshr": 0,
+        "FullValueConsdSec50CA": 0,
+        "DeductionUs54F": 0
+      },
+      "TotalAmtDeemedLtcg": 0,
+      "TotalAmtNotTaxUsDTAALtcg": 0,
+      "TotalAmtTaxUsDTAALtcg": 0,
+      "TotalLTCG": 450612.26063539984,
+      "Proviso112Applicable": [
+        {
+          "Proviso112Applicabledtls": {
+            "BalanceCG": 0,
+            "CapgainonAssets": 0,
+            "DeductSec48": {
+              "AquisitCost": 0,
+              "ExpOnTrans": 0,
+              "ImproveCost": 0,
+              "TotalDedn": 0
+            },
+            "DeductionUs54F": 0,
+            "FullConsideration": 0
+          },
+          "Proviso112SectionCode": "22"
+        },
+        {
+          "Proviso112Applicabledtls": {
+            "BalanceCG": 0,
+            "CapgainonAssets": 0,
+            "DeductSec48": {
+              "AquisitCost": 0,
+              "ExpOnTrans": 0,
+              "ImproveCost": 0,
+              "TotalDedn": 0
+            },
+            "DeductionUs54F": 0,
+            "FullConsideration": 0
+          },
+          "Proviso112SectionCode": "5ACA1b"
+        }
+      ]
+    },
+    "SumOfCGIncm": 300928.9806353998,
+    "TotScheduleCGFor23": 300928.9806353998,
+    "IncmFromVDATrnsf": 0,
+    "DeducClaimInfo": {
+      "TotDeductClaim": 0,
+      "DeducClaimDtlsUs54": [
+        
+      ],
+      "DeducClaimDtlsUs54B": [
+        
+      ],
+      "DeducClaimDtlsUs54EC": [
+        
+      ],
+      "DeducClaimDtlsUs54F": [
+        
+      ],
+      "DeducClaimDtlsUs115F": [
+        
+      ]
+    },
+    "CurrYrLosses": {
+      "InLossSetOff": {
+        "LtclSetOff10Per": 193226.85999999996,
+        "LtclSetOff20Per": 0,
+        "LtclSetOffDTAARate": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 0,
+        "StclSetoffDTAARate": 0
+      },
+      "InLtcg10Per": {
+        "CurrYearIncome": 643839.1206353998,
+        "CurrYrCapGain": 643839.1206353998,
+        "LtclSetOff20Per": 193226.85999999996,
+        "LtclSetOffDTAARate": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 149683.28000000003,
+        "StclSetoffDTAARate": 0
+      },
+      "InLtcg20Per": {
+        "CurrYearIncome": -193226.85999999996,
+        "CurrYrCapGain": -193226.85999999996,
+        "LtclSetOff10Per": 0,
+        "LtclSetOffDTAARate": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 0,
+        "StclSetoffDTAARate": 0
+      },
+      "InLtcgDTAARate": {
+        "CurrYearIncome": 0,
+        "CurrYrCapGain": 0,
+        "LtclSetOff10Per": 0,
+        "LtclSetOff20Per": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 0,
+        "StclSetoffDTAARate": 0
+      },
+      "InStcg15Per": {
+        "CurrYearIncome": 0,
+        "CurrYrCapGain": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 0,
+        "StclSetoffDTAARate": 0
+      },
+      "InStcg30Per": {
+        "CurrYearIncome": 0,
+        "CurrYrCapGain": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoffAppRate": 0,
+        "StclSetoffDTAARate": 0
+      },
+      "InStcgAppRate": {
+        "CurrYearIncome": -149683.28000000003,
+        "CurrYrCapGain": -149683.28000000003,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffDTAARate": 0
+      },
+      "InStcgDTAARate": {
+        "CurrYearIncome": 0,
+        "CurrYrCapGain": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 0
+      },
+      "LossRemainSetOff": {
+        "LtclSetOff10Per": 0,
+        "LtclSetOff20Per": 0,
+        "LtclSetOffDTAARate": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 0,
+        "StclSetoffDTAARate": 0
+      },
+      "TotLossSetOff": {
+        "LtclSetOff10Per": 193226.85999999996,
+        "LtclSetOff20Per": 0,
+        "LtclSetOffDTAARate": 0,
+        "StclSetoff15Per": 0,
+        "StclSetoff30Per": 0,
+        "StclSetoffAppRate": 0,
+        "StclSetoffDTAARate": 0
+      }
+    },
+    "AccruOrRecOfCG": {
+      "LongTermUnder10Per": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      },
+      "LongTermUnder20Per": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      },
+      "LongTermUnderDTAARate": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      },
+      "ShortTermUnder15Per": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      },
+      "ShortTermUnder30Per": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      },
+      "ShortTermUnderAppRate": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      },
+      "ShortTermUnderDTAARate": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      },
+      "VDATrnsfGainsUnder30Per": {
+        "DateRange": {
+          "Up16Of12To15Of3": 0,
+          "Up16Of3To31Of3": 0,
+          "Up16Of9To15Of12": 0,
+          "Upto15Of6": 0,
+          "Upto15Of9": 0
+        }
+      }
+    }
+  }
+}
