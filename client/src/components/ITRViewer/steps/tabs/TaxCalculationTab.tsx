@@ -26,11 +26,11 @@ export const TaxCalculationTab: React.FC<TaxCalculationTabProps> = ({ partBTTI }
 
   const rebate87A = computationOfTaxLiability.Rebate87A || 0;
   const relief89 = computationOfTaxLiability.TaxRelief?.Section89 || 0;
-  const totalTaxPayable = computationOfTaxLiability.TaxPayableOnTI || 0;
+  const totalTaxPayable = computationOfTaxLiability.NetTaxLiability || 0;
 
   const totalTaxesActuallyPaid = taxPaidData.TaxesPaid || 0;
 
-  const netTaxLiability = computationOfTaxLiability.NetTaxLiability || 0;
+  const netTaxLiability = partBTTI.TaxPaid.BalTaxPayable || 0;
   const refundDue = refundData.RefundDue || 0;
   const amountPayableToTaxAuth = refundData.RefundDue || 0;
 
@@ -99,7 +99,7 @@ export const TaxCalculationTab: React.FC<TaxCalculationTabProps> = ({ partBTTI }
             
             <TableRow className="bg-slate-100 font-semibold">
               <TableCell>Total Tax Payable</TableCell>
-              <TableCell className="text-right">{formatAmount(totalTaxPayable.TaxPayableOnTotInc)}</TableCell>
+              <TableCell className="text-right">{formatAmount(totalTaxPayable)}</TableCell>
             </TableRow>
 
             <Separator className="my-2" />

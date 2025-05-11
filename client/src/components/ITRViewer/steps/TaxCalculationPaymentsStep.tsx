@@ -10,7 +10,7 @@ import { Button } from '../ui/button';
 import { IncomeComputationTab } from './tabs/IncomeComputationTab';
 import { TaxCalculationTab } from './tabs/TaxCalculationTab';
 import { TaxPaymentsTab } from './tabs/TaxPaymentsTab';
-import { EditTaxPaymentTab } from './EditTaxPaymentTab';
+import { EditTaxPaymentTab } from './tabs/EditTaxPaymentTab';
 
 interface StepProps {
   itrData: Itr;
