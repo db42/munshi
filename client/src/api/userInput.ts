@@ -1,6 +1,6 @@
 import { ENDPOINTS, DEFAULT_HEADERS } from './config';
 import { formatApiError } from '../utils/api-helpers';
-import { UserInputData, CarryForwardLossEntry } from '../types/userInput.types';
+import { UserInputData, CarryForwardLossEntry, SelfAssessmentTaxPayment } from '../types/userInput.types';
 
 /**
  * Fetch user input data for a specific user and assessment year

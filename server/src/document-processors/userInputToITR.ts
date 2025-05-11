@@ -1,18 +1,19 @@
 import { UserInputData } from '../types/userInput.types';
 import { ITRSection, ITRSectionType } from '../generators/itr/itr';
-import { ScheduleCFL } from '../types/itr';
+import { ScheduleCFL, ScheduleIT, TaxPayment } from '../types/itr';
 import { logger } from '../utils/logger';
 import { ParseResult } from '../utils/parserTypes';
 
 // Define the specific structure for sections generated from user input
 export interface UserInputITRSections {
     scheduleCFL?: ScheduleCFL;
+    scheduleIT?: ScheduleIT;
     // Add other potential sections like scheduleFA, taxesPaid, chapterVIA etc. later
 }
 
 /**
  * Converts raw user input record to a structured object containing relevant ITR sections.
- * Focuses on extracting Schedule CFL for now.
+ * Processes Schedule CFL and Schedule IT (self-assessment tax).
  *
  * @param userInputRecord - The raw user input record retrieved from the service.
  * @param assessmentYear - The assessment year (currently unused but kept for potential future use).
@@ -116,7 +117,32 @@ export const convertUserInputToITRSections = (
         }
     }
 
-    // Add processors for other user input sections (scheduleFAAdditions, taxesPaidAdditions etc.) here in the future
+    // Process Self-Assessment Tax Payments
+    if (inputData.taxesPaidAdditions?.selfAssessmentTax && inputData.taxesPaidAdditions.selfAssessmentTax.length > 0) {
+        const taxPayments = inputData.taxesPaidAdditions.selfAssessmentTax;
+        
+        // Convert each tax payment to the required format
+        const transformedTaxPayments: TaxPayment[] = taxPayments.map(payment => ({
+            BSRCode: payment.bsrCode,
+            DateDep: payment.dateDeposit, // Assumes date is in YYYY-MM-DD format
+            SrlNoOfChaln: parseInt(payment.challanSerialNo, 10) || 0, // Convert to number, default to 0 if NaN
+            Amt: payment.amount
+        }));
+        
+        // Calculate total tax payments
+        const totalTaxPayments = transformedTaxPayments.reduce((sum, payment) => sum + payment.Amt, 0);
+        
+        // Create Schedule IT structure
+        const scheduleIT: ScheduleIT = {
+            TaxPayment: transformedTaxPayments,
+            TotalTaxPayments: totalTaxPayments
+        };
+        
+        generatedSections.scheduleIT = scheduleIT;
+        logger.info('Transformed user input Self-Assessment Tax payments.');
+    }
+
+    // Add processors for other user input sections (scheduleFAAdditions, etc.) here in the future
 
     return { success: true, data: generatedSections };
 }; 

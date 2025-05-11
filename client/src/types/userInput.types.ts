@@ -70,13 +70,7 @@ interface Section80GDonation {
     eligiblePercentage?: '100%' | '50%' | string; // Or codes
 }
 
-interface SelfAssessmentTaxPayment {
-    bsrCode: string;
-    dateDeposit: string; // YYYY-MM-DD
-    challanSerialNo: string;
-    amount: number;
-}
-
+// Entry for carry-forward losses
 export interface CarryForwardLossEntry {
     lossYearAY: string; // YYYY-YY
     dateOfFiling?: string; // YYYY-MM-DD
@@ -85,6 +79,14 @@ export interface CarryForwardLossEntry {
     longTermCapitalLossCF?: number;
     businessLossCF?: number;
     // Add other loss types
+}
+
+// Self-assessment tax payment entry
+export interface SelfAssessmentTaxPayment {
+    bsrCode: string;
+    dateDeposit: string; // YYYY-MM-DD
+    challanSerialNo: string;
+    amount: number;
 }
 
 interface ForeignAssetEntry {
@@ -98,10 +100,10 @@ interface ForeignAssetEntry {
     // Add other fields specific to asset types
 }
 
-// Main User Input Data Structure
+// Main user input data interface
 export interface UserInputData {
-    inputSchemaVersion?: string; // e.g., "1.0"
-
+    inputSchemaVersion?: string;
+    
     generalInfoAdditions?: {
         bankDetails?: BankAccount[];
     };

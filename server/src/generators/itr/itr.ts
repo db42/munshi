@@ -1,6 +1,6 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -36,7 +36,8 @@ export enum ITRSectionType {
     SCHEDULE_FSI = 'ScheduleFSI',
     SCHEDULE_112A = 'Schedule112A',
     SCHEDULE_TDS2 = 'ScheduleTDS2',
-    SCHEDULE_CFL = 'ScheduleCFL'
+    SCHEDULE_CFL = 'ScheduleCFL',
+    SCHEDULE_IT = 'ScheduleIT'
 }
 
 /**
@@ -288,6 +289,14 @@ const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
             ScheduleCFL: scheduleCFL
         };
         logger.info('Merged Schedule CFL from user input.');
+        return itr;
+    },
+    [ITRSectionType.SCHEDULE_IT]: (itr, section) => {
+        const scheduleIT = section.data as ScheduleIT;
+        itr = {
+            ...itr,
+            ScheduleIT: scheduleIT
+        };
         return itr;
     },
 };
@@ -706,6 +715,13 @@ export const generateITR = async (
                 sectionsToMerge.push({ 
                     type: ITRSectionType.SCHEDULE_CFL, 
                     data: sections.scheduleCFL 
+                });
+            }
+            // Add self-assessment tax payments if available
+            if (sections.scheduleIT) {
+                sectionsToMerge.push({
+                    type: ITRSectionType.SCHEDULE_IT,
+                    data: sections.scheduleIT
                 });
             }
             // Add other section conversions as they become available
