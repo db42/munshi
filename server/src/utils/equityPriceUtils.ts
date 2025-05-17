@@ -1,6 +1,10 @@
 import equityClosingPriceData from './usd-equity-closing-price-data.json';
 import { DEFAULT_EXCHANGE_RATE } from './currencyConverter';
 import { parseDateString } from './dateUtils';
+import { getLogger, ILogger } from './logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('equityPriceUtils');
 
 // Define the type for the equity closing price data
 interface EquityClosingPriceData {
@@ -29,7 +33,7 @@ export interface PeakPriceResult {
  */
 export const findPrice = (symbol: string, date: Date): number => {
   if (!closingPriceData[symbol]) {
-    console.warn(`No price data found for symbol: ${symbol}`);
+    logger.warn(`No price data found for symbol: ${symbol}`);
     return 0;
   }
 
@@ -54,7 +58,7 @@ export const findPeakPrice = (
 ): PeakPriceResult => {
   // If we don't have data for this symbol, return a default value
   if (!closingPriceData[symbol]) {
-    console.warn(`No price data found for symbol: ${symbol}`);
+    logger.warn(`No price data found for symbol: ${symbol}`);
     return { price: 0, date: undefined };
   }
 
@@ -81,7 +85,7 @@ export const findPeakPrice = (
   if (peakDate) {
     return { price: peakPrice, date: peakDate };
   } else {
-    console.warn(`No prices found for ${symbol} between acquisition date and end date. Using acquisition price.`);
+    logger.warn(`No prices found for ${symbol} between acquisition date and end date. Using acquisition price.`);
     return { price: 0, date: undefined };
   }
 };

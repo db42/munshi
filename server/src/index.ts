@@ -2,13 +2,15 @@ import express from 'express';
 import cors from 'cors';
 import documentRoutes from './routes/documents';
 import { ensureUploadDir } from './utils/ensureUploadDir';
-import { logger } from './utils/logger';
+import { getLogger, ILogger } from './utils/logger';
 import itrRoutes from './routes/itrRoutes';
 import userInputRoutes from './routes/userInputRoutes';
 import { config } from 'dotenv'
 import { resolve } from 'path'
 
 config({ path: resolve(__dirname, '../prod.env') })
+
+const logger: ILogger = getLogger('index');
 
 const createServer = () => {
   const app = express();
@@ -97,12 +99,12 @@ const createServer = () => {
 
       return new Promise<void>((resolve) => {
         app.listen(port, () => {
-          console.log(`Server is running on port ${port}`);
+          logger.info(`Server is running on port ${port}`);
           resolve();
         });
       });
     } catch (error) {
-      console.log('Failed to start server:', error);
+      logger.error('Failed to start server:', error);
       throw error;
     }
   };

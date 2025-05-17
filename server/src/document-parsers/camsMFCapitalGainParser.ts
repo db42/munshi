@@ -1,8 +1,10 @@
 import fs from 'fs';
 import * as XLSX from 'xlsx';
 import { ParseResult } from '../utils/parserTypes';
-import { logger } from '../utils/logger';
+import { getLogger, ILogger } from '../utils/logger';
 import { parseNumericValue } from '../utils/formatters';
+
+const logger: ILogger = getLogger('camsMFCapitalGainParser');
 
 /**
  * Interface for a single mutual fund transaction from CAMS statement

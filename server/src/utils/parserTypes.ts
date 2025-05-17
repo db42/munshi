@@ -1,3 +1,8 @@
+import { getLogger, ILogger } from './logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('parserTypes');
+
 /**
  * Generic result type for all document parsers
  * 
@@ -26,8 +31,8 @@ export function identifyCalendarYear(financialYear: string): number {
   // For financial year 2023-24, the relevant calendar year is 2023
   const calendarYear = parseInt(yearString);
   
-  console.log(`Processing for Financial Year: ${financialYear} (April 1 to March 31)`);
-  console.log(`Relevant Calendar Year for Schedule FA: ${calendarYear} (January 1 to December 31)`);
+  logger.info(`Processing for Financial Year: ${financialYear} (April 1 to March 31)`);
+  logger.info(`Relevant Calendar Year for Schedule FA: ${calendarYear} (January 1 to December 31)`);
   
   return calendarYear;
 }
@@ -55,7 +60,7 @@ export function getFinancialYear(assessmentYear: string): string {
     throw new Error(`Invalid assessment year format: ${assessmentYear}. Expected format: 'YYYY-YY'`);
   }
   
-  console.log(`Processing for Financial Year: ${financialYear} (April 1 to March 31)`);
+  logger.info(`Processing for Financial Year: ${financialYear} (April 1 to March 31)`);
   
   return financialYear;
 }

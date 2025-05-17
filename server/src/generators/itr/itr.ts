@@ -8,7 +8,6 @@ import { convertAISToITRSections } from '../../document-processors/aisToITR';
 import { convertCAMSMFCapitalGainToITR, CAMSMFCapitalGainITRSections } from '../../document-processors/camsMFCapitalGainToITR';
 import { convertUserInputToITRSections } from '../../document-processors/userInputToITR';
 import cloneDeep from 'lodash/cloneDeep';
-import { logger } from '../../utils/logger';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
 import { calculatePartBTI } from './partBTI';
 import { calculateScheduleCYLA } from './scheduleCYLA';
@@ -18,6 +17,10 @@ import { calculateScheduleAMTC, isAMTApplicable } from './scheduleAMTC';
 import { userInput } from '../../services/userInput';
 import { UserInputData } from '../../types/userInput.types';
 import { postProcessScheduleCG } from './scheduleCGPostProcessing';
+import { getLogger, ILogger } from '../../utils/logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('itr');
 
 export interface ITRData {
     // Define your ITR structure here
@@ -769,7 +772,7 @@ export const generateITR = async (
     const camsMFCapitalGainData = await parsedDocuments.getCAMSMFCapitalGainData(userId, assessmentYear);
     if (camsMFCapitalGainData?.success && camsMFCapitalGainData?.data) {
         const result = convertCAMSMFCapitalGainToITR(camsMFCapitalGainData.data, assessmentYear);
-        logger.info(`CAMS MF Capital Gain Statement result: ${JSON.stringify(result)}`);
+        // logger.info(`CAMS MF Capital Gain Statement result: ${JSON.stringify(result)}`);
         if (result.success && result.data) {
             sectionsToMerge.push(...convertCAMSMFITRSectionsToITRSections(result.data));
         } else {

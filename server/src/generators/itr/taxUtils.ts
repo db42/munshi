@@ -1,4 +1,8 @@
 import { AssetOutIndiaFlag, TaxRescertifiedFlag } from '../../types/itr';
+import { getLogger, ILogger } from '../../utils/logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('taxUtils');
 
 export interface TaxSlab {
   threshold: number;
@@ -26,11 +30,11 @@ export const calculatePercentage = (amount: number, percentage: number): number 
 };
 
 export const logCalculation = (step: string, value: number) => {
-    console.log(`${step}: ₹${value.toLocaleString('en-IN')}`);
+    logger.info(`${step}: ₹${value.toLocaleString('en-IN')}`);
 };
 
 export const calculateSurcharge = (taxAmount: number, totalIncome: number): number => {
-    console.log('\n--- Surcharge Calculation ---');
+    logger.info('\n--- Surcharge Calculation ---');
     let surchargePercentage = 0;
     
     if (totalIncome <= 5000000) {
@@ -45,18 +49,18 @@ export const calculateSurcharge = (taxAmount: number, totalIncome: number): numb
         surchargePercentage = 37;
     }
 
-    console.log(`Income: ₹${totalIncome.toLocaleString('en-IN')}`);
-    console.log(`Applicable surcharge rate: ${surchargePercentage}%`);
+    logger.info(`Income: ₹${totalIncome.toLocaleString('en-IN')}`);
+    logger.info(`Applicable surcharge rate: ${surchargePercentage}%`);
     
     const surcharge = calculatePercentage(taxAmount, surchargePercentage / 100);
-    console.log(`Calculated surcharge: ₹${surcharge.toLocaleString('en-IN')}`);
-    console.log('--- End Surcharge Calculation ---\n');
+    logger.info(`Calculated surcharge: ₹${surcharge.toLocaleString('en-IN')}`);
+    logger.info('--- End Surcharge Calculation ---\n');
     
     return surcharge;
 };
 
 export const calculateTaxForSlabs = (totalIncome: number, slabs: TaxSlab[], regimeName: string): number => {
-    console.log(`\n--- Tax Slab Calculation (${regimeName}) ---`);
+    logger.info(`\n--- Tax Slab Calculation (${regimeName}) ---`);
     let tax = 0;
     let remainingIncome = totalIncome;
     
@@ -72,7 +76,7 @@ export const calculateTaxForSlabs = (totalIncome: number, slabs: TaxSlab[], regi
             const taxForThisSlab = calculatePercentage(taxableInThisSlab, currentSlab.rate);
             
             tax += taxForThisSlab;
-            console.log(
+            logger.info(
                 `Tax at ${currentSlab.rate * 100}% for income ` +
                 `${previousThreshold.toLocaleString('en-IN')}-${currentSlab.threshold.toLocaleString('en-IN')}: ` +
                 `₹${taxForThisSlab.toLocaleString('en-IN')} (on ₹${taxableInThisSlab.toLocaleString('en-IN')})`
@@ -80,14 +84,14 @@ export const calculateTaxForSlabs = (totalIncome: number, slabs: TaxSlab[], regi
         }
     }
 
-    console.log(`Total tax before rebate: ₹${tax.toLocaleString('en-IN')}`);
-    console.log('--- End Tax Slab Calculation ---\n');
+    logger.info(`Total tax before rebate: ₹${tax.toLocaleString('en-IN')}`);
+    logger.info('--- End Tax Slab Calculation ---\n');
 
     return tax;
 };
 
 export const calculateRebate87A = (totalIncome: number, tax: number, isNewRegime: boolean): number => {
-    console.log('\n--- Section 87A Rebate Calculation ---');
+    logger.info('\n--- Section 87A Rebate Calculation ---');
     let rebate = 0;
     
     // Rebate limits differ between regimes
@@ -96,13 +100,13 @@ export const calculateRebate87A = (totalIncome: number, tax: number, isNewRegime
     
     if (totalIncome <= rebateIncomeLimit) {
         rebate = Math.min(tax, maxRebateAmount);
-        console.log(`Income eligible for 87A rebate (≤ ₹${rebateIncomeLimit.toLocaleString('en-IN')})`);
-        console.log(`Rebate amount: ₹${rebate.toLocaleString('en-IN')}`);
+        logger.info(`Income eligible for 87A rebate (≤ ₹${rebateIncomeLimit.toLocaleString('en-IN')})`);
+        logger.info(`Rebate amount: ₹${rebate.toLocaleString('en-IN')}`);
     } else {
-        console.log(`Income not eligible for 87A rebate (> ₹${rebateIncomeLimit.toLocaleString('en-IN')})`);
+        logger.info(`Income not eligible for 87A rebate (> ₹${rebateIncomeLimit.toLocaleString('en-IN')})`);
     }
     
-    console.log('--- End Section 87A Rebate Calculation ---\n');
+    logger.info('--- End Section 87A Rebate Calculation ---\n');
     return rebate;
 };
 

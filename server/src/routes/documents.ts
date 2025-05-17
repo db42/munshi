@@ -5,7 +5,6 @@ import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { documents } from '../services/document';
 import { parsedDocuments } from '../services/parsedDocument';
-import { logger } from '../utils/logger';
 import { loadPDFGemini } from '../document-parsers/geminiForm16PDFParser';
 import { DocumentType, DocumentState } from '../types/document';
 import { parseUSEquityPDFWithGemini } from '../document-parsers/geminiUSEquityPDFParser';
@@ -14,6 +13,9 @@ import { parseUSEquityCGStatementCSV } from '../document-parsers/usEquityCGState
 import { parseUSEquityDividendCSV } from '../document-parsers/usEquityDividendCSVParser';
 import { parseAISPDFWithGemini } from '../document-parsers/geminiAISPDFParser';
 import { parseCAMSCapitalGainStatement } from '../document-parsers/camsMFCapitalGainParser';
+import { getLogger, ILogger } from '../utils/logger';
+
+const logger: ILogger = getLogger('documentsRouteHandler');
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -32,7 +34,7 @@ const storage = multer.diskStorage({
 
 // Configure file filter
 const fileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  console.log("file-mimetype", file.mimetype);
+  logger.debug("file-mimetype", file.mimetype);
   const allowedMimes = [
     'application/pdf', 
     'image/jpeg', 
@@ -61,8 +63,8 @@ const router = express.Router();
 
 // Validation middleware
 const validateUploadRequest = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.log("a", req.body);
-  console.log("b", req.file);
+  logger.debug("a", req.body);
+  logger.debug("b", req.file);
   const { ownerId, assessmentYear, documentType } = req.body;
 
   if (!ownerId || !assessmentYear) {
@@ -127,7 +129,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
 
     // Choose parser based on document type
     let extractedData;
-    console.log("Processing document:", document);
+    logger.info("Processing document:", document);
 
     // Get taxpayer info from user service or use ownerId as fallback
     const taxpayerInfo = {
@@ -145,7 +147,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
           document.filepath,
           taxpayerInfo
         );
-        console.log("extractedData", JSON.stringify(extractedData, null, 2));
+        logger.debug("extractedData", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.US_EQUITY_STATEMENT:
@@ -153,7 +155,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
         extractedData = await parseCharlesSchwabCSV(
           document.filepath
         );
-        console.log("Extracted CSV data:", JSON.stringify(extractedData, null, 2));
+        logger.debug("Extracted CSV data:", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.US_EQUITY_CG_STATEMENT_CSV:
@@ -171,13 +173,13 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
           document.filepath,
           document.assessmentYear
         );
-        console.log("Extracted Dividend CSV data:", JSON.stringify(extractedData, null, 2));
+        logger.debug("Extracted Dividend CSV data:", JSON.stringify(extractedData, null, 2));
         break;
       // --- Add AIS Case ---
       case DocumentType.AIS:
           logger.info(`Using Gemini AIS PDF parser for document ${documentId}`);
           extractedData = await parseAISPDFWithGemini(document.filepath);
-          console.log("Extracted AIS data:", JSON.stringify(extractedData, null, 2));
+          logger.debug("Extracted AIS data:", JSON.stringify(extractedData, null, 2));
         break;
       
       case DocumentType.FORM_26AS:
@@ -200,7 +202,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
 
     if (!extractedData || extractedData.success === false) {
       const errorMessage = extractedData?.error || 'Unknown parsing error';
-      console.error('Error parsing document:', errorMessage);
+      logger.error('Error parsing document:', errorMessage);
       
       await documents.updateState(documentId, DocumentState.FAILED, errorMessage);
       
@@ -228,7 +230,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
     });
 
   } catch (error) {
-    console.error('Error processing document:', error);
+    logger.error('Error processing document:', error);
     
     // Update document state to failed
     try {
@@ -241,7 +243,7 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
         );
       }
     } catch (stateUpdateError) {
-      console.error('Failed to update document state:', stateUpdateError);
+      logger.error('Failed to update document state:', stateUpdateError);
     }
     
     res.status(500).json({
@@ -296,11 +298,10 @@ router.post('/upload',
       });
 
     } catch (error) {
-      console.log("e", error);
-    //   logger.error('Error uploading document', {
-    //     error: error instanceof Error ? error.message : 'Unknown error',
-    //     stack: error instanceof Error ? error.stack : undefined
-    //   });
+      logger.error('Error uploading document', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
 
       // Clean up file if database save failed
       if (req.file) {
@@ -344,7 +345,7 @@ router.get('/user/:userId', async (req: express.Request, res: express.Response) 
       documents: userDocuments
     });
   } catch (error) {
-    console.error('Error retrieving documents:', error);
+    logger.error('Error retrieving documents:', error);
     res.status(500).json({ 
       message: 'Error retrieving documents',
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -379,7 +380,7 @@ router.get('/user/:userId/year/:assessmentYear', async (req: express.Request, re
       documents: userDocuments
     });
   } catch (error) {
-    console.error('Error retrieving documents:', error);
+    logger.error('Error retrieving documents:', error);
     res.status(500).json({ 
       message: 'Error retrieving documents',
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -412,7 +413,7 @@ router.get('/:documentId', async (req: express.Request, res: express.Response) =
       document
     });
   } catch (error) {
-    console.error('Error retrieving document:', error);
+    logger.error('Error retrieving document:', error);
     res.status(500).json({ 
       message: 'Error retrieving document',
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -438,7 +439,7 @@ router.get('/:documentId/parsed-data', async (req: express.Request, res: express
       parsedDocument
     });
   } catch (error) {
-    console.error('Error retrieving parsed document:', error);
+    logger.error('Error retrieving parsed document:', error);
     res.status(500).json({ 
       message: 'Error retrieving parsed document',
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -483,7 +484,7 @@ router.get('/:documentId/file', async (req: express.Request, res: express.Respon
     const fileStream = fs.createReadStream(document.filepath);
     fileStream.pipe(res);
   } catch (error) {
-    console.error('Error serving document file:', error);
+    logger.error('Error serving document file:', error);
     res.status(500).json({ 
       message: 'Error serving document file',
       error: error instanceof Error ? error.message : 'Unknown error'
@@ -516,7 +517,7 @@ router.delete('/:documentId', async (req: express.Request, res: express.Response
       // This is a soft dependency, so we don't want to fail if it fails
       await parsedDocuments.delete(documentId);
     } catch (parseError) {
-      console.error('Error deleting parsed document data:', parseError);
+      logger.error('Error deleting parsed document data:', parseError);
       // Continue with document deletion even if parsed data deletion fails
     }
 
@@ -529,7 +530,7 @@ router.delete('/:documentId', async (req: express.Request, res: express.Response
         await fs.promises.unlink(document.filepath);
       }
     } catch (fileError) {
-      console.error('Error deleting document file:', fileError);
+      logger.error('Error deleting document file:', fileError);
       // We've already deleted from DB, so just log the error
     }
     
@@ -537,7 +538,7 @@ router.delete('/:documentId', async (req: express.Request, res: express.Response
       message: 'Document deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting document:', error);
+    logger.error('Error deleting document:', error);
     res.status(500).json({ 
       message: 'Error deleting document',
       error: error instanceof Error ? error.message : 'Unknown error'

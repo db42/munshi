@@ -4,8 +4,11 @@ import { AISData } from '../types/ais'; // Import the AISData interface
 import * as sampleAISData from './sampleAISJsonGeminiPrompt.json';
 import { Config, defaultConfig } from "../config/geminiConfig";
 import { ParseResult } from '../utils/parserTypes';
-import { logger } from '../utils/logger'; // Assuming logger exists
+import { getLogger, ILogger } from '../utils/logger'; // Assuming logger exists
 import { convertDateStringsToDates } from './aisUtils';
+
+const logger: ILogger = getLogger('geminiAISPDFParser');
+
 
 /**
  * Parses an Annual Information Statement (AIS) PDF using the Gemini model.

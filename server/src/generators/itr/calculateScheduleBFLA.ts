@@ -1,6 +1,9 @@
 import { Itr2, ScheduleBFLA, ScheduleCFL, IncBFLA, SalaryOthSrcIncBFLA, TotalBFLossSetOff, ScheduleCYLA, ScheduleS, ScheduleHP, ScheduleCGFor23, ScheduleOS, CarryFwdLossDetail, CarryFwdWithoutLossDetail } from '../../types/itr';
-import { logger } from '../../utils/logger';
+import { getLogger, ILogger } from '../../utils/logger';
 import cloneDeep from 'lodash/cloneDeep';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('calculateScheduleBFLA');
 
 // Initialize a default IncBFLA structure
 const initializeIncBFLADefault = (): IncBFLA => ({
@@ -33,12 +36,122 @@ const setOffLossAgainstIncome = (
         incomeField.IncBFLA.IncOfCurYrAfterSetOffBFLosses = currentHeadIncome - lossUtilizedThisHead;
         if (isSameHeadLoss && 'BFlossPrevYrUndSameHeadSetoff' in incomeField.IncBFLA) {
             (incomeField.IncBFLA as IncBFLA).BFlossPrevYrUndSameHeadSetoff =
-                (incomeField.IncBFLA as IncBFLA).BFlossPrevYrUndSameHeadSetoff + lossUtilizedThisHead;
+                ((incomeField.IncBFLA as IncBFLA).BFlossPrevYrUndSameHeadSetoff || 0) + lossUtilizedThisHead; // Ensure init if undefined
         }
-        // Removed direct modification of totalBFLAdjustedThisYear from here
     }
     return { utilized: lossUtilizedThisHead, remainingLoss: lossToApply - lossUtilizedThisHead };
 };
+
+// --- Dedicated Handler Functions for Each B/F Loss Type ---
+
+function _handleBroughtForwardHPLoss(
+    scheduleBFLA: ScheduleBFLA,
+    bfHPLossForYear: number
+): number {
+    let remainingHPLoss = bfHPLossForYear;
+    let totalHPLossUtilizedThisYear = 0;
+    let result: { utilized: number, remainingLoss: number };
+
+    if (remainingHPLoss <= 0) return 0;
+
+    // 1. Set off against HP Income (Same Head)
+    result = setOffLossAgainstIncome(scheduleBFLA.HP, remainingHPLoss, true);
+    totalHPLossUtilizedThisYear += result.utilized;
+    remainingHPLoss = result.remainingLoss;
+    if (remainingHPLoss <= 0) return totalHPLossUtilizedThisYear;
+
+    // 2. Inter-head set-off (Order can be strategic)
+    // Against Salary
+    result = setOffLossAgainstIncome(scheduleBFLA.Salary, remainingHPLoss, false);
+    totalHPLossUtilizedThisYear += result.utilized;
+    remainingHPLoss = result.remainingLoss;
+    if (remainingHPLoss <= 0) return totalHPLossUtilizedThisYear;
+
+    // Against Other Sources (Excl Race Horse)
+    result = setOffLossAgainstIncome(scheduleBFLA.OthSrcExclRaceHorse, remainingHPLoss, false);
+    totalHPLossUtilizedThisYear += result.utilized;
+    remainingHPLoss = result.remainingLoss;
+    if (remainingHPLoss <= 0) return totalHPLossUtilizedThisYear;
+    
+    // Against Capital Gains (LTCG then STCG)
+    const cgHeadsForHPLoss = [
+        scheduleBFLA.LTCG10Per, scheduleBFLA.LTCG20Per, scheduleBFLA.LTCGDTAARate,
+        scheduleBFLA.STCG15Per, scheduleBFLA.STCG30Per, scheduleBFLA.STCGAppRate, scheduleBFLA.STCGDTAARate
+    ];
+    for (const cgHead of cgHeadsForHPLoss) {
+        if (remainingHPLoss <= 0) break;
+        result = setOffLossAgainstIncome(cgHead, remainingHPLoss, false);
+        totalHPLossUtilizedThisYear += result.utilized;
+        remainingHPLoss = result.remainingLoss;
+    }
+
+    return totalHPLossUtilizedThisYear;
+}
+
+function _handleBroughtForwardSTCLLoss(
+    scheduleBFLA: ScheduleBFLA,
+    bfSTCLLossForYear: number
+): number {
+    let remainingSTCLLoss = bfSTCLLossForYear;
+    let totalSTCLUtilizedThisYear = 0;
+    let result: { utilized: number, remainingLoss: number };
+
+    if (remainingSTCLLoss <= 0) return 0;
+
+    // Against STCG heads (same head)
+    const stcgHeads = [scheduleBFLA.STCG15Per, scheduleBFLA.STCG30Per, scheduleBFLA.STCGAppRate, scheduleBFLA.STCGDTAARate];
+    for (const head of stcgHeads) {
+        if (remainingSTCLLoss <= 0) break;
+        result = setOffLossAgainstIncome(head, remainingSTCLLoss, true);
+        totalSTCLUtilizedThisYear += result.utilized;
+        remainingSTCLLoss = result.remainingLoss;
+    }
+    if (remainingSTCLLoss <= 0) return totalSTCLUtilizedThisYear;
+
+    // Against LTCG heads (STCL can be set off against LTCG)
+    const ltcgHeads = [scheduleBFLA.LTCG10Per, scheduleBFLA.LTCG20Per, scheduleBFLA.LTCGDTAARate];
+    for (const head of ltcgHeads) {
+        if (remainingSTCLLoss <= 0) break;
+        // Consider STCL vs LTCG as "same head" for BFLA form tracking, though technically inter-category of CG
+        result = setOffLossAgainstIncome(head, remainingSTCLLoss, true); 
+        totalSTCLUtilizedThisYear += result.utilized;
+        remainingSTCLLoss = result.remainingLoss;
+    }
+    return totalSTCLUtilizedThisYear;
+}
+
+function _handleBroughtForwardLTCLLoss(
+    scheduleBFLA: ScheduleBFLA,
+    bfLTCLLossForYear: number
+): number {
+    let remainingLTCLLoss = bfLTCLLossForYear;
+    let totalLTCLUtilizedThisYear = 0;
+    let result: { utilized: number, remainingLoss: number };
+
+    if (remainingLTCLLoss <= 0) return 0;
+
+    // ONLY Against LTCG heads (same head)
+    const ltcgHeads = [scheduleBFLA.LTCG10Per, scheduleBFLA.LTCG20Per, scheduleBFLA.LTCGDTAARate];
+    for (const head of ltcgHeads) {
+        if (remainingLTCLLoss <= 0) break;
+        result = setOffLossAgainstIncome(head, remainingLTCLLoss, true);
+        totalLTCLUtilizedThisYear += result.utilized;
+        remainingLTCLLoss = result.remainingLoss;
+    }
+    return totalLTCLUtilizedThisYear;
+}
+
+function _handleBroughtForwardRaceHorseLoss(
+    scheduleBFLA: ScheduleBFLA,
+    bfRaceHorseLossForYear: number
+): number {
+    if (bfRaceHorseLossForYear <= 0) return 0;
+    
+    // Only against OthSrcRaceHorse income
+    const result = setOffLossAgainstIncome(scheduleBFLA.OthSrcRaceHorse, bfRaceHorseLossForYear, true);
+    // Loss from owning and maintaining race horses is typically fully set-off or not at all against its own income head.
+    return result.utilized; 
+}
 
 // Type guard for BFLA income head structures
 interface BFLAHeadWithIncObject {
@@ -61,176 +174,119 @@ function isBFLAHeadWithIncObject(item: any): item is BFLAHeadWithIncObject {
 export const calculateScheduleBFLA = (itr: Itr2): ScheduleBFLA => {
     logger.info('Calculating Schedule BFLA...');
 
-    const defaultIncBFLA = initializeIncBFLADefault();
-    const defaultSalaryOthSrcIncBFLA = initializeSalaryOthSrcIncBFLADefault();
-
-    const scheduleCFL = cloneDeep(itr.ScheduleCFL);
-    const scheduleCYLA = cloneDeep(itr.ScheduleCYLA);
-
+    // Instead of reusing the same object instances, we'll create factory functions
+    // that return fresh objects each time they're called
+    
     const computedBFLA: ScheduleBFLA = {
         IncomeOfCurrYrAftCYLABFLA: 0,
         TotalBFLossSetOff: { TotBFLossSetoff: 0 },
-        Salary: { IncBFLA: defaultSalaryOthSrcIncBFLA },
-        HP: { IncBFLA: defaultIncBFLA },
-        STCG15Per: { IncBFLA: defaultIncBFLA },
-        STCG30Per: { IncBFLA: defaultIncBFLA },
-        STCGAppRate: { IncBFLA: defaultIncBFLA },
-        STCGDTAARate: { IncBFLA: defaultIncBFLA },
-        LTCG10Per: { IncBFLA: defaultIncBFLA },
-        LTCG20Per: { IncBFLA: defaultIncBFLA },
-        LTCGDTAARate: { IncBFLA: defaultIncBFLA },
-        OthSrcExclRaceHorse: { IncBFLA: defaultSalaryOthSrcIncBFLA },
-        OthSrcRaceHorse: { IncBFLA: defaultIncBFLA },
+        Salary: { IncBFLA: initializeSalaryOthSrcIncBFLADefault() },
+        HP: { IncBFLA: initializeIncBFLADefault() },
+        STCG15Per: { IncBFLA: initializeIncBFLADefault() },
+        STCG30Per: { IncBFLA: initializeIncBFLADefault() },
+        STCGAppRate: { IncBFLA: initializeIncBFLADefault() },
+        STCGDTAARate: { IncBFLA: initializeIncBFLADefault() },
+        LTCG10Per: { IncBFLA: initializeIncBFLADefault() },
+        LTCG20Per: { IncBFLA: initializeIncBFLADefault() },
+        LTCGDTAARate: { IncBFLA: initializeIncBFLADefault() },
+        OthSrcExclRaceHorse: { IncBFLA: initializeSalaryOthSrcIncBFLADefault() },
+        OthSrcRaceHorse: { IncBFLA: initializeIncBFLADefault() },
     };
+
+    const scheduleCFL = cloneDeep(itr.ScheduleCFL);
+    const scheduleCYLA = cloneDeep(itr.ScheduleCYLA);
 
     if (!scheduleCFL || !scheduleCFL.LossCFFromPrev8thYearFromAY || !scheduleCYLA) {
         logger.warn('ScheduleCFL (previous years losses) or ScheduleCYLA is not available or incomplete. Cannot calculate ScheduleBFLA effectively.');
         return computedBFLA;
     }
 
-    // Step 1: Populate IncOfCurYrUndHeadFromCYLA and IncOfCurYrAfterSetOffBFLosses (initially same as IncOfCurYrUndHeadFromCYLA)
-    // Salary
+    // Step 1: Populate IncOfCurYrUndHeadFromCYLA and IncOfCurYrAfterSetOffBFLosses from ScheduleCYLA
+    // (This part remains the same - ensuring computedBFLA starts with correct CYLA incomes)
     computedBFLA.Salary.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.Salary?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.Salary.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.Salary.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // House Property (HP)
     computedBFLA.HP!.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.HP?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.HP!.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.HP!.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // Long Term Capital Gains (LTCG) - 10%
     computedBFLA.LTCG10Per.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.LTCG10Per?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.LTCG10Per.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.LTCG10Per.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // LTCG - 20%
     computedBFLA.LTCG20Per.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.LTCG20Per?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.LTCG20Per.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.LTCG20Per.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // LTCG - DTAA Rate
     computedBFLA.LTCGDTAARate.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.LTCGDTAARate?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.LTCGDTAARate.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.LTCGDTAARate.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // Short Term Capital Gains (STCG) - 15%
     computedBFLA.STCG15Per.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.STCG15Per?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.STCG15Per.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.STCG15Per.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // STCG - 30%
     computedBFLA.STCG30Per.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.STCG30Per?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.STCG30Per.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.STCG30Per.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // STCG - Applicable Rate
     computedBFLA.STCGAppRate.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.STCGAppRate?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.STCGAppRate.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.STCGAppRate.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // STCG - DTAA Rate
     computedBFLA.STCGDTAARate.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.STCGDTAARate?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.STCGDTAARate.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.STCGDTAARate.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // Other Sources (Excluding Race Horse)
     computedBFLA.OthSrcExclRaceHorse!.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.OthSrcExclRaceHorse?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.OthSrcExclRaceHorse!.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.OthSrcExclRaceHorse!.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    
-    // Other Sources (Race Horse)
     computedBFLA.OthSrcRaceHorse!.IncBFLA.IncOfCurYrUndHeadFromCYLA = itr.ScheduleCYLA?.OthSrcRaceHorse?.IncCYLA.IncOfCurYrAfterSetOff || 0;
     computedBFLA.OthSrcRaceHorse!.IncBFLA.IncOfCurYrAfterSetOffBFLosses = computedBFLA.OthSrcRaceHorse!.IncBFLA.IncOfCurYrUndHeadFromCYLA;
-    // ***** END OF DATA POPULATION FROM ScheduleCYLA *****
-
-    // Step 3 & 4: Implement Loss Set-off Logic and update totals
 
     let totalBFLAdjustedThisYear = 0;
-
-    // Helper function to set off losses - MOVED TO TOP LEVEL
-    
     type LossDetailType = CarryFwdLossDetail | CarryFwdWithoutLossDetail | undefined;
 
     const lossYearAccessors: ((cfl: ScheduleCFL) => LossDetailType)[] = [
-        (cfl) => cfl.LossCFFromPrev8thYearFromAY?.CarryFwdLossDetail, // AY-8 (uses CarryFwdWithoutLossDetail)
-        (cfl) => cfl.LossCFFromPrev7thYearFromAY?.CarryFwdLossDetail, // AY-7 (uses CarryFwdWithoutLossDetail)
-        (cfl) => cfl.LossCFFromPrev6thYearFromAY?.CarryFwdLossDetail, // AY-6 (uses CarryFwdWithoutLossDetail)
-        (cfl) => cfl.LossCFFromPrev5thYearFromAY?.CarryFwdLossDetail, // AY-5 (uses CarryFwdWithoutLossDetail)
-        (cfl) => cfl.LossCFFromPrev4thYearFromAY?.CarryFwdLossDetail, // AY-4 (uses CarryFwdLossDetail)
-        (cfl) => cfl.LossCFFromPrev3rdYearFromAY?.CarryFwdLossDetail, // AY-3 (uses CarryFwdLossDetail)
-        (cfl) => cfl.LossCFFromPrev2ndYearFromAY?.CarryFwdLossDetail, // AY-2 (uses CarryFwdLossDetail)
-        (cfl) => cfl.LossCFFromPrevYrToAY?.CarryFwdLossDetail,        // AY-1 (uses CarryFwdLossDetail)
+        (cfl) => cfl.LossCFFromPrev8thYearFromAY?.CarryFwdLossDetail, 
+        (cfl) => cfl.LossCFFromPrev7thYearFromAY?.CarryFwdLossDetail, 
+        (cfl) => cfl.LossCFFromPrev6thYearFromAY?.CarryFwdLossDetail, 
+        (cfl) => cfl.LossCFFromPrev5thYearFromAY?.CarryFwdLossDetail, 
+        (cfl) => cfl.LossCFFromPrev4thYearFromAY?.CarryFwdLossDetail, 
+        (cfl) => cfl.LossCFFromPrev3rdYearFromAY?.CarryFwdLossDetail, 
+        (cfl) => cfl.LossCFFromPrev2ndYearFromAY?.CarryFwdLossDetail, 
+        (cfl) => cfl.LossCFFromPrevYrToAY?.CarryFwdLossDetail,        
     ];
+
+    logger.info("initializeBFLA", computedBFLA);
 
     for (const getLossDetail of lossYearAccessors) {
         const lossDetail = getLossDetail(scheduleCFL);
         if (!lossDetail) continue;
 
-        let result: { utilized: number, remainingLoss: number };
+        logger.info("lossDetail", lossDetail);
 
-        // 1. House Property Loss
-        let bfHPLoss = lossDetail.TotalHPPTILossCF || 0;
-        if (bfHPLoss > 0) {
-            result = setOffLossAgainstIncome(computedBFLA.HP, bfHPLoss, true); // Same head
-            if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-            bfHPLoss = result.remainingLoss;
-            if (bfHPLoss > 0) { // Inter-head set-off for HP loss
-                result = setOffLossAgainstIncome(computedBFLA.Salary, bfHPLoss, false);
-                if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-                bfHPLoss = result.remainingLoss;
-            }
-            if (bfHPLoss > 0) {
-                result = setOffLossAgainstIncome(computedBFLA.OthSrcExclRaceHorse, bfHPLoss, false);
-                if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-                bfHPLoss = result.remainingLoss;
-            }
-            // Set off HP Loss against Capital Gains (LTCG then STCG)
-            const cgHeadsForHPLoss = [computedBFLA.LTCG10Per, computedBFLA.LTCG20Per, computedBFLA.LTCGDTAARate, computedBFLA.STCG15Per, computedBFLA.STCG30Per, computedBFLA.STCGAppRate, computedBFLA.STCGDTAARate];
-            for (const cgHead of cgHeadsForHPLoss) {
-                if (bfHPLoss <= 0) break;
-                result = setOffLossAgainstIncome(cgHead, bfHPLoss, false);
-                if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-                bfHPLoss = result.remainingLoss;
-            }
+        // --- House Property Loss ---
+        const hpLossFromCFL = lossDetail.TotalHPPTILossCF || 0;
+        if (hpLossFromCFL > 0) {
+            const hpLossUtilized = _handleBroughtForwardHPLoss(computedBFLA, hpLossFromCFL);
+            totalBFLAdjustedThisYear += hpLossUtilized;
         }
 
-        // 2. Short Term Capital Loss
-        let bfSTCGLoss = lossDetail.TotalSTCGPTILossCF || 0;
-        if (bfSTCGLoss > 0) {
-            // Against STCG heads
-            const stcgHeads = [computedBFLA.STCG15Per, computedBFLA.STCG30Per, computedBFLA.STCGAppRate, computedBFLA.STCGDTAARate];
-            for (const head of stcgHeads) {
-                if (bfSTCGLoss <= 0) break;
-                result = setOffLossAgainstIncome(head, bfSTCGLoss, true);
-                if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-                bfSTCGLoss = result.remainingLoss;
-            }
-            // Against LTCG heads
-            if (bfSTCGLoss > 0) {
-                const ltcgHeads = [computedBFLA.LTCG10Per, computedBFLA.LTCG20Per, computedBFLA.LTCGDTAARate];
-                for (const head of ltcgHeads) {
-                    if (bfSTCGLoss <= 0) break;
-                    result = setOffLossAgainstIncome(head, bfSTCGLoss, true); // STCL vs LTCG is considered "same head" for BFLA set off purposes
-                    if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-                    bfSTCGLoss = result.remainingLoss;
-                }
-            }
+        // --- Short Term Capital Loss ---
+        const stclFromCFL = lossDetail.TotalSTCGPTILossCF || 0;
+        if (stclFromCFL > 0) {
+            const stclUtilized = _handleBroughtForwardSTCLLoss(computedBFLA, stclFromCFL);
+            totalBFLAdjustedThisYear += stclUtilized;
         }
 
-        // 3. Long Term Capital Loss
-        let bfLTCGLoss = lossDetail.TotalLTCGPTILossCF || 0;
-        if (bfLTCGLoss > 0) {
-            // ONLY Against LTCG heads
-            const ltcgHeads = [computedBFLA.LTCG10Per, computedBFLA.LTCG20Per, computedBFLA.LTCGDTAARate];
-            for (const head of ltcgHeads) {
-                if (bfLTCGLoss <= 0) break;
-                result = setOffLossAgainstIncome(head, bfLTCGLoss, true);
-                if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-                bfLTCGLoss = result.remainingLoss;
-            }
+        // --- Long Term Capital Loss ---
+        const ltclFromCFL = lossDetail.TotalLTCGPTILossCF || 0;
+        if (ltclFromCFL > 0) {
+            const ltclUtilized = _handleBroughtForwardLTCLLoss(computedBFLA, ltclFromCFL);
+            totalBFLAdjustedThisYear += ltclUtilized;
         }
         
-        // 4. Other Sources Loss (Race Horse) - only from last 4 assessment years (AY-1 to AY-4)
+        // --- Other Sources Loss (Race Horse) ---
         // Check if lossDetail is of type CarryFwdLossDetail, which contains OthSrcLossRaceHorseCF
+        // This implicitly handles the 4-year carry forward for race horse loss if ScheduleCFL types are correct.
         if ('OthSrcLossRaceHorseCF' in lossDetail) {
-            let bfRaceHorseLoss = (lossDetail as CarryFwdLossDetail).OthSrcLossRaceHorseCF || 0;
-            if (bfRaceHorseLoss > 0) {
-                 result = setOffLossAgainstIncome(computedBFLA.OthSrcRaceHorse, bfRaceHorseLoss, true);
-                 if(result.utilized > 0) totalBFLAdjustedThisYear += result.utilized;
-                 bfRaceHorseLoss = result.remainingLoss; // Though it should be fully set-off or not at all here
+            const raceHorseLossFromCFL = (lossDetail as CarryFwdLossDetail).OthSrcLossRaceHorseCF || 0;
+            if (raceHorseLossFromCFL > 0) {
+                const raceHorseLossUtilized = _handleBroughtForwardRaceHorseLoss(computedBFLA, raceHorseLossFromCFL);
+                totalBFLAdjustedThisYear += raceHorseLossUtilized;
             }
         }
+
+        // TODO: Add calls to handlers for Business Loss, Unabsorbed Depreciation etc.
+        // Example for Business Loss (Needs a _handleBroughtForwardBusinessLoss function):
+        // const businessLossFromCFL = lossDetail.TotalBusLossCF || (lossDetail as CarryFwdWithoutLossDetail)?.BusLossTotCF || 0;
+        // if (businessLossFromCFL > 0) {
+        //     const businessLossUtilized = _handleBroughtForwardBusinessLoss(computedBFLA, businessLossFromCFL);
+        //     totalBFLAdjustedThisYear += businessLossUtilized;
+        // }
     }
 
     // Update TotalBFLossSetOff
@@ -250,4 +306,4 @@ export const calculateScheduleBFLA = (itr: Itr2): ScheduleBFLA => {
     
     logger.info('Schedule BFLA calculation completed.');
     return computedBFLA;
-}; 
+};

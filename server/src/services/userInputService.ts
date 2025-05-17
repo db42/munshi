@@ -1,6 +1,8 @@
 import { Pool } from 'pg'; // Import Pool from pg
-import { logger } from '../utils/logger';
+import { getLogger, ILogger } from '../utils/logger';
 import { UserInputData, UserItrInputRecord } from '../types/userInput.types'; // Import the new types
+
+const logger: ILogger = getLogger('userInputService');
 
 /**
  * Factory function for getUserInputData service.

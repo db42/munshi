@@ -1,6 +1,8 @@
 import { Form16 } from '../../types/form16';
 import { Itr2, PartBTI } from '../../types/itr';
-import { logger } from '../../utils/logger';
+import { getLogger, ILogger } from '../../utils/logger';
+
+const logger: ILogger = getLogger('partBTIGenerator');
 
 /**
  * Processes Part B-TI (Computation of Total Income) of ITR-2

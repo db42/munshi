@@ -71,6 +71,11 @@ npm run build
 npm start
 ```
 
+# Run in debug mode
+1. open `run and debug` in vscode or cursor
+2. run `Debug server npm dev`. This config is defined in `munshi/.vscode/launch.json`
+
+
 5. [One time] Generate USD_INR data
 - generate data on google sheets https://docs.google.com/spreadsheets/d/1G82gVR0Iza3G8SRutVzoToJ-gKeBpd9AdD-rnCcVVjE/edit?gid=0#gid=0 
 - download as csv in src/scripts/USD INR data - Sheet1.csv

@@ -2,8 +2,9 @@ import express, { Request, Response } from 'express';
 // Removed controller import
 // Import the instantiated service object and logger
 import { userInput } from '../services/userInput';
-import { logger } from '../utils/logger';
+import { getLogger, ILogger } from '../utils/logger';
 
+const logger: ILogger = getLogger('userInputRouteHandler');
 const router = express.Router();
 
 // --- GET Handler Logic --- (Moved from controller)

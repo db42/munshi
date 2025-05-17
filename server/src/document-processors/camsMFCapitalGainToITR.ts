@@ -1,7 +1,7 @@
 import { CapGain, Itr2, ScheduleCGFor23, Schedule112A, Schedule112A115ADType, ShareOnOrBefore, Proviso112SectionCode } from '../types/itr';
 import { CAMSMFCapitalGainData, CAMSMutualFundTransaction } from '../document-parsers/camsMFCapitalGainParser';
 import { ParseResult } from '../utils/parserTypes';
-import { logger } from '../utils/logger';
+import { getLogger, ILogger } from '../utils/logger';
 import cloneDeep from 'lodash/cloneDeep';
 import { 
     ShortTermCapGainFor23, 
@@ -22,6 +22,8 @@ import {
     MFSectionCode,
     SECCode
 } from '../types/itr';
+
+const logger: ILogger = getLogger('camsMFToITRProcessor');
 
 /**
  * Interface for ITR sections generated from CAMS MF Capital Gain data

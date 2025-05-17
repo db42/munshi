@@ -55,3 +55,17 @@ Phase 2
 Phase 3
 - agent - tax planning
 - more ITR support
+- avoid following code smells and mistakes
+
+```
+let obj2 = { name: "original" };
+let obj1 = obj2;
+let obj3 = obj2;
+
+obj3.name = "modified";
+
+console.log(obj1.name); // Outputs: "modified"
+console.log(obj2.name); // Outputs: "modified"
+console.log(obj3.name); // Outputs: "modified"
+```
+

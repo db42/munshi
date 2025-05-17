@@ -22,7 +22,7 @@ const ItrDiffViewer = () => {
     Schedule112A: "Long-term Capital Gains on Sale of Equity Shares or Units",
     ScheduleAL: "Statement of Assets and Liabilities",
     ScheduleAMTC: "Minimum Alternate Tax Credit",
-    ScheduleBFLA: "Break-up of Fee for Late Filing of Return",
+    ScheduleBFLA: "Brought forward loss adjustment",
     ScheduleCFL: "Capital Gains and Losses Carry Forward",
     ScheduleCGFor23: "Capital Gains for FY 2022-23",
     ScheduleCYLA: "Current Year Loss Adjustment",

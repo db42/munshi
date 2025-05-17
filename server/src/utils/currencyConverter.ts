@@ -1,4 +1,8 @@
 import usdInrRatesData from './usd_inr_rates.json';
+import { getLogger, ILogger } from './logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('currencyConverter');
 
 // Define the type for the USD-INR rates object
 export interface USDINRRates {
@@ -29,7 +33,7 @@ export const getExchangeRate = (date: Date): number => {
     
     // If not found, use a default rate (average for the year or most recent)
     // For simplicity, we'll use a fixed fallback rate of 83.5
-    console.log(`Exchange rate not found for ${formattedDate}, using default rate of 83.5`);
+    logger.warn(`Exchange rate not found for ${formattedDate}, using default rate of ${DEFAULT_EXCHANGE_RATE}`);
     return DEFAULT_EXCHANGE_RATE;
 };
 

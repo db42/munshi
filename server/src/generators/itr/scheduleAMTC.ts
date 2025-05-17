@@ -1,5 +1,7 @@
 import { Itr2, ScheduleAMTC, ScheduleAMTCDtls, AssYr } from '../../types/itr';
-import { logger } from '../../utils/logger';
+import { getLogger, ILogger } from '../../utils/logger';
+
+const logger: ILogger = getLogger('scheduleAMTCGenerator');
 
 /**
  * Calculates Schedule AMTC (Alternative Minimum Tax Credit) 

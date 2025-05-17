@@ -1,6 +1,10 @@
 // partBTTIProcessor.ts
 import { AssetOutIndiaFlag, Itr2, PartBTI, PartBTTI, TaxRescertifiedFlag } from '../../types/itr';
 import { logCalculation, TaxSlab, calculatePercentage, calculateSurcharge, calculateTaxForSlabs, calculateRebate87A, NEW_REGIME_SLABS, OLD_REGIME_SLABS, createEmptyPartBTTI } from './taxUtils';
+import { getLogger, ILogger } from '../../utils/logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('partBTTI');
 
 export enum TaxRegimePreference {
     OLD = 'OLD',
@@ -27,25 +31,25 @@ export const calculatePartBTTI = (
     regimePreference: TaxRegimePreference = TaxRegimePreference.AUTO
 ): PartBTTI => {
     if (regimePreference === TaxRegimePreference.OLD) {
-        console.log('\nUsing Old Tax Regime as per preference');
+        logger.info('\nUsing Old Tax Regime as per preference');
         return calculatePartBTTIOldRegime(itr);
     }
     
     if (regimePreference === TaxRegimePreference.NEW) {
-        console.log('\nUsing New Tax Regime as per preference');
+        logger.info('\nUsing New Tax Regime as per preference');
         return calculatePartBTTINewRegime(itr);
     }
 
     // Calculate tax under both regimes and compare
-    console.log('\n=== Comparing Both Tax Regimes ===\n');
+    logger.info('\n=== Comparing Both Tax Regimes ===\n');
     
-    console.log('Calculating Old Regime Tax:');
+    logger.info('Calculating Old Regime Tax:');
     const oldRegimeResult = calculatePartBTTIOldRegime(itr);
     
-    console.log('\nCalculating New Regime Tax:');
+    logger.info('\nCalculating New Regime Tax:');
     const newRegimeResult = calculatePartBTTINewRegime(itr);
     
-    console.log('\n=== Tax Regime Comparison Summary ===');
+    logger.info('\n=== Tax Regime Comparison Summary ===');
     logCalculation('Old Regime - Total Tax', oldRegimeResult.ComputationOfTaxLiability.GrossTaxPayable);
     logCalculation('New Regime - Total Tax', newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable);
     
@@ -55,13 +59,13 @@ export const calculatePartBTTI = (
         newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable;
 
     if (taxDifference > 0) {
-        console.log(`\nNew Regime is more beneficial - Saves ₹${taxDifference.toLocaleString('en-IN')}`);
+        logger.info(`\nNew Regime is more beneficial - Saves ₹${taxDifference.toLocaleString('en-IN')}`);
         return newRegimeResult;
     } else if (taxDifference < 0) {
-        console.log(`\nOld Regime is more beneficial - Saves ₹${Math.abs(taxDifference).toLocaleString('en-IN')}`);
+        logger.info(`\nOld Regime is more beneficial - Saves ₹${Math.abs(taxDifference).toLocaleString('en-IN')}`);
         return oldRegimeResult;
     } else {
-        console.log('\nBoth regimes result in same tax liability - Using New Regime as default');
+        logger.info('\nBoth regimes result in same tax liability - Using New Regime as default');
         return newRegimeResult;
     }
 };
@@ -81,7 +85,7 @@ const calculateTaxAndPreparePartBTTI = (
     slabs: TaxSlab[], 
     regimeName: string
 ): PartBTTI => {
-    console.log(`\n=== Starting ${regimeName} Tax Calculation ===\n`);
+    logger.info(`\n=== Starting ${regimeName} Tax Calculation ===\n`);
     
     // Initialize values
     let taxOnIncome = 0;
@@ -169,7 +173,7 @@ const calculateTaxAndPreparePartBTTI = (
     logCalculation('Balance Tax Payable', balanceTaxPayable);
     logCalculation('Refund Due', refundDue);
 
-    console.log(`\n=== End ${regimeName} Tax Calculation ===\n`);
+    logger.info(`\n=== End ${regimeName} Tax Calculation ===\n`);
     
     // Construct and return PartB_TTI
     return {

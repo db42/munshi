@@ -8,7 +8,9 @@ import {
   TDSCreditName
 } from '../types/itr';
 import { ParseResult } from '../utils/parserTypes';
-import { logger } from '../utils/logger';
+import { getLogger, ILogger } from '../utils/logger';
+
+const logger: ILogger = getLogger('aisToITRProcessor');
 
 /**
  * Interface for ITR sections generated from AIS data

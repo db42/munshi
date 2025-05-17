@@ -24,6 +24,10 @@ import {
     CapGain
 } from '../types/itr';
 import { getExchangeRate, convertUSDtoINR } from '../utils/currencyConverter';
+import { getLogger, ILogger } from '../utils/logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('usCGEquityToITR');
 
 // Define the interface for ITR sections
 export interface USEquityITRSections {
@@ -227,7 +231,7 @@ export const calculateCapitalGains = (
     throw new Error(`Invalid financial year format: ${financialYear}. Expected format: 'YYYY-YYYY'`);
   }
   
-  console.log(`Calculating capital gains for Indian financial year: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+  logger.info(`Calculating capital gains for Indian financial year: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
   
   // Initialize summary objects
   const shortTerm: CapitalGainSummary = {
@@ -275,13 +279,13 @@ export const calculateCapitalGains = (
     return sellDate >= startDate && sellDate <= endDate;
   });
   
-  console.log(`Found ${relevantTransactions.length} transactions in the specified financial year out of ${transactions.length} total transactions`);
+  logger.info(`Found ${relevantTransactions.length} transactions in the specified financial year out of ${transactions.length} total transactions`);
   
   // Process each relevant transaction
   relevantTransactions.forEach((transaction, index) => {
     // Skip if not a sale transaction (must have both acquisition and sell dates)
     if (!transaction.acquisitionDate || !transaction.sellDate) {
-      console.log(`Skipping transaction #${index + 1}: Missing acquisition or sell date`);
+      logger.info(`Skipping transaction #${index + 1}: Missing acquisition or sell date`);
       return;
     }
     
@@ -331,36 +335,36 @@ export const calculateCapitalGains = (
   });
   
   // Log short term transactions
-  console.log('\n===== SHORT TERM CAPITAL GAINS =====');
+  logger.info('\n===== SHORT TERM CAPITAL GAINS =====');
   if (shortTermTransactions.length === 0) {
-    console.log('No short term transactions found.');
+    logger.info('No short term transactions found.');
   } else {
-    console.log(`Found ${shortTermTransactions.length} short term transactions:`);
+    logger.info(`Found ${shortTermTransactions.length} short term transactions:`);
     shortTermTransactions.forEach(tx => {
-      console.log(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
+      logger.info(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
                  `Proceeds(INR): ${tx.proceeds} | Cost(INR): ${tx.cost} | Gain(INR): ${tx.gain} | Gain Constant Currency: ${tx.gainConstantCurrency}`);
     });
-    console.log(`\nShort Term Summary: Proceeds(INR)=${shortTerm.totalProceeds}, Cost(INR)=${shortTerm.totalCostBasis}, Gain(INR)=${shortTerm.totalGain}`);
+    logger.info(`\nShort Term Summary: Proceeds(INR)=${shortTerm.totalProceeds}, Cost(INR)=${shortTerm.totalCostBasis}, Gain(INR)=${shortTerm.totalGain}`);
   }
   
   // Log long term transactions
-  console.log('\n===== LONG TERM CAPITAL GAINS =====');
+  logger.info('\n===== LONG TERM CAPITAL GAINS =====');
   if (longTermTransactions.length === 0) {
-    console.log('No long term transactions found.');
+    logger.info('No long term transactions found.');
   } else {
-    console.log(`Found ${longTermTransactions.length} long term transactions:`);
+    logger.info(`Found ${longTermTransactions.length} long term transactions:`);
     longTermTransactions.forEach(tx => {
-      console.log(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
+      logger.info(`#${tx.index}: ${tx.security} | ${tx.dates} | Exchange Rate: ${tx.exchangeRate} | ` +
                  `Proceeds(INR): ${tx.proceeds} | Cost(INR): ${tx.cost} | Gain(INR): ${tx.gain} | Gain Constant Currency: ${tx.gainConstantCurrency}`);
     });
-    console.log(`\nLong Term Summary: Proceeds(INR)=${longTerm.totalProceeds}, Cost(INR)=${longTerm.totalCostBasis}, Gain(INR)=${longTerm.totalGain}`);
+    logger.info(`\nLong Term Summary: Proceeds(INR)=${longTerm.totalProceeds}, Cost(INR)=${longTerm.totalCostBasis}, Gain(INR)=${longTerm.totalGain}`);
   }
   
   // Log overall summary
-  console.log('\n===== OVERALL CAPITAL GAINS SUMMARY =====');
-  console.log(`Financial Year: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
-  console.log(`Total Transactions: ${shortTermTransactions.length + longTermTransactions.length}`);
-  console.log(`Total Gain(INR)=${shortTerm.totalGain + longTerm.totalGain}`);
+  logger.info('\n===== OVERALL CAPITAL GAINS SUMMARY =====');
+  logger.info(`Financial Year: ${startDate.toISOString().split('T')[0]} to ${endDate.toISOString().split('T')[0]}`);
+  logger.info(`Total Transactions: ${shortTermTransactions.length + longTermTransactions.length}`);
+  logger.info(`Total Gain(INR)=${shortTerm.totalGain + longTerm.totalGain}`);
   
   return { shortTerm, longTerm };
 };
@@ -490,7 +494,7 @@ export const convertUSCGEquityToITR = (usEquityData: USEquityStatement, assessme
             }
         };
     } catch (error) {
-        console.error("Error generating ITR sections from US equity data:", error);
+        logger.error("Error generating ITR sections from US equity data:", error);
         return {
             success: false,
             error: error instanceof Error ? error.message : String(error)

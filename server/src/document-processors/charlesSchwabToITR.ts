@@ -3,6 +3,10 @@ import { ScheduleFA, CountryCodeExcludingIndia } from '../types/itr';
 import { getFinancialYear, getRelevantDates, identifyCalendarYear, ParseResult } from '../utils/parserTypes';
 import { findPeakPrice, findPrice } from '../utils/equityPriceUtils';
 import { getExchangeRate } from '../utils/currencyConverter';
+import { getLogger, ILogger } from '../utils/logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('charlesSchwabToITR');
 
 // {
 //     "Country": "United States",
@@ -70,7 +74,7 @@ function getSecurityHoldings(csvData: CharlesSchwabCSVData, calendarYearStart: D
   const { records, accountNumber } = csvData;
 
   if (!records || records.length === 0) {
-    console.warn('No records found in Charles Schwab CSV data');
+    logger.warn('No records found in Charles Schwab CSV data');
     return [];
   }
 
@@ -121,7 +125,7 @@ export function convertCharlesSchwabCSVToITR(csvData: CharlesSchwabCSVData, asse
       data: scheduleFA
     };
   } catch (error) {
-    console.error('Error converting Charles Schwab CSV to ITR:', error);
+    logger.error('Error converting Charles Schwab CSV to ITR:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error converting CSV to ITR'
@@ -167,8 +171,8 @@ function processTransactions(
       }
     });
     
-    console.log(`Processed ${records.length} records`);
-    console.log(`Found ${Object.keys(securities).length} unique securities`);
+    logger.info(`Processed ${filteredRecords.length} records`);
+    logger.info(`Found ${Object.keys(securities).length} unique securities`);
     
     return securities;
   }
@@ -208,7 +212,7 @@ function processTransactions(
   ) {
     // Skip if security doesn't exist (shouldn't happen with proper data)
     if (!securities[sellRecord.symbol]) {
-      console.warn(`Sell transaction for unknown security: ${sellRecord.symbol}`);
+      logger.warn(`Sell transaction for unknown security: ${sellRecord.symbol}`);
       return;
     }
   
@@ -245,7 +249,7 @@ function processTransactions(
     
     // Log warning if we couldn't match all shares
     if (soldQuantity > 0) {
-      console.warn(`Could not match all shares for sell transaction of ${sellRecord.symbol}: ${soldQuantity} shares unmatched`);
+      logger.warn(`Could not match all shares for sell transaction of ${sellRecord.symbol}: ${soldQuantity} shares unmatched`);
     }
   }
 
@@ -319,11 +323,11 @@ function buildScheduleFAEntries(
   
     });
     
-    console.log(`\n===== SCHEDULE FA HOLDINGS =====`);
+    logger.info(`\n===== SCHEDULE FA HOLDINGS =====`);
     const calendarYear = calendarYearStart.getFullYear();
-    console.log(`Holdings that existed on December 31, ${calendarYear}: ${holdingsOnDecember31}`);
-    console.log(`Holdings transacted within ${calendarYear}: ${transactedInCY}`);
-    console.log(`Total holdings for Schedule FA: ${yearEndHoldings.length}`);
+    logger.info(`Holdings that existed on December 31, ${calendarYear}: ${holdingsOnDecember31}`);
+    logger.info(`Holdings transacted within ${calendarYear}: ${transactedInCY}`);
+    logger.info(`Total holdings for Schedule FA: ${yearEndHoldings.length}`);
     
     return yearEndHoldings;
   } 

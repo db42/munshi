@@ -1,5 +1,7 @@
+import { getLogger, ILogger } from '../../utils/logger';
 import { Itr2, ScheduleSI, SplCodeRateTax, SECCode } from '../../types/itr';
-import { logger } from '../../utils/logger';
+
+const logger: ILogger = getLogger('scheduleSIGenerator');
 
 /**
  * Calculates Schedule SI (Special Income) from other ITR sections

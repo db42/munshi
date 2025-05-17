@@ -13,7 +13,10 @@ import {
     InLtcg20Per,
     InLtcgDTAARate
 } from '../../types/itr';
-import { logger } from '../../utils/logger';
+import { getLogger, ILogger } from '../../utils/logger';
+
+// Create a named logger instance for this module
+const logger: ILogger = getLogger('scheduleCGPostProcessing');
 
 // Enum for distinct capital gain/loss tax categories
 export enum CapitalGainTaxCategory {
