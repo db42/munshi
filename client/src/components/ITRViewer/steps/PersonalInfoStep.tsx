@@ -1,5 +1,5 @@
 import React from 'react';
-import { Itr, PersonalInfo } from '../../../types/itr';
+import { Address, Itr, PersonalInfo } from '../../../types/itr';
 import { ITRViewerStepConfig } from '../types';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -14,8 +14,8 @@ export const PersonalInfoStep: React.FC<StepProps> = ({ itrData, config }) => {
   console.log('Rendering PersonalInfoStep with data:', itrData, 'and config:', config);
 
   // Example paths - adjust these based on your actual itrData structure
-  const personalInfo = itrData.ITR?.ITR2?.PartA_GEN1.PersonalInfo as PersonalInfo;
-  const address = personalInfo.Address;
+  const personalInfo: PersonalInfo | undefined = itrData.ITR?.ITR2?.PartA_GEN1?.PersonalInfo;
+  const address: Address | undefined = personalInfo?.Address;
 
   return (
     <div className="space-y-4">
@@ -26,19 +26,19 @@ export const PersonalInfoStep: React.FC<StepProps> = ({ itrData, config }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
         <div className="space-y-1">
           <Label htmlFor="pan">PAN</Label>
-          <Input id="pan" readOnly value={personalInfo.PAN ?? '-'} />
+          <Input id="pan" readOnly value={personalInfo?.PAN ?? '-'} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="name">Full Name</Label>
           <Input 
             id="name" 
             readOnly 
-            value={`${personalInfo.AssesseeName?.FirstName ?? ''} ${personalInfo.AssesseeName?.SurNameOrOrgName ?? ''}`.trim() || '-'} 
+            value={`${personalInfo?.AssesseeName?.FirstName ?? ''} ${personalInfo?.AssesseeName?.SurNameOrOrgName ?? ''}`.trim() || '-'} 
           />
         </div>
         <div className="space-y-1">
           <Label htmlFor="dob">Date of Birth</Label>
-          <Input id="dob" type="text" readOnly value={personalInfo.DOB ?? '-'} />
+          <Input id="dob" type="text" readOnly value={personalInfo?.DOB ?? '-'} />
         </div>
         <div className="space-y-1">
           <Label htmlFor="mobile">Mobile Number</Label>
@@ -50,7 +50,7 @@ export const PersonalInfoStep: React.FC<StepProps> = ({ itrData, config }) => {
         </div>
         <div className="space-y-1">
           <Label htmlFor="aadhaar">Aadhaar Number</Label>
-          <Input id="aadhaar" readOnly value={personalInfo.AadhaarCardNo ?? '-'} />
+          <Input id="aadhaar" readOnly value={personalInfo?.AadhaarCardNo ?? '-'} />
         </div>
       </div>
 

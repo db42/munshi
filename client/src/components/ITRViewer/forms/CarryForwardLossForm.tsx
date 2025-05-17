@@ -5,8 +5,8 @@ import { Card } from '../ui/card';
 import { Separator } from '../ui/separator';
 import { useEditMode } from '../context/EditModeContext';
 import { useUserInput } from '../context/UserInputContext';
-import { CarryForwardLossEntry } from '../../../api/userInput';
 import { CurrencyInput, DateInput, TextInput } from '../ui/forms/FormComponents';
+import { CarryForwardLossEntry } from '../../../types/userInput.types';
 
 export const CarryForwardLossForm: React.FC = () => {
   const { userInput, saveUserInputData, isLoading } = useUserInput();

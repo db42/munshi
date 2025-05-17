@@ -33,13 +33,25 @@
 - TODO add validation
 - TODO schedule AL from previous ITR
 - todo see the working of each section in UI
-- how to get tax deducted from charles schwab
+- how to get tax deducted from charles schwab - WIP - needs to verify
+- [] add tests
 
+Year 2025-26
+- [ done 17 May] upload AIS
+- [] upload form 16 once available
+- [] schedule AL (how to get entries from previous ITRs)
+- [] support and upload 26AS since form-16 isn't available
+- [] support ITR-1
+- [] download ITR offline utility once available https://www.incometax.gov.in/iec/foportal/downloads/income-tax-returns 
+- [] pre-filled data from ITR
 
 Phase 2
 - agent - tax validation
 - camsMFToITR: this information is also available in camsData.summary. can be used to avoid re-processing the transactions.
+- [] support entering password in AIS
+- [] can directly use json for AIS
 - [] use https://github.com/zgrossbart/jdd/blob/main/jdd.js for diff viewer
 
 Phase 3
 - agent - tax planning
+- more ITR support

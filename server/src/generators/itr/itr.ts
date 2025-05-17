@@ -1,6 +1,6 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -12,6 +12,7 @@ import { logger } from '../../utils/logger';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
 import { calculatePartBTI } from './partBTI';
 import { calculateScheduleCYLA } from './scheduleCYLA';
+import { calculateScheduleBFLA } from './calculateScheduleBFLA';
 import { calculateScheduleSI } from './scheduleSI';
 import { calculateScheduleAMTC, isAMTApplicable } from './scheduleAMTC';
 import { userInput } from '../../services/userInput';
@@ -841,7 +842,17 @@ export const generateITR = async (
     mergedITR.ScheduleCYLA = scheduleCYLA;
     logger.info('Calculated Schedule CYLA.');
 
-    // --- 5. Calculate PartB-TI (Using income *after* CYLA adjustments) ---
+    // --- 4.5 Calculate Schedule BFLA ---
+    // Ensure ScheduleCFL and ScheduleCYLA exist before calling
+    if (mergedITR.ScheduleCFL && mergedITR.ScheduleCYLA) {
+        const scheduleBFLA = calculateScheduleBFLA(mergedITR);
+        mergedITR.ScheduleBFLA = scheduleBFLA;
+        logger.info('Calculated Schedule BFLA.');
+    } else {
+        logger.warn('Skipping Schedule BFLA calculation as ScheduleCFL or ScheduleCYLA is missing.');
+    }
+
+    // --- 5. Calculate PartB-TI (Using income *after* CYLA & BFLA adjustments) ---
     const partBTI = calculatePartBTI(mergedITR);
     mergedITR["PartB-TI"] = partBTI;
     logger.info('Calculated PartB-TI.');

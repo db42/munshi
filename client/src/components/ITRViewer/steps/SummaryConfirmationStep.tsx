@@ -1,8 +1,9 @@
 import React from 'react';
-import { ITRData, ITRViewerStepConfig } from '../types';
+import { ITRViewerStepConfig } from '../types';
+import { Itr } from '../../../types/itr';
 
 interface StepProps {
-  itrData: ITRData;
+  itrData: Itr;
   config: ITRViewerStepConfig;
 }
 

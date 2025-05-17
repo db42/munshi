@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { ITRViewerStepConfig } from '../types';
-import { Itr, ScheduleCFL, ScheduleCYLA, ScheduleBFLA } from '../../../types/itr';
+import { Itr, ScheduleCFL, ScheduleCYLA, ScheduleBFLA, PartBTI } from '../../../types/itr';
 import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../ui/table';
@@ -181,9 +181,9 @@ const CYLATab = ({ scheduleCYLA }: { scheduleCYLA: ScheduleCYLA }) => {
                 {scheduleCYLA.Salary && (
                   <TableRow>
                     <TableCell>Salary</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.Salary.IncCYLA?.IncOfCurrYr)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.Salary.IncCYLA?.TotalLossSetOff)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.Salary.IncCYLA?.BalanceInc)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.Salary.IncCYLA?.IncOfCurYrUnderThatHead)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.Salary.IncCYLA?.HPlossCurYrSetoff)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.Salary.IncCYLA?.IncOfCurYrAfterSetOff)}</TableCell>
                   </TableRow>
                 )}
                 
@@ -191,9 +191,9 @@ const CYLATab = ({ scheduleCYLA }: { scheduleCYLA: ScheduleCYLA }) => {
                 {scheduleCYLA.HP && (
                   <TableRow>
                     <TableCell>House Property</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.HP.IncCYLA?.IncOfCurrYr)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.HP.IncCYLA?.TotalLossSetOff)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.HP.IncCYLA?.BalanceInc)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.HP.IncCYLA?.IncOfCurYrUnderThatHead)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.HP.IncCYLA?.OthSrcLossNoRaceHorseSetoff)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.HP.IncCYLA?.IncOfCurYrAfterSetOff)}</TableCell>
                   </TableRow>
                 )}
                 
@@ -201,18 +201,18 @@ const CYLATab = ({ scheduleCYLA }: { scheduleCYLA: ScheduleCYLA }) => {
                 {scheduleCYLA.OthSrcExclRaceHorse && (
                   <TableRow>
                     <TableCell>Other Sources (Excl. Race Horses)</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.OthSrcExclRaceHorse.IncCYLA?.IncOfCurrYr)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.OthSrcExclRaceHorse.IncCYLA?.TotalLossSetOff)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleCYLA.OthSrcExclRaceHorse.IncCYLA?.BalanceInc)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.OthSrcExclRaceHorse.IncCYLA?.IncOfCurYrUnderThatHead)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.OthSrcExclRaceHorse.IncCYLA?.HPlossCurYrSetoff)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleCYLA.OthSrcExclRaceHorse.IncCYLA?.IncOfCurYrAfterSetOff)}</TableCell>
                   </TableRow>
                 )}
                 
                 <Separator className="my-2" />
                 <TableRow className="bg-slate-100 font-semibold">
                   <TableCell>Total</TableCell>
-                  <TableCell className="text-right">{formatAmount(scheduleCYLA.TotalCurYr?.IncOfCurrYr)}</TableCell>
-                  <TableCell className="text-right">{formatAmount(scheduleCYLA.TotalLossSetOff?.TotalLossSetOff)}</TableCell>
-                  <TableCell className="text-right">{formatAmount(scheduleCYLA.TotalCurYr?.BalanceInc)}</TableCell>
+                  <TableCell className="text-right">{formatAmount(scheduleCYLA.TotalCurYr?.TotHPlossCurYr)}</TableCell>
+                  <TableCell className="text-right">{formatAmount(scheduleCYLA.TotalLossSetOff?.TotOthSrcLossNoRaceHorseSetoff)}</TableCell>
+                  <TableCell className="text-right">-</TableCell>
                 </TableRow>
               </TableBody>
             </Table>
@@ -253,9 +253,9 @@ const BFLATab = ({ scheduleBFLA }: { scheduleBFLA: ScheduleBFLA }) => {
                 {scheduleBFLA.HP && (
                   <TableRow>
                     <TableCell>House Property</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleBFLA.HP.IncBFLA?.IncOfCurrYrUndHeadAftrSetOff)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleBFLA.HP.IncBFLA?.TotalBFLossSetOff)}</TableCell>
-                    <TableCell className="text-right">{formatAmount(scheduleBFLA.HP.IncBFLA?.BalIncAfterBFLossSetOff)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleBFLA.HP.IncBFLA?.IncOfCurYrUndHeadFromCYLA)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleBFLA.HP.IncBFLA?.BFlossPrevYrUndSameHeadSetoff)}</TableCell>
+                    <TableCell className="text-right">{formatAmount(scheduleBFLA.HP.IncBFLA?.IncOfCurYrAfterSetOffBFLosses)}</TableCell>
                   </TableRow>
                 )}
                 
@@ -264,8 +264,8 @@ const BFLATab = ({ scheduleBFLA }: { scheduleBFLA: ScheduleBFLA }) => {
                 <Separator className="my-2" />
                 <TableRow className="bg-slate-100 font-semibold">
                   <TableCell>Total</TableCell>
+                  <TableCell className="text-right">{formatAmount(scheduleBFLA.TotalBFLossSetOff?.TotBFLossSetoff)}</TableCell>
                   <TableCell className="text-right">{formatAmount(scheduleBFLA.IncomeOfCurrYrAftCYLABFLA)}</TableCell>
-                  <TableCell className="text-right">{formatAmount(scheduleBFLA.TotalBFLossSetOff?.TotalBFLossSetOff)}</TableCell>
                   <TableCell className="text-right">{formatAmount(scheduleBFLA.IncomeOfCurrYrAftCYLABFLA)}</TableCell>
                 </TableRow>
               </TableBody>
@@ -283,7 +283,7 @@ const CFLTab = ({ scheduleCFL }: { scheduleCFL: ScheduleCFL }) => {
   
   // Helper function to safely access OthSrcLossRaceHorseCF
   const hasOthSrcLoss = () => {
-    return scheduleCFL.TotalOfBFLossesEarlierYrs?.LossSummaryDetail?.OthSrcLossRaceHorseCF > 0;
+    return (scheduleCFL.TotalOfBFLossesEarlierYrs?.LossSummaryDetail?.OthSrcLossRaceHorseCF || 0) > 0;
   };
   
   return (
@@ -455,7 +455,7 @@ export const DeductionsLossesStep: React.FC<StepProps> = ({ itrData, config }) =
   const scheduleCFL = itrData.ITR?.ITR2?.ScheduleCFL;
   
   // Get total deductions from Part B-TI
-  const totalDeductions = itrData.ITR?.ITR2?.["PartB-TI"]?.TotalChapVIADeductions || 0;
+  const totalDeductions = (itrData.ITR?.ITR2?.["PartB-TI"] as PartBTI).DeductionsUnderScheduleVIA || 0;
   
   // Check if we have any deductions data
   const hasDeductions = !_.isNil(scheduleVIA) && !_.isNil(scheduleVIA.DeductUndChapVIA);

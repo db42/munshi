@@ -49,6 +49,7 @@
         "typescript": "^5.2.2"
     },
     "scripts": {
+        "dev": "vite dev",
         "start": "vite dev",
         "build": "tsc && vite build",
         "serve": "vite preview",

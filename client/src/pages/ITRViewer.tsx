@@ -21,6 +21,7 @@ import { DeductionsLossesStep } from '../components/ITRViewer/steps/DeductionsLo
 import { TaxCalculationPaymentsStep } from '../components/ITRViewer/steps/TaxCalculationPaymentsStep';
 import { AssetsLiabilitiesStep } from '../components/ITRViewer/steps/AssetsLiabilitiesStep';
 import { SummaryConfirmationStep } from '../components/ITRViewer/steps/SummaryConfirmationStep';
+import { useAssessmentYear } from '../context/AssessmentYearContext';
 
 // Map Step IDs to Components
 const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRViewerStepConfig }> } = {
@@ -36,7 +37,7 @@ const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRVie
 
 export const ITRViewer: React.FC = () => {
   const userId = DEFAULT_USER_ID;
-  const assessmentYear = DEFAULT_ASSESSMENT_YEAR;
+  const { assessmentYear } = useAssessmentYear();
   const { data: itrData, isLoading, error } = useITRData(userId, assessmentYear);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
 
