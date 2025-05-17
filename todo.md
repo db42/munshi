@@ -20,7 +20,7 @@
 - DONE fix pdf viewer
 - WIP - compare with previous return
 - - DONE - Section112A - only for indian equity
-- - Schedule BFLA
+- - Schedule BFLA, CYLA - done
 - - number validation - ScheduleS done, ScheduleOS done, ScheduleCG
 - - number validation - section112A - done (pending: decimal, paytm entries)
 - -  validation - PartB-TI
