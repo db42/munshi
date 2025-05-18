@@ -3,6 +3,12 @@ import { Address, Itr, PersonalInfo } from '../../../types/itr';
 import { ITRViewerStepConfig } from '../types';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { BankAccountForm } from '../forms/BankAccountForm';
+import { useEditMode } from '../context/EditModeContext';
+import { useUserInput } from '../context/UserInputContext';
+import { Button } from '../ui/button';
+import { Edit, List } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
 
 export interface StepProps {
   itrData: Itr;
@@ -16,6 +22,23 @@ export const PersonalInfoStep: React.FC<StepProps> = ({ itrData, config }) => {
   // Example paths - adjust these based on your actual itrData structure
   const personalInfo: PersonalInfo | undefined = itrData.ITR?.ITR2?.PartA_GEN1?.PersonalInfo;
   const address: Address | undefined = personalInfo?.Address;
+
+  const { activeEditSection, setActiveEditSection } = useEditMode();
+  const { userInput } = useUserInput();
+
+  const isBankSectionInEdit = activeEditSection === 'bankAccounts';
+  const userBankAccounts = userInput.generalInfoAdditions?.bankDetails || [];
+
+  const handleToggleBankEdit = () => {
+    if (isBankSectionInEdit) {
+      // Note: BankAccountForm handles saving and setHasUnsavedChanges.
+      // If there are unsaved changes, the global EditModeToggleButton might prompt before switching sections/modes.
+      // Or, rely on user to save/cancel within the form before clicking this button.
+      setActiveEditSection(null);
+    } else {
+      setActiveEditSection('bankAccounts');
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -80,6 +103,48 @@ export const PersonalInfoStep: React.FC<StepProps> = ({ itrData, config }) => {
           </div>
         </div>
       </div>
+
+      {/* Bank Account Details Section */}
+      <Card className="mt-6">
+        <CardHeader className="flex flex-row items-center justify-between py-4 px-5 border-b">
+          <CardTitle className="text-lg font-semibold">
+            Bank Account Details (User Added)
+          </CardTitle>
+          <Button onClick={handleToggleBankEdit} variant="outline" size="sm">
+            {isBankSectionInEdit ? <List className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
+            {isBankSectionInEdit ? "View Accounts" : "Edit Accounts"}
+          </Button>
+        </CardHeader>
+        <CardContent className="p-5">
+          {isBankSectionInEdit ? (
+            <BankAccountForm />
+          ) : (
+            userBankAccounts.length > 0 ? (
+              <div className="bg-slate-50/50 p-4 rounded-md">
+                <ul className="space-y-2 text-sm text-slate-700">
+                  {userBankAccounts.map((account, index) => (
+                    <li key={index} className="flex justify-between items-center py-1.5 border-b border-slate-200 last:border-b-0">
+                      <div>
+                        <span className="font-medium text-slate-800 block">{account.bankName}</span>
+                        <span className="text-slate-600 text-xs">
+                          IFSC: {account.ifsc} - Acc No: {account.accountNumber} ({account.accountType === 'SB' ? 'Savings' : 'Current'})
+                        </span>
+                      </div>
+                      {account.isPrimary && 
+                        <span className="font-semibold ml-2 py-0.5 px-2 text-xs bg-sky-100 text-sky-700 rounded-full self-start">
+                          Primary
+                        </span>
+                      }
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 italic py-3">No bank accounts added by the user. Click 'Edit Accounts' to add new bank account details.</p>
+            )
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }; 

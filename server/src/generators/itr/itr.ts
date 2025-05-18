@@ -705,7 +705,8 @@ export const generateITR = async (
     const sectionsToMerge: ITRSection[] = [];
 
     // --- 2a. Fetch User Input Data ---
-    const userInputData = await userInput.get(userId.toString(), assessmentYear);
+    const userInputRecord = await userInput.get(userId.toString(), assessmentYear);
+    const userInputData = userInputRecord?.input_data;
     if (userInputData) {
         logger.info(`Fetched user input data for user ${userId}, AY ${assessmentYear}.`);
         
@@ -840,6 +841,7 @@ export const generateITR = async (
         logger.info('No Schedule CG found to post-process.');
     }
 
+    // ---- Derived fields ----
     // --- 4. Calculate Schedule CYLA ---
     const scheduleCYLA = calculateScheduleCYLA(mergedITR);
     mergedITR.ScheduleCYLA = scheduleCYLA;

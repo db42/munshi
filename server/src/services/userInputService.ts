@@ -13,10 +13,10 @@ const logger: ILogger = getLogger('userInputService');
 export const getUserInputData = (pool: Pool) => async (
     ownerId: string,
     assessmentYear: string
-): Promise<UserInputData | null> => {
+): Promise<UserItrInputRecord | null> => {
     logger.info(`[UserService] Fetching input data for owner ${ownerId}, year ${assessmentYear}`);
     const query = `
-        SELECT input_data
+        SELECT *
         FROM user_itr_inputs
         WHERE owner_id = $1 AND assessment_year = $2;
     `;
@@ -27,10 +27,10 @@ export const getUserInputData = (pool: Pool) => async (
             throw new Error('Invalid ownerId format: Must be a number.');
         }
 
-        const result = await pool.query<{ input_data: UserInputData }>(query, [ownerIdNum, assessmentYear]);
+        const result = await pool.query<UserItrInputRecord>(query, [ownerIdNum, assessmentYear]);
         if (result.rows.length > 0) {
             // Assuming the DB returns the JSON correctly typed
-            return result.rows[0].input_data;
+            return result.rows[0];
         } else {
             return null; // Indicate not found
         }

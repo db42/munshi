@@ -10,10 +10,11 @@ interface Address {
     country?: string;
 }
 
-interface BankAccount {
+export interface BankAccount {
     ifsc: string;
     accountNumber: string;
-    accountType?: 'Savings' | 'Current' | string; // Allow other strings?
+    accountType: 'SB' | 'CA'; // Refined to SB/CA, map to 'Savings'/'Current' in UI
+    bankName: string; // Added mandatory bankName
     isPrimary?: boolean;
 }
 

@@ -201,6 +201,12 @@ const calculateTaxAndPreparePartBTTI = (
             
             GrossTaxLiability: taxLiabilityBeforeRelief,
             GrossTaxPayable: taxLiabilityBeforeRelief,
+
+            GrossTaxPay: {
+                TaxDeferred17: 0,
+                TaxDeferredPayableCY: 0,
+                TaxInc17: taxLiabilityBeforeRelief
+            },
             
             CreditUS115JD: 0,
             TaxPayAfterCreditUs115JD: taxLiabilityBeforeRelief,
@@ -243,6 +249,7 @@ const calculateTaxAndPreparePartBTTI = (
             RefundDue: refundDue,
             BankAccountDtls: {
                 BankDtlsFlag: TaxRescertifiedFlag.N,
+                // AddtnlBankDetails: 
             }
         },
 

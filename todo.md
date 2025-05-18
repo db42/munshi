@@ -24,6 +24,7 @@
 - - number validation - ScheduleS done, ScheduleOS done, ScheduleCG - done
 - - number validation - section112A - done (pending: decimal, paytm entries)
 - -  validation - PartB-TI - DONE
+- - validation - partB-TTI
 - - scheduleCG
 - - scheduleSI
 - TODO support for previous ITR in the computations for sectionFA, carry forward losses etc.

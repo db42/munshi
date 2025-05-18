@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { getUserInput, saveUserInput, UserInputData, mergeUserInput } from '../../../api/userInput';
+import { UserInputData, UserItrInputRecord } from '../../../types/userInput.types';
+import { getUserItrInputRecord, saveUserInput, mergeUserInput } from '../../../api/userInput';
 import { DEFAULT_USER_ID } from '../../../api/config';
 
 interface UserInputContextType {
@@ -32,8 +33,8 @@ export const UserInputProvider: React.FC<{
       setIsLoading(true);
       setError(null);
       try {
-        const data = await getUserInput(DEFAULT_USER_ID, assessmentYear);
-        setUserInput(data);
+        const record = await getUserItrInputRecord(DEFAULT_USER_ID, assessmentYear);
+        setUserInput(record?.input_data || {});
       } catch (err) {
         console.error('Error fetching user input:', err);
         setError(err instanceof Error ? err : new Error('Failed to fetch user input'));
@@ -50,8 +51,8 @@ export const UserInputProvider: React.FC<{
     setIsLoading(true);
     setError(null);
     try {
-      const result = await saveUserInput(DEFAULT_USER_ID, assessmentYear, data);
-      setUserInput(result);
+      const savedRecord = await saveUserInput(DEFAULT_USER_ID, assessmentYear, data);
+      setUserInput(savedRecord.input_data);
     } catch (err) {
       console.error('Error saving user input:', err);
       setError(err instanceof Error ? err : new Error('Failed to save user input'));

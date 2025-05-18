@@ -43,7 +43,7 @@ const handleUpsertUser = async (req: Request, res: Response): Promise<void> => {
     try {
         // TODO: Implement detailed validation of inputData structure here (using Zod ideally)
         const result = await userInput.upsert(ownerId, assessmentYear, inputData);
-        res.status(200).json({ message: 'User input data saved successfully.', data: result });
+        res.status(200).json(result);
 
     } catch (error: any) {
         logger.error(`[Route] Error in PUT /api/user-inputs for owner ${ownerId}, year ${assessmentYear}:`, error);

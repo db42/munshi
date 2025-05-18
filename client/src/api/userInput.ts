@@ -1,15 +1,15 @@
 import { ENDPOINTS, DEFAULT_HEADERS } from './config';
 import { formatApiError } from '../utils/api-helpers';
-import { UserInputData, CarryForwardLossEntry, SelfAssessmentTaxPayment } from '../types/userInput.types';
+import { UserInputData, UserItrInputRecord, CarryForwardLossEntry, SelfAssessmentTaxPayment } from '../types/userInput.types';
 
 /**
  * Fetch user input data for a specific user and assessment year
  * 
  * @param userId - The user ID
  * @param assessmentYear - The assessment year in format YYYY-YY
- * @returns The user input data
+ * @returns The user input data record or null if not found
  */
-export const getUserInput = async (userId: string, assessmentYear: string): Promise<UserInputData> => {
+export const getUserItrInputRecord = async (userId: string, assessmentYear: string): Promise<UserItrInputRecord | null> => {
   try {
     const response = await fetch(ENDPOINTS.USER_INPUT_BY_USER_AND_YEAR(userId, assessmentYear), {
       method: 'GET',
@@ -17,9 +17,9 @@ export const getUserInput = async (userId: string, assessmentYear: string): Prom
     });
 
     if (!response.ok) {
-      // If 404, it means no user input exists yet, so return empty object
+      // If 404, it means no user input exists yet, so return null
       if (response.status === 404) {
-        return {};
+        return null;
       }
       
       const errorData = await response.json();
@@ -39,13 +39,13 @@ export const getUserInput = async (userId: string, assessmentYear: string): Prom
  * @param userId - The user ID
  * @param assessmentYear - The assessment year in format YYYY-YY
  * @param data - The user input data to save
- * @returns The saved user input data
+ * @returns The saved user input data AS THE FULL RECORD UserItrInputRecord
  */
 export const saveUserInput = async (
   userId: string, 
   assessmentYear: string, 
   data: UserInputData
-): Promise<UserInputData> => {
+): Promise<UserItrInputRecord> => {
   try {
     const response = await fetch(ENDPOINTS.USER_INPUT_BY_USER_AND_YEAR(userId, assessmentYear), {
       method: 'PUT',

@@ -13,7 +13,8 @@ interface Address {
 interface BankAccount {
     ifsc: string;
     accountNumber: string;
-    accountType?: 'Savings' | 'Current' | string; // Allow other strings?
+    accountType: 'SB' | 'CA'; // Refined for better type safety, add other specific types if needed
+    bankName: string;
     isPrimary?: boolean;
 }
 
