@@ -10,7 +10,7 @@ interface Address {
     country?: string;
 }
 
-interface BankAccount {
+export interface BankAccount {
     ifsc: string;
     accountNumber: string;
     accountType: 'SB' | 'CA'; // Refined for better type safety, add other specific types if needed

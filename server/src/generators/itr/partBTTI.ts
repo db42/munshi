@@ -1,7 +1,8 @@
 // partBTTIProcessor.ts
-import { AssetOutIndiaFlag, Itr2, PartBTI, PartBTTI, TaxRescertifiedFlag } from '../../types/itr';
+import { AssetOutIndiaFlag, BankAccountDtls, Itr2, PartBTI, PartBTTI, TaxRescertifiedFlag, BankDetailType, AccountType as ITR_AccountType } from '../../types/itr';
 import { logCalculation, TaxSlab, calculatePercentage, calculateSurcharge, calculateTaxForSlabs, calculateRebate87A, NEW_REGIME_SLABS, OLD_REGIME_SLABS, createEmptyPartBTTI } from './taxUtils';
 import { getLogger, ILogger } from '../../utils/logger';
+import { BankAccount as UserInputBankAccount } from '../../types/userInput.types';
 
 // Create a named logger instance for this module
 const logger: ILogger = getLogger('partBTTI');
@@ -28,17 +29,10 @@ export enum TaxRegimePreference {
  */
 export const calculatePartBTTI = (
     itr: Itr2,
-    regimePreference: TaxRegimePreference = TaxRegimePreference.AUTO
+    regimePreference: TaxRegimePreference = TaxRegimePreference.AUTO,
+    bankDetails?: UserInputBankAccount[] | undefined
 ): PartBTTI => {
-    if (regimePreference === TaxRegimePreference.OLD) {
-        logger.info('\nUsing Old Tax Regime as per preference');
-        return calculatePartBTTIOldRegime(itr);
-    }
-    
-    if (regimePreference === TaxRegimePreference.NEW) {
-        logger.info('\nUsing New Tax Regime as per preference');
-        return calculatePartBTTINewRegime(itr);
-    }
+    let regimeResult: PartBTTI;
 
     // Calculate tax under both regimes and compare
     logger.info('\n=== Comparing Both Tax Regimes ===\n');
@@ -52,22 +46,80 @@ export const calculatePartBTTI = (
     logger.info('\n=== Tax Regime Comparison Summary ===');
     logCalculation('Old Regime - Total Tax', oldRegimeResult.ComputationOfTaxLiability.GrossTaxPayable);
     logCalculation('New Regime - Total Tax', newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable);
-    
-    // Determine which regime is more beneficial
-    const taxDifference = 
-        oldRegimeResult.ComputationOfTaxLiability.GrossTaxPayable - 
-        newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable;
 
-    if (taxDifference > 0) {
-        logger.info(`\nNew Regime is more beneficial - Saves ₹${taxDifference.toLocaleString('en-IN')}`);
-        return newRegimeResult;
-    } else if (taxDifference < 0) {
-        logger.info(`\nOld Regime is more beneficial - Saves ₹${Math.abs(taxDifference).toLocaleString('en-IN')}`);
-        return oldRegimeResult;
+    if (regimePreference === TaxRegimePreference.OLD) {
+        logger.info('\nUsing Old Tax Regime as per preference');
+        regimeResult = oldRegimeResult;
+    } else if (regimePreference === TaxRegimePreference.NEW) {
+        logger.info('\nUsing New Tax Regime as per preference');
+        regimeResult = newRegimeResult;
     } else {
         logger.info('\nBoth regimes result in same tax liability - Using New Regime as default');
-        return newRegimeResult;
+        // Determine which regime is more beneficial
+        const taxDifference = 
+            oldRegimeResult.ComputationOfTaxLiability.GrossTaxPayable - 
+            newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable;
+
+        if (taxDifference > 0) {
+            logger.info(`\nNew Regime is more beneficial - Saves ₹${taxDifference.toLocaleString('en-IN')}`);
+            regimeResult = newRegimeResult;
+        } else if (taxDifference < 0) {
+            logger.info(`\nOld Regime is more beneficial - Saves ₹${Math.abs(taxDifference).toLocaleString('en-IN')}`);
+            regimeResult = oldRegimeResult;
+        } else {
+            logger.info('\nBoth regimes result in same tax liability - Using New Regime as default');
+            regimeResult = newRegimeResult;
+        }
     }
+
+    regimeResult.Refund.BankAccountDtls = getBankAccountDtls(bankDetails);
+    return regimeResult;
+};
+
+const getBankAccountDtls = (bankDetails?: UserInputBankAccount[] | undefined): BankAccountDtls => {
+    if (!bankDetails || bankDetails.length === 0) {
+        return {
+            BankDtlsFlag: TaxRescertifiedFlag.N,
+            AddtnlBankDetails: [],
+            ForeignBankDetails: [],
+        };
+    }
+
+    // Create a mutable copy to reorder if necessary
+    const orderedBankDetails = [...bankDetails];
+    const primaryAccountIndex = orderedBankDetails.findIndex(acc => acc.isPrimary === true);
+
+    // If a primary account exists and it's not already at the first position, move it to the front.
+    if (primaryAccountIndex > 0) { // primaryAccountIndex === 0 means it's already first
+        const primaryAccount = orderedBankDetails.splice(primaryAccountIndex, 1)[0];
+        orderedBankDetails.unshift(primaryAccount);
+    }
+
+    const itrBankAccounts: BankDetailType[] = orderedBankDetails.map(acc => {
+        let itrAccountType: ITR_AccountType;
+        switch (acc.accountType) {
+            case 'SB':
+                itrAccountType = ITR_AccountType.Sb;
+                break;
+            case 'CA':
+                itrAccountType = ITR_AccountType.CA;
+                break;
+            default:
+                logger.warn(`Unknown bank account type from user input: ${acc.accountType}, defaulting to SB.`);
+                itrAccountType = ITR_AccountType.Sb;
+        }
+        return {
+            IFSCCode: acc.ifsc,
+            BankAccountNo: acc.accountNumber,
+            BankName: acc.bankName,
+            AccountType: itrAccountType,
+        };
+    });
+
+    return {
+        BankDtlsFlag: TaxRescertifiedFlag.Y,
+        AddtnlBankDetails: itrBankAccounts,
+    };
 };
 
 /**
@@ -249,7 +301,6 @@ const calculateTaxAndPreparePartBTTI = (
             RefundDue: refundDue,
             BankAccountDtls: {
                 BankDtlsFlag: TaxRescertifiedFlag.N,
-                // AddtnlBankDetails: 
             }
         },
 

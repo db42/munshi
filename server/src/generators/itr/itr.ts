@@ -868,7 +868,7 @@ export const generateITR = async (
     logger.info('Calculated Schedule SI for special income tax rates.');
 
     // --- 7. Calculate PartB-TTI ---
-    const partBTTI = calculatePartBTTI(mergedITR, TaxRegimePreference.AUTO);
+    const partBTTI = calculatePartBTTI(mergedITR, TaxRegimePreference.AUTO, userInputData?.generalInfoAdditions?.bankDetails);
     mergedITR.PartB_TTI = partBTTI;
     logger.info('Calculated PartB-TTI.');
 
