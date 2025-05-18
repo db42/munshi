@@ -21,9 +21,9 @@
 - WIP - compare with previous return
 - - DONE - Section112A - only for indian equity
 - - Schedule BFLA, CYLA - done
-- - number validation - ScheduleS done, ScheduleOS done, ScheduleCG
+- - number validation - ScheduleS done, ScheduleOS done, ScheduleCG - done
 - - number validation - section112A - done (pending: decimal, paytm entries)
-- -  validation - PartB-TI
+- -  validation - PartB-TI - DONE
 - - scheduleCG
 - - scheduleSI
 - TODO support for previous ITR in the computations for sectionFA, carry forward losses etc.

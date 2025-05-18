@@ -1,0 +1,9 @@
+---
+description: 
+globs: *.ts
+alwaysApply: false
+---
+Typescript guidance:
+- avoid using 'any'
+- avoid mutating an argument within function
+- avoid passing by reference
