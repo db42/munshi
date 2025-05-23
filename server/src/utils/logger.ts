@@ -33,6 +33,7 @@ const loggerConfig: Record<string, LogLevel> = {
   'parserTypes': 'none',
   'equityPriceUtils': 'none',
   'partBTTI': 'none',
+  'calculateScheduleBFLA': 'none',
 };
 
 const getLogLevel = (name: string): LogLevel => {

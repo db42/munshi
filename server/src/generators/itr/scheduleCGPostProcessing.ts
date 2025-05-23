@@ -473,6 +473,29 @@ export const postProcessScheduleCG = (scheduleCG: ScheduleCGFor23): ScheduleCGFo
 
     logger.warn('postProcessScheduleCG: Review and refine specific set-off rules for STCL 111A (STCG_15_PER loss). Intra-category set-off fields populated based on schema.');
 
+    // --- Step 7: Ensure specific CurrYrCapGain and CurrYearIncome fields are non-negative for final output --- 
+    const categoriesToAdjust = [
+        processedScheduleCG.CurrYrLosses.InLtcg10Per,
+        processedScheduleCG.CurrYrLosses.InLtcg20Per,
+        processedScheduleCG.CurrYrLosses.InLtcgDTAARate,
+        processedScheduleCG.CurrYrLosses.InStcg15Per,
+        processedScheduleCG.CurrYrLosses.InStcg30Per,
+        processedScheduleCG.CurrYrLosses.InStcgAppRate,
+        processedScheduleCG.CurrYrLosses.InStcgDTAARate
+    ];
+
+    for (const category of categoriesToAdjust) {
+        if (category) {
+            if (typeof category.CurrYrCapGain === 'number') {
+                category.CurrYrCapGain = Math.max(0, category.CurrYrCapGain);
+            }
+            if (typeof category.CurrYearIncome === 'number') {
+                category.CurrYearIncome = Math.max(0, category.CurrYearIncome);
+            }
+        }
+    }
+    logger.info('Adjusted relevant CurrYrCapGain and CurrYearIncome fields to be non-negative for final output.');
+
     logger.info('Completed post-processing for Schedule CG.', {
         scheduleCG: processedScheduleCG
     });

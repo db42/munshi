@@ -1,3 +1,4 @@
+import { Form16 } from '../types/form16';
 import { Capacity, Declaration, ScheduleBFLA, ScheduleCYLA, Verification } from '../types/itr';
 
 /**
@@ -36,14 +37,14 @@ import { Capacity, Declaration, ScheduleBFLA, ScheduleCYLA, Verification } from 
  * Initializes Verification section
  * Contains details about the person verifying the return
  */
-export const initializeVerification = (): Verification => ({
+export const initializeVerification = (form16: Form16): Verification => ({
   //generate this implemenation
   Capacity: Capacity.A,              // or another appropriate enum value
   Date: new Date().toISOString().split('T')[0], 
   Declaration: {
-    AssesseeVerName: '',
-    AssesseeVerPAN:  '',
-    FatherName:      '',
+    AssesseeVerName: form16.employee.name,
+    AssesseeVerPAN:  form16.employee.pan,
+    FatherName:      'XXX',
   },        // or another appropriate enum value
   Place: 'Mumbai'  
 

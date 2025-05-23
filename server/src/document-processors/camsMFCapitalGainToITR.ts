@@ -8,6 +8,7 @@ import {
     LongTermCapGain23, 
     DeductSec48,
     EquityOrUnitSec94Type,
+    EquityOrUnitSec54Type,
     DateRangeType,
     AccruOrRecOfCG,
     CurrYrLosses,
@@ -20,7 +21,8 @@ import {
     InStcgAppRate,
     InStcgDTAARate,
     MFSectionCode,
-    SECCode
+    SECCode,
+    EquityOrUnitSec54TypeDebn112
 } from '../types/itr';
 
 const logger: ILogger = getLogger('camsMFToITRProcessor');
@@ -236,6 +238,28 @@ const createSaleTransaction = (proceeds: number, costBasis: number, gain: number
     FullValueConsdSec50CA: 0
 });
 
+// Helper function to create a sale transaction specifically for AssetNA (EquityOrUnitSec54Type)
+const createSaleTransactionForAssetNA = (proceeds: number, costBasis: number, gain: number, deductionUs54F: number): EquityOrUnitSec54Type => ({
+    BalanceCG: gain,
+    CapgainonAssets: gain,
+    DeductSec48: createDeductSec48(costBasis),
+    FullConsideration: proceeds,
+    FairMrktValueUnqshr: proceeds, // Assuming Fair Market Value is same as Full Consideration for this context
+    FullValueConsdOthUnqshr: 0,    // Defaulting these as per typical usage for SaleofAssetNA
+    FullValueConsdRecvUnqshr: 0,
+    FullValueConsdSec50CA: 0,
+    DeductionUs54F: deductionUs54F
+});
+
+// Helper function to create a sale transaction specifically for Bonds/Debentures (EquityOrUnitSec54TypeDebn112)
+const createSaleTransactionForBondsDebentures = (proceeds: number, costBasis: number, gain: number, deductionUs54F: number): EquityOrUnitSec54TypeDebn112 => ({
+    BalanceCG: gain,
+    CapgainonAssets: gain,
+    DeductSec48: createDeductSec48(costBasis),
+    FullConsideration: proceeds,
+    DeductionUs54F: deductionUs54F
+});
+
 /**
  * Process the short-term capital gains from CAMS MF data
  */
@@ -362,10 +386,7 @@ const processLongTermCapitalGains = (
         
         // For debt funds, gains are taxed at 20% with indexation under section 112
         // These go in SaleofAssetNA
-        SaleofAssetNA: {
-            ...createSaleTransaction(debtTotalProceeds, debtTotalCost, debtTotalGain),
-            DeductionUs54F: 0
-        },
+        SaleofAssetNA: createSaleTransactionForAssetNA(debtTotalProceeds, debtTotalCost, debtTotalGain, 0),
         
         // Set other required fields
         AmtDeemedLtcg: 0,
@@ -382,10 +403,7 @@ const processLongTermCapitalGains = (
             SaleOtherSpecAsset: 0,
             SaleonSpecAsset: 0
         },
-        SaleofBondsDebntr: {
-            ...createSaleTransaction(0, 0, 0),
-            DeductionUs54F: 0
-        },
+        SaleofBondsDebntr: createSaleTransactionForBondsDebentures(0, 0, 0, 0),
         PassThrIncNatureLTCG: 0,
         PassThrIncNatureLTCGUs112A: 0,
         TotalAmtDeemedLtcg: 0,

@@ -8,6 +8,8 @@ import {
     LongTermCapGain23, 
     DeductSec48,
     EquityOrUnitSec94Type,
+    EquityOrUnitSec54TypeDebn112,
+    EquityOrUnitSec54Type,
     DateRangeType,
     InLossSetOff,
     InStcg15Per,
@@ -97,6 +99,28 @@ const createSaleTransaction = (proceeds: number, costBasis: number, gain: number
     FullValueConsdOthUnqshr: 0,
     FullValueConsdRecvUnqshr: 0,
     FullValueConsdSec50CA: 0
+});
+
+// Helper function to create a sale transaction specifically for AssetNA (EquityOrUnitSec54Type) for US Equity
+const createSaleTransactionForAssetNA_USEquity = (proceeds: number, costBasis: number, gain: number, deductionUs54F: number): EquityOrUnitSec54Type => ({
+    BalanceCG: gain,
+    CapgainonAssets: gain,
+    DeductSec48: createDeductSec48(costBasis),
+    FullConsideration: proceeds,
+    FairMrktValueUnqshr: proceeds,
+    FullValueConsdOthUnqshr: 0,
+    FullValueConsdRecvUnqshr: 0,
+    FullValueConsdSec50CA: 0,
+    DeductionUs54F: deductionUs54F
+});
+
+// Helper function to create a sale transaction specifically for Bonds/Debentures (EquityOrUnitSec54TypeDebn112)
+const createSaleTransactionForBondsDebentures_USEquity = (proceeds: number, costBasis: number, gain: number, deductionUs54F: number): EquityOrUnitSec54TypeDebn112 => ({
+    BalanceCG: gain,
+    CapgainonAssets: gain,
+    DeductSec48: createDeductSec48(costBasis),
+    FullConsideration: proceeds,
+    DeductionUs54F: deductionUs54F
 });
 
 /**
@@ -419,18 +443,13 @@ const processLongTermCapitalGains = (longTermGains: CapitalGainSummary): LongTer
             CapgainonAssets: 0,
             DeductionUs54F: 0
         },
-        SaleofAssetNA: {
-            ...createSaleTransaction(
-                longTermGains.totalProceeds,
-                longTermGains.totalCostBasis,
-                longTermGains.totalGain
-            ),
-            DeductionUs54F: 0
-        },
-        SaleofBondsDebntr: {
-            ...createSaleTransaction(0, 0, 0),
-            DeductionUs54F: 0
-        },
+        SaleofAssetNA: createSaleTransactionForAssetNA_USEquity(
+            longTermGains.totalProceeds,
+            longTermGains.totalCostBasis,
+            longTermGains.totalGain,
+            0
+        ),
+        SaleofBondsDebntr: createSaleTransactionForBondsDebentures_USEquity(0, 0, 0, 0),
         TotalAmtDeemedLtcg: 0,
         TotalAmtNotTaxUsDTAALtcg: 0,
         TotalAmtTaxUsDTAALtcg: longTermGains.totalForeignTaxPaid,

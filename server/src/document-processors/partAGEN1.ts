@@ -10,7 +10,7 @@ export const processPartAGEN1 = (form16: Form16): PartAGEN1 => ({
         PAN: form16.employee.pan,
         Address: {
             ResidenceNo: "1234", // These would come from actual data
-            LocalityOrArea: form16.employee.address.addrDetail,
+            LocalityOrArea: form16.employee.address.addrDetail.slice(0, 49), //max 50 chars
             CityOrTownOrDistrict: form16.employee.address.cityOrTownOrDistrict,
             StateCode: String(form16.employee.address.stateCode) as StateCode,
             CountryCode: CountryCode.The91,
@@ -29,7 +29,7 @@ export const processPartAGEN1 = (form16: Form16): PartAGEN1 => ({
       HeldUnlistedEqShrPrYrFlg: TaxRescertifiedFlag.N,
       ItrFilingDueDate: "2024-07-31",
       OptOutNewTaxRegime: TaxRescertifiedFlag.N,
-      ReturnFileSec: 139,
+      ReturnFileSec: 11,
       SeventhProvisio139: TaxRescertifiedFlag.N,
     }
 });

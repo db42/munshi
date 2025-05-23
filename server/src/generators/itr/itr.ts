@@ -15,9 +15,10 @@ import { calculateScheduleBFLA } from './calculateScheduleBFLA';
 import { calculateScheduleSI } from './scheduleSI';
 import { calculateScheduleAMTC, isAMTApplicable } from './scheduleAMTC';
 import { userInput } from '../../services/userInput';
-import { UserInputData } from '../../types/userInput.types';
 import { postProcessScheduleCG } from './scheduleCGPostProcessing';
 import { getLogger, ILogger } from '../../utils/logger';
+import { validateITR, ValidationError } from '../../services/validations';
+import { roundNumbersInObject } from '../../utils/formatters';
 
 // Create a named logger instance for this module
 const logger: ILogger = getLogger('itr');
@@ -814,6 +815,7 @@ export const generateITR = async (
 
     // Process AIS data
     const aisDataParseResult = await parsedDocuments.getAISData(userId, assessmentYear);
+    logger.info('AIS data parse result: ', aisDataParseResult);
     if (aisDataParseResult?.parsed_data?.data) {
         const aisResult = convertAISToITRSections(aisDataParseResult.parsed_data.data, assessmentYear);
         if (aisResult.success && aisResult.data) {
@@ -882,11 +884,28 @@ export const generateITR = async (
     }
 
     // --- 9. Final ITR Object ---
-    const finalITR: Itr = {
+    let finalITR: Itr = {
         ITR: {
             ITR2: mergedITR as Itr2
         }
     };
+
+    // --- 10. Round all numbers in the final ITR object ---
+    logger.info('Rounding numbers in the final ITR object.');
+    finalITR = roundNumbersInObject(finalITR); // Apply rounding
+
+    //validate the ITR
+    try {
+        validateITR(finalITR);
+        logger.info('ITR validation successful.');
+    } catch (error: any) {
+        // Log the validation error details if it's a ValidationError
+        if (error instanceof ValidationError) {
+            logger.error('ITR validation failed:', error.errors);
+        } else {
+            logger.error('ITR validation failed with an unexpected error:', error);
+        }
+    }
 
     logger.info(`ITR generation complete for user ${userId}, AY ${assessmentYear}`);
     return finalITR;

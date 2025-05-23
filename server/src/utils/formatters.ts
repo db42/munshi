@@ -60,4 +60,21 @@ export const parseNumericValue = (valueStr: string, convertToInt: boolean = fals
     console.error(`[FORMATTER] Error parsing numeric value "${valueStr}":`, e);
     return 0;
   }
-}; 
+};
+
+export function roundNumbersInObject(data: any): any {
+    if (typeof data === 'number') {
+        return Math.round(data);
+    } else if (Array.isArray(data)) {
+        return data.map(item => roundNumbersInObject(item));
+    } else if (typeof data === 'object' && data !== null) {
+        const newObj: { [key: string]: any } = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                newObj[key] = roundNumbersInObject(data[key]);
+            }
+        }
+        return newObj;
+    }
+    return data; // Return other types (string, boolean, null, etc.) as is
+}

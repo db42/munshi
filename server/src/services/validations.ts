@@ -1,7 +1,7 @@
-import Ajv from "ajv";
-import addFormats from "ajv-formats";
+import Ajv from "ajv-draft-04";
 import type { Itr } from '../types/itr';
 import * as schema from '../../schema/ITR-2_2024_Main_V1.2.json';
+import { CurrentOptions } from "ajv/dist/core";
 
 // Custom error class for validation errors
 export class ValidationError extends Error {
@@ -18,85 +18,93 @@ export class ValidationError extends Error {
     }
 }
 
-export class ITRValidator {
-    private ajv: Ajv;
-    private validate: any;
+// Types for better type safety
+type ValidationResult<T> = T;
 
-    constructor() {
-        // Initialize AJV with options
-        this.ajv = new Ajv({
-            allErrors: true,        // Report all errors, not just the first
-            verbose: true,          // Include data in errors
-            useDefaults: true,      // Apply default values from schema
-            coerceTypes: true,      // Try to coerce value types
-            strict: false           // Allow additional properties
-        });
-
-        // Add formats like date, email etc.
-        addFormats(this.ajv);
-
-        // Add custom formats if needed
-        this.addCustomFormats();
-
-        // Compile schema
-        this.validate = this.ajv.compile(schema);
-    }
-
-    private addCustomFormats() {
-        // Add custom format for PAN
-        this.ajv.addFormat('pan', {
-            type: 'string',
-            validate: (str: string) => /[A-Z]{5}[0-9]{4}[A-Z]/.test(str)
-        });
-
-        // Add other custom formats as needed
-    }
-
-    validateITR(data: Itr) {
-        const valid = this.validate(data);
-
-        if (!valid) {
-            const errors = this.validate.errors.map((err: any) => ({
-                path: err.instancePath,
-                message: err.message,
-                value: err.data
-            }));
-
-            throw new ValidationError('ITR validation failed', errors);
-        }
-
-        return data;
-    }
-
-    // Helper method to validate specific sections
-    validateSection<T>(sectionName: string, data: T) {
-        const sectionSchema = (schema as any).definitions[sectionName];
-        if (!sectionSchema) {
-            throw new Error(`Schema not found for section: ${sectionName}`);
-        }
-
-        const validate = this.ajv.compile(sectionSchema);
-        const valid = validate(data);
-
-        if (!valid) {
-            const errors = validate.errors.map((err: any) => ({
-                path: err.instancePath,
-                message: err.message,
-                value: err.data
-            }));
-
-            throw new ValidationError(`Validation failed for section: ${sectionName}`, errors);
-        }
-
-        return data;
-    }
-}
-
-// Example usage:
-export const validatePersonalInfo = (personalInfo: Itr['ITR']['ITR2']['PartA_GEN1']['PersonalInfo']) => {
-    const validator = new ITRValidator();
-    return validator.validateSection('PersonalInfo', personalInfo);
+// Default configuration
+const DEFAULT_CONFIG: CurrentOptions = {
+    allErrors: true,        // Report all errors, not just the first
+    verbose: true,          // Include data in errors
+    useDefaults: true,      // Apply default values from schema
+    coerceTypes: true,      // Try to coerce value types
+    strict: false           // Allow additional properties
 };
 
-// Create singleton instance
-export const itrValidator = new ITRValidator();
+// Pure function to add custom formats to AJV instance
+const addCustomFormats = (ajv: Ajv): Ajv => {
+    // Add custom format for PAN
+    ajv.addFormat('pan', {
+        type: 'string',
+        validate: (str: string) => /[A-Z]{5}[0-9]{4}[A-Z]/.test(str)
+    });
+
+    // Add other custom formats as needed
+    return ajv;
+};
+
+// Pure function to create AJV instance with configuration
+const createAjvInstance = (config: CurrentOptions = DEFAULT_CONFIG): Ajv => {
+    const ajv = new Ajv(config);
+    
+    // Add custom formats
+    return addCustomFormats(ajv);
+};
+
+// Pure function to format validation errors
+const formatValidationErrors = (errors: any[]): Array<{ path: string; message: string; value?: any }> => {
+    return errors.map((err: any) => ({
+        path: err.instancePath,
+        message: err.message,
+        value: err.data
+    }));
+};
+
+// Higher-order function that creates a validator for a specific schema
+const createValidator = (validationSchema: any, config?: CurrentOptions) => {
+    const ajv = createAjvInstance(config);
+    const validate = ajv.compile(validationSchema);
+    
+    return <Itr>(data: Itr): ValidationResult<Itr> => {
+        const valid = validate(data);
+        
+        if (!valid && validate.errors) {
+            const errors = formatValidationErrors(validate.errors);
+            throw new ValidationError('Validation failed', errors);
+        }
+        
+        return data;
+    };
+};
+
+// Main ITR validator function
+export const validateITR = createValidator(schema);
+
+// Function to validate specific sections of the schema
+export const validateSection = <T>(sectionName: string, data: T): ValidationResult<T> => {
+    const sectionSchema = (schema as any).definitions?.[sectionName];
+    
+    if (!sectionSchema) {
+        throw new Error(`Schema not found for section: ${sectionName}`);
+    }
+    
+    const validator = createValidator(sectionSchema);
+    return validator(data);
+};
+
+// Specialized validator functions for common use cases
+export const validatePersonalInfo = (personalInfo: any) => {
+    if (!personalInfo) {
+        throw new ValidationError('PersonalInfo is required', []);
+    }
+    return validateSection('PersonalInfo', personalInfo);
+};
+
+// Utility function to check if data is valid without throwing
+export const isValidITR = (data: Itr): boolean => {
+    try {
+        validateITR(data);
+        return true;
+    } catch {
+        return false;
+    }
+};
