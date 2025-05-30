@@ -815,7 +815,6 @@ export const generateITR = async (
 
     // Process AIS data
     const aisDataParseResult = await parsedDocuments.getAISData(userId, assessmentYear);
-    logger.info('AIS data parse result: ', aisDataParseResult);
     if (aisDataParseResult?.parsed_data?.data) {
         const aisResult = convertAISToITRSections(aisDataParseResult.parsed_data.data, assessmentYear);
         if (aisResult.success && aisResult.data) {

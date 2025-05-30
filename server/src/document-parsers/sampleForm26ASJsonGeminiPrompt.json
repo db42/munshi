@@ -1,0 +1,80 @@
+{
+  "instructions": "Parse the provided Form 26AS PDF text and structure the extracted data into a JSON object matching the 'AnnualTaxStatement' schema provided below. Ensure all monetary values are numbers, and dates are in YYYY-MM-DD format where applicable, otherwise use the format present in the document. If a section or part mentioned in the schema is not present in the PDF or has no transactions, represent it as an empty array [] for lists of items/transactions/details, or use a specific string like 'No Transactions Present' if that's how the document indicates it for summary fields. Pay close attention to table structures and accurately map them to the corresponding nested arrays in the JSON.",
+  "outputSchemaExample": {
+    "header": {
+      "dataUpdatedTill": "YYYY-MM-DD",
+      "assessmentYear": "YYYY-YY",
+      "permanentAccountNumberPAN": "XXXXXXXXXX",
+      "currentStatusOfPAN": "Active and Operative",
+      "financialYear": "YYYY-YY",
+      "nameOfAssessee": "ASSESSEE NAME",
+      "addressOfAssessee": "Full Address"
+    },
+    "partI": {
+      "deductors": [
+        {
+          "srNo": 1,
+          "nameOfDeductor": "Deductor Name",
+          "tanOfDeductor": "TANXXXXXXXXX",
+          "totalAmountPaidCredited": 0,
+          "totalTaxDeducted": 0,
+          "totalTDSDeposited": 0,
+          "transactions": [
+            {
+              "srNo": 1,
+              "section": "194A",
+              "transactionDate": "YYYY-MM-DD",
+              "statusOfBooking": "F",
+              "dateOfBooking": "YYYY-MM-DD",
+              "remarks": "Some remark",
+              "amountPaidCredited": 0,
+              "taxDeducted": 0,
+              "tdsDeposited": 0
+            }
+          ]
+        }
+      ]
+    },
+    "partII": {
+      "items": []
+    },
+    "partIII": {
+      "items": []
+    },
+    "partIV": {
+      "items": [],
+      "grossTotalAcrossDeductors": "No Transactions Present"
+    },
+    "partV": {
+      "items": [],
+      "grossTotalAcrossBuyers": "No Transactions Present"
+    },
+    "partVI": {
+      "collectors": [] 
+    },
+    "partVII": {
+      "refunds": []
+    },
+    "partVIII": {
+      "items": [],
+      "grossTotalAcrossDeductees": "No Transactions Present"
+    },
+    "partIX": {
+      "items": [],
+      "grossTotalAcrossSellers": "No Transactions Present"
+    },
+    "partX": {
+      "defaults": []
+    },
+    "contactInformation": [],
+    "legends": {
+      "statusOfBooking": [],
+      "remarks": []
+    },
+    "notesForAnnualTaxStatement": [],
+    "sections": [],
+    "minorHead": [],
+    "majorHead": [],
+    "glossary": []
+  }
+} 

@@ -22,7 +22,7 @@
 - - DONE - Section112A - only for indian equity
 - - Schedule BFLA, CYLA - done
 - - number validation - ScheduleS done, ScheduleOS done, ScheduleCG - done
-- - number validation - section112A - done (pending: decimal, paytm entries)
+- - number validation - section112A - done (decimal: done)
 - -  validation - PartB-TI - DONE
 - - [DONE 18 May] validation - partB-TTI - DONE
 - - scheduleCG
@@ -34,6 +34,7 @@
 - TODO add validation
 - TODO schedule AL from previous ITR
 - todo see the working of each section in UI
+- todo section112A paytm entries
 - how to get tax deducted from charles schwab - WIP - needs to verify
 - [] add tests
 

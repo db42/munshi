@@ -453,3 +453,35 @@ export const getCAMSMFCapitalGainData = (pool: Pool) => async (
     return null;
   }
 };
+
+// Get Form 26AS parsed data for a user and assessment year
+export const getForm26ASData = (pool: Pool) => async (
+  userId: number,
+  assessmentYear: string
+): Promise<ParsedDocument | null> => {
+  const query = `
+    SELECT pd.* 
+    FROM parsed_documents pd
+    JOIN documents d ON pd.document_id = d.id
+    WHERE d.owner_id = $1
+    AND d.assessment_year = $2
+    AND pd.json_schema_type = '${DocumentType.FORM_26AS}' // Filter by FORM_26AS
+    AND pd.state = 'success' // Ensure we only get successfully parsed documents
+    ORDER BY pd.updated_at DESC
+    LIMIT 1
+  `;
+
+  try {
+    const result = await executeQuery(pool, query, [userId, assessmentYear]);
+    // Unlike AIS, Form 26AS dates are already expected to be strings in YYYY-MM-DD from the parser, 
+    // so no specific date conversion like in getAISData seems immediately necessary here unless requirements change.
+    return result.rows[0] || null;
+  } catch (error) {
+    logger.error('Error retrieving Form 26AS data:', { 
+        userId,
+        assessmentYear,
+        errorMessage: error instanceof Error ? error.message : String(error) 
+    });
+    return null; // Or throw the error, depending on desired error handling strategy
+  }
+};

@@ -4,8 +4,8 @@ React-based frontend for the Munshi tax filing application.
 
 ## Prerequisites
 
-- Node.js (v18 or later)
-- npm (v8 or later)
+- Node.js (v22 or later)
+- npm (v10 or later)
 
 ## Quick Start
 

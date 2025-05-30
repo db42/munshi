@@ -1,11 +1,16 @@
 import { Form16 } from '../types/form16';
 import { CountryCode, PartAGEN1, ResidentialStatus, StateCode, Status, TaxRescertifiedFlag } from '../types/itr';
 
-export const processPartAGEN1 = (form16: Form16): PartAGEN1 => ({
+export const processPartAGEN1 = (form16: Form16): PartAGEN1 => {
+  const name = form16.employee.name;
+  const nameParts = name.split(' ');
+  const firstName = nameParts[0];
+  const surNameOrOrgName = nameParts.slice(1).join(' ');
+  return {
     PersonalInfo: {
         AssesseeName: {
-            FirstName: form16.employee.name,
-            SurNameOrOrgName: form16.employee.name // You might want to split name properly
+            FirstName: firstName,
+            SurNameOrOrgName: surNameOrOrgName
         },
         PAN: form16.employee.pan,
         Address: {
@@ -32,4 +37,4 @@ export const processPartAGEN1 = (form16: Form16): PartAGEN1 => ({
       ReturnFileSec: 11,
       SeventhProvisio139: TaxRescertifiedFlag.N,
     }
-});
+}};

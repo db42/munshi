@@ -12,6 +12,7 @@ import { parseCharlesSchwabCSV } from '../document-parsers/charlesSchwabCSVParse
 import { parseUSEquityCGStatementCSV } from '../document-parsers/usEquityCGStatementCSVParser';
 import { parseUSEquityDividendCSV } from '../document-parsers/usEquityDividendCSVParser';
 import { parseAISPDFWithGemini } from '../document-parsers/geminiAISPDFParser';
+import { parseForm26ASPDFWithGemini } from '../document-parsers/form26ASPDFParser';
 import { parseCAMSCapitalGainStatement } from '../document-parsers/camsMFCapitalGainParser';
 import { getLogger, ILogger } from '../utils/logger';
 
@@ -183,11 +184,11 @@ router.post('/process', async (req: express.Request, res: express.Response) => {
         break;
       
       case DocumentType.FORM_26AS:
-        // Add parser for form26AS when available
-        return res.status(501).json({
-          message: 'Parser for Form 26AS not yet implemented'
-        });
-      
+        logger.info(`Using Gemini Form 26AS PDF parser for document ${documentId}`);
+        extractedData = await parseForm26ASPDFWithGemini(document.filepath);
+        logger.debug("Extracted Form 26AS data:", JSON.stringify(extractedData, null, 2));
+        break;
+
       case DocumentType.CAMS_MF_CAPITAL_GAIN:
         // Import the CAMS MF Capital Gain parser
         extractedData = await parseCAMSCapitalGainStatement(document.filepath);

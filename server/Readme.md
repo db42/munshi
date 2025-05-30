@@ -4,8 +4,8 @@ Node.js + TypeScript based server for the Munshi tax filing application.
 
 ## Prerequisites
 
-- Node.js (v18 or later)
-- npm (v8 or later)
+- Node.js (v22 or later)
+- npm (v10 or later)
 
 ## Project Structure
 
@@ -86,7 +86,7 @@ server/
 
 1. Install dependencies:
 ```bash
-nvm use 18
+nvm use 22
 cd server
 npm install
 npm run generate-itr-types

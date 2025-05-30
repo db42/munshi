@@ -53,7 +53,12 @@ ITR -> Generate Income sources -> Generate deductions -> Fill Schedule FA -> Val
 
 # MVP
 
-Tech Stack:
+## Prerequisites
+
+- Node.js (v22 or later)
+- npm (v10 or later)
+
+## Tech Stack:
 - Use Typescript in both backend and client
 - Backend: Nodejs based service
 - Client: ReactJS app

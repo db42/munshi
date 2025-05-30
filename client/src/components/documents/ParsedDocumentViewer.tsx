@@ -8,7 +8,8 @@ import {
   USInvestmentIncomeData,
   AISData,
   CAMSMFCapitalGainData,
-  getParsedDataType 
+  Form16Data,
+  Form26ASData
 } from '../../types/parsedDocuments';
 import USEquityStatementViewer from './parsedDocumentViewers/USEquityStatementViewer';
 import USEquityCGStatementViewer from './parsedDocumentViewers/USEquityCGStatementViewer';
@@ -16,6 +17,7 @@ import GenericDocumentViewer from './parsedDocumentViewers/GenericDocumentViewer
 import USInvestmentIncomeViewer from './parsedDocumentViewers/USInvestmentIncomeViewer';
 import AISViewer from './parsedDocumentViewers/AISViewer';
 import CAMSMFCapitalGainViewer from './parsedDocumentViewers/CAMSMFCapitalGainViewer';
+import Form26ASViewer from './parsedDocumentViewers/Form26ASViewer';
 
 interface ParsedDocumentViewerProps {
   documentType: DocumentType;
@@ -57,6 +59,9 @@ const ParsedDocumentViewer: React.FC<ParsedDocumentViewerProps> = ({
     
     case DocumentType.CAMS_MF_CAPITAL_GAIN:
       return <CAMSMFCapitalGainViewer data={parsedData as CAMSMFCapitalGainData} />;
+
+    case DocumentType.FORM_26AS:
+      return <Form26ASViewer data={parsedData as Form26ASData} />;
     
     // Add more specialized viewers as they are implemented
     
