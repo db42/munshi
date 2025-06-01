@@ -2,32 +2,56 @@
   "instructions": "Parse the provided Form 26AS PDF text and structure the extracted data into a JSON object matching the 'AnnualTaxStatement' schema provided below. Ensure all monetary values are numbers, and dates are in YYYY-MM-DD format where applicable, otherwise use the format present in the document. If a section or part mentioned in the schema is not present in the PDF or has no transactions, represent it as an empty array [] for lists of items/transactions/details, or use a specific string like 'No Transactions Present' if that's how the document indicates it for summary fields. Pay close attention to table structures and accurately map them to the corresponding nested arrays in the JSON.",
   "outputSchemaExample": {
     "header": {
-      "dataUpdatedTill": "YYYY-MM-DD",
-      "assessmentYear": "YYYY-YY",
-      "permanentAccountNumberPAN": "XXXXXXXXXX",
+      "dataUpdatedTill": "2024-07-06",
+      "assessmentYear": "2024-25",
+      "permanentAccountNumberPAN": "AQUIB0310M",
       "currentStatusOfPAN": "Active and Operative",
-      "financialYear": "YYYY-YY",
-      "nameOfAssessee": "ASSESSEE NAME",
-      "addressOfAssessee": "Full Address"
+      "financialYear": "2023-24",
+      "nameOfAssessee": "RAVI KUMAR",
+      "addressOfAssessee": "123 Taxpayer Lane, Tax City, TX 12345"
     },
     "partI": {
       "deductors": [
         {
           "srNo": 1,
-          "nameOfDeductor": "Deductor Name",
-          "tanOfDeductor": "TANXXXXXXXXX",
-          "totalAmountPaidCredited": 0,
+          "nameOfDeductor": "Example Bank Ltd.",
+          "tanOfDeductor": "BLRT01234E",
+          "totalAmountPaidCredited": 50000,
+          "totalTaxDeducted": 5000,
+          "totalTDSDeposited": 5000,
+          "transactions": [
+            {
+              "srNo": 1,
+              "section": "194A",
+              "transactionDate": "2023-12-01",
+              "statusOfBooking": "F",
+              "dateOfBooking": "2024-02-03",
+              "remarks": "Interest Payment",
+              "amountPaidCredited": 50000,
+              "taxDeducted": 5000,
+              "tdsDeposited": 5000
+            }
+          ]
+        }
+      ]
+    },
+    "partII": {
+      "items": [
+        {
+          "srNo": 1,
+          "nameOfDeductor": "Example Co for 15G/H",
+          "tanOfDeductor": "BLRT05678F",
+          "totalAmountPaidCredited": 10000,
           "totalTaxDeducted": 0,
           "totalTDSDeposited": 0,
           "transactions": [
             {
               "srNo": 1,
-              "section": "194A",
-              "transactionDate": "YYYY-MM-DD",
-              "statusOfBooking": "F",
-              "dateOfBooking": "YYYY-MM-DD",
-              "remarks": "Some remark",
-              "amountPaidCredited": 0,
+              "section": "194N",
+              "transactionDate": "2023-11-15",
+              "dateOfBooking": "2023-11-20",
+              "remarks": "15G Submitted",
+              "amountPaidCredited": 10000,
               "taxDeducted": 0,
               "tdsDeposited": 0
             }
@@ -35,46 +59,262 @@
         }
       ]
     },
-    "partII": {
-      "items": []
-    },
     "partIII": {
-      "items": []
+      "items": [
+        {
+          "srNo": 1,
+          "nameOfDeductor": "Lottery Winnings Co.",
+          "tanOfDeductor": "BLRT09101G",
+          "totalAmountPaidCredited": 75000,
+          "transactions": [
+            {
+              "srNo": 1,
+              "section": "194B",
+              "transactionDate": "2023-10-20",
+              "statusOfBooking": "F",
+              "remarks": "Lottery Prize",
+              "amountPaidCredited": 75000
+            }
+          ]
+        }
+      ]
     },
     "partIV": {
-      "items": [],
-      "grossTotalAcrossDeductors": "No Transactions Present"
+      "items": [
+        {
+          "srNo": 1,
+          "acknowledgementNumber": "ACK1234567890",
+          "nameOfDeductor": "Property Seller Deductor",
+          "panOfDeductor": "SELPB1234X",
+          "transactionDate": "2023-09-05",
+          "totalTransactionAmount": 5000000,
+          "totalTDSDeposited": 50000,
+          "transactionDetails": [
+            {
+              "srNo": 1,
+              "tdsCertificateNumber": "TDS CERT/194IA/001",
+              "section": "194IA",
+              "dateOfDeposit": "2023-09-10",
+              "statusOfBooking": "F",
+              "dateOfBooking": "2023-09-12",
+              "demandPayment": "0",
+              "tdsDeposited": 50000
+            }
+          ]
+        }
+      ],
+      "grossTotalAcrossDeductors": "Summary if available or 'No Transactions Present'"
     },
     "partV": {
-      "items": [],
-      "grossTotalAcrossBuyers": "No Transactions Present"
+      "items": [
+        {
+          "srNo": 1,
+          "acknowledgementNumber": "ACK0987654321",
+          "nameOfBuyer": "VDA Buyer Name",
+          "panOfBuyer": "BUYPB5678Y",
+          "transactionDate": "2023-08-15",
+          "totalTransactionAmount": 100000,
+          "challanDetails": [
+            {
+              "srNo": 1,
+              "bsrCode": "0000123",
+              "dateOfDeposit": "2023-08-20",
+              "challanSerialNumber": "CHLN001",
+              "totalTaxAmount": 1000,
+              "statusOfBooking": "F"
+            }
+          ]
+        }
+      ],
+      "grossTotalAcrossBuyers": "Summary if available or 'No Transactions Present'"
     },
     "partVI": {
-      "collectors": [] 
+      "collectors": [
+        {
+          "srNo": 1,
+          "nameOfCollector": "ECommerce Operator Inc.",
+          "tanOfCollector": "ECOMT01234A",
+          "totalAmountPaidDebited": 25000,
+          "totalTaxCollected": 250,
+          "totalTCSDeposited": 250,
+          "transactions": [
+            {
+              "srNo": 1,
+              "section": "206C(1H)",
+              "transactionDate": "2023-07-25",
+              "statusOfBooking": "F",
+              "dateOfBooking": "2023-07-30",
+              "remarks": "Sale of Goods",
+              "amountPaidDebited": 25000,
+              "taxCollected": 250,
+              "tcsDeposited": 250
+            }
+          ]
+        }
+      ]
     },
     "partVII": {
-      "refunds": []
+      "refunds": [
+        {
+          "srNo": 1,
+          "assessmentYearRefund": "2022-23",
+          "mode": "Direct Credit",
+          "refundIssued": "2023-06-10",
+          "natureOfRefund": "Income Tax Refund",
+          "amountOfRefund": 12000,
+          "interest": 500,
+          "dateOfPayment": "2023-06-15",
+          "remarks": "Refund Processed"
+        }
+      ]
     },
     "partVIII": {
-      "items": [],
-      "grossTotalAcrossDeductees": "No Transactions Present"
+      "items": [
+        {
+          "srNo": 1,
+          "acknowledgementNumber": "ACKB123450987",
+          "nameOfDeductee": "Property Buyer (Self)",
+          "panOfDeductee": "AQWPB0620M",
+          "transactionDate": "2023-05-10",
+          "totalTransactionAmount": 6000000,
+          "totalTDSDeposited": 60000,
+          "totalAmountDepositedOtherThanTDS": 0,
+          "transactionDetails": [
+            {
+              "srNo": 1,
+              "tdsCertificateNumber": "TDS CERT/BUYER/001",
+              "section": "194IA",
+              "dateOfDeposit": "2023-05-15",
+              "statusOfBooking": "P",
+              "dateOfBooking": "2023-05-17",
+              "demandPayment": "0",
+              "tdsDeposited": 60000,
+              "totalAmountDepositedOtherThanTDSInner": 0
+            }
+          ]
+        }
+      ],
+      "grossTotalAcrossDeductees": "Summary if available or 'No Transactions Present'"
     },
     "partIX": {
-      "items": [],
-      "grossTotalAcrossSellers": "No Transactions Present"
+      "items": [
+        {
+          "srNo": 1,
+          "acknowledgementNumber": "ACKS987650123",
+          "nameOfSeller": "VDA Seller (Self)",
+          "panOfSeller": "AQWPB0620M",
+          "transactionDate": "2023-04-20",
+          "totalTransactionAmount": 150000,
+          "totalAmountDepositedOtherThanTDS": 0,
+          "challanDetails": [
+            {
+              "srNo": 1,
+              "bsrCode": "0000456",
+              "dateOfDeposit": "2023-04-25",
+              "challanSerialNumber": "CHLN002",
+              "totalTaxAmount": 1500,
+              "statusOfBooking": "P",
+              "demandPayment": 0,
+              "totalAmountDepositedOtherThanTDSInner": 0
+            }
+          ]
+        }
+      ],
+      "grossTotalAcrossSellers": "Summary if available or 'No Transactions Present'"
     },
     "partX": {
-      "defaults": []
+      "defaults": [
+        {
+          "srNo": 1,
+          "financialYearDefaults": "2022-23",
+          "shortPaymentOuter": 100,
+          "shortDeductionCollectionOuter": 50,
+          "interestOnTDSTCSPaymentsDefaultOuter": 10,
+          "interestOnTDSTCSDeductionCollectionDefaultOuter": 5,
+          "lateFilingFeeU234EOuter": 200,
+          "interestU220_2Outer": 20,
+          "totalDefaultOuter": 385,
+          "details": [
+            {
+              "srNo": 1,
+              "tan": "DEFTAN001X",
+              "shortPaymentInner": 100,
+              "shortDeductionCollectionInner": 50,
+              "interestOnTDSTCSPaymentsDefaultInner": 10,
+              "interestOnTDSTCSDeductionCollectionDefaultInner": 5,
+              "lateFilingFeeU234EInner": 200,
+              "interestU220_2Inner": 20,
+              "totalDefaultInner": 385
+            }
+          ]
+        }
+      ]
     },
-    "contactInformation": [],
+    "contactInformation": [
+      {
+        "partOfAnnualTaxStatement": "I",
+        "contactInCaseOfAnyClarification": "Deductor"
+      },
+      {
+        "partOfAnnualTaxStatement": "VII",
+        "contactInCaseOfAnyClarification": "Assessing Officer / Bank"
+      }
+    ],
     "legends": {
-      "statusOfBooking": [],
-      "remarks": []
+      "statusOfBooking": [
+        {
+          "legend": "F",
+          "description": "Final",
+          "definition": "Transaction is final. Corresponds to Form 27A generated by deductor."
+        },
+        {
+          "legend": "P",
+          "description": "Provisional",
+          "definition": "Transaction is provisional. Normal TDS/TCS transactions become final only after the deductor files Form 27A."
+        }
+      ],
+      "remarks": [
+        {
+          "legend": "'A'",
+          "description": "Deduction on account of Nil/Lower deduction u/s 197."
+        }
+      ]
     },
-    "notesForAnnualTaxStatement": [],
-    "sections": [],
-    "minorHead": [],
-    "majorHead": [],
-    "glossary": []
+    "notesForAnnualTaxStatement": [
+      "Note 1: This is an example note.",
+      "Note 2: Another example note."
+    ],
+    "sections": [
+      {
+        "section": "194A",
+        "description": "Interest other than 'Interest on securities'"
+      },
+      {
+        "section": "206C(1H)",
+        "description": "TCS on Sale of Goods"
+      }
+    ],
+    "minorHead": [
+      {
+        "code": "200",
+        "description": "TDS/TCS Payable by Taxpayer"
+      }
+    ],
+    "majorHead": [
+      {
+        "code": "0021",
+        "description": "Taxes on Income Other Than Corporation Tax"
+      }
+    ],
+    "glossary": [
+      {
+        "abbreviation": "AY",
+        "description": "Assessment Year"
+      },
+      {
+        "abbreviation": "TAN",
+        "description": "Tax Deduction and Collection Account Number"
+      }
+    ]
   }
 } 

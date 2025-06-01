@@ -4,20 +4,22 @@
 1.5. [done] **Verify Client-Side Upload for Form 26AS**: Ensure the client UI (`DocumentsPortal.tsx`) correctly allows selecting "Form 26AS" and uses the `form26AS` document type identifier during upload.
 2. [done] **Create Form 26AS Parser**:
     *   [done] Add a new file, `server/src/document-parsers/form26ASPDFParser.ts`. This will contain logic to parse Form 26AS PDF (identified by `documentType: 'form26AS'`) and output the `ParsedForm26AS` JSON structure (`AnnualTaxStatement`). (Pending manual testing)
-3. [todo] **Identify and Define ITR Section Types & Merger Logic**:
-    *   [todo] `ScheduleTDS2`: Review and adapt existing merger logic to incorporate Form 26AS data alongside AIS.
-    *   [wip] `ScheduleTCS`:
-        *   [todo] Confirm suitability of existing `ScheduleTCS` type in `server/src/types/itr.ts`. (Current assessment: Needs enhancement for Form 26AS details).
-        *   [todo] Enhance `ScheduleTCS` in `server/src/types/itr.ts` to include collector name, gross amount, total deposited, and transaction-level details.
-        *   [todo] Create a merger function for it in `server/src/generators/itr/itr.ts`.
-    *   [todo] `ScheduleIT`: Review and adapt existing merger logic to incorporate Form 26AS data alongside user input.
-4. [todo] **Create Form 26AS Processor**:
-    *   [todo] Add a new file, `server/src/document-processors/form26ASToITR.ts`. This processor will take `ParsedForm26AS` JSON and convert it into an array of `ITRSection` objects (e.g., `ScheduleTDS2`, `ScheduleTCS`, `ScheduleIT`).
+3. [wip] **Identify and Define ITR Section Types & Merger Logic**:
+    *   [done] `ScheduleTDS1`: Implemented in form26ASToITR.ts with proper section 192 filtering for salary TDS.
+    *   [done] `ScheduleTDS2`: Implemented in form26ASToITR.ts with non-salary TDS processing and proper transaction filtering.
+    *   [done] `ScheduleTCS`: Implemented in form26ASToITR.ts with Part VI collector data processing.
+    *   [done] `ScheduleIT`: Implemented in form26ASToITR.ts with Part III challan payment details processing.
+    *   [done] `ScheduleOS`: Implemented in form26ASToITR.ts with section 194A interest income processing.
+    *   [done] `ScheduleSI`: Implemented in form26ASToITR.ts with special income rates for lottery/horse race winnings.
+    *   [done] `ScheduleS`: Implemented in form26ASToITR.ts with salary data from section 192 transactions.
+    *   [todo] Create merger functions in `server/src/generators/itr/itr.ts` for the new schedules.
+4. [done] **Create Form 26AS Processor**:
+    *   [done] Add a new file, `server/src/document-processors/form26ASToITR.ts`. This processor takes `ParsedForm26AS` JSON and converts it into ITR schedule objects with proper section-based filtering and type safety improvements.
 5. [todo] **Update `parsedDocuments` Service**:
     *   [todo] Add a new method in `server/src/services/parsedDocument.ts` to retrieve parsed Form 26AS data (documents with `documentType: 'form26AS'`).
 6. [todo] **Update ITR Generation Logic (`server/src/generators/itr/itr.ts`)**:
     *   [todo] Add `ITRSectionType.SCHEDULE_TCS` to the `ITRSectionType` enum (if not already present from `ScheduleTCS` type definition).
-    *   [todo] Add the new transformer for `ScheduleTCS` to the `sectionTransformers` object.
+    *   [todo] Add the new transformers for all Form 26AS schedules to the `sectionTransformers` object.
     *   [todo] In the `generateITR` function, add logic to fetch parsed Form 26AS data (via the new `parsedDocuments` service method), call the new `form26ASToITR` processor, and add the resulting `ITRSection` objects to the `sectionsToMerge` array.
 7. [todo] **Update `Readme.md`**:
     *   [todo] Update the project documentation to reflect Form 26AS support, including the new parser and processor files in the project structure overview.

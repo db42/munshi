@@ -48,6 +48,7 @@ Year 2025-26
 - [] pre-filled data from ITR
 
 Phase 2
+- move to flash 2.5
 - agent - tax validation
 - camsMFToITR: this information is also available in camsData.summary. can be used to avoid re-processing the transactions.
 - [] support entering password in AIS

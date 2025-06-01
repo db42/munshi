@@ -12,7 +12,8 @@
         "lint": "eslint . --ext .ts",
         "format": "prettier --write \"src/**/*.ts\"",
         "test": "jest",
-        "test:itr": "node src/tests/eval-itr-test.js"
+        "test:itr": "ts-node src/tests/eval-itr-test.ts",
+        "test:itr:baseline": "ts-node src/tests/eval-itr-test.ts --create-baseline"
     },
     "engines": {
         "node": ">=22.0.0",

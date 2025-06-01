@@ -465,8 +465,7 @@ export const getForm26ASData = (pool: Pool) => async (
     JOIN documents d ON pd.document_id = d.id
     WHERE d.owner_id = $1
     AND d.assessment_year = $2
-    AND pd.json_schema_type = '${DocumentType.FORM_26AS}' // Filter by FORM_26AS
-    AND pd.state = 'success' // Ensure we only get successfully parsed documents
+    AND pd.json_schema_type = '${DocumentType.FORM_26AS}'
     ORDER BY pd.updated_at DESC
     LIMIT 1
   `;

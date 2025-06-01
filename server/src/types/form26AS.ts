@@ -84,27 +84,29 @@ export interface PartIITransaction { // Structure based on column headers if dat
     tdsDeposited: number;
 }
 
-// PART-III - Details of Transactions under Proviso to section 194B/...
+// PART-III - Details of Tax Paid (Other than TDS or TCS) - e.g. Advance Tax, Self Assessment Tax
 export interface PartIIIDetails {
     // If "No Transactions Present", this array will be empty.
-    items: PartIIIEntry[];
+    // This part corresponds to Part C of the physical Form 26AS.
+    items: ChallanPaymentDetail[]; 
 }
 
-export interface PartIIIEntry { // Structure based on column headers if data were present
+// Renamed PartIIIEntry to ChallanPaymentDetail and updated fields
+export interface ChallanPaymentDetail { 
     srNo: number;
-    nameOfDeductor: string;
-    tanOfDeductor: string;
-    totalAmountPaidCredited: number;
-    transactions: PartIIITransaction[];
-}
-
-export interface PartIIITransaction { // Structure based on column headers if data were present
-    srNo: number;
-    section: string;
-    transactionDate: string;
-    statusOfBooking: string;
-    remarks?: string;
-    amountPaidCredited: number;
+    minorHead?: string; // e.g., "200" for Advance Tax, "400" for Self Assessment Tax
+    majorHead?: string; // e.g., "0021" for Income Tax Other Than Companies
+    tax?: number;
+    surcharge?: number;
+    educationCess?: number; // or Health and Education Cess
+    interest?: number;
+    fees?: number;
+    others?: number;
+    totalTaxDeposited: number;
+    bsrCodeOfBankBranch?: string;
+    dateOfDeposit: string; // e.g., "YYYY-MM-DD"
+    challanSerialNumber?: string;
+    remarks?: string; // e.g., "Advance Tax", "Self Assessment Tax"
 }
 
 // PART-IV - Details of Tax Deducted at Source u/s 194IA/194IB/194M/194S

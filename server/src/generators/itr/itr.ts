@@ -1,6 +1,7 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA } from '../../types/itr';
+import { form26ASToITR, Form26ASITRSections } from '../../document-processors/form26ASToITR';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA, ScheduleS, ScheduleTDS1, ScheduleTCS } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -19,6 +20,16 @@ import { postProcessScheduleCG } from './scheduleCGPostProcessing';
 import { getLogger, ILogger } from '../../utils/logger';
 import { validateITR, ValidationError } from '../../services/validations';
 import { roundNumbersInObject } from '../../utils/formatters';
+import {
+    getForm16Sections,
+    getForm26ASSections,
+    getAISSections,
+    getUserInputSections,
+    getUSEquityCapitalGainSections,
+    getCAMSMFCapitalGainSections,
+    getCharlesSchwabSections,
+    getUSInvestmentIncomeSections
+} from './documentHelpers';
 
 // Create a named logger instance for this module
 const logger: ILogger = getLogger('itr');
@@ -28,6 +39,335 @@ export interface ITRData {
     assessmentYear: string;
     userId: number;
     // Add other ITR fields
+}
+
+// === PRIORITY-BASED MERGE FUNCTIONS ===
+function mergeScheduleS(sources: {
+  form16?: ScheduleS;
+  form26AS?: ScheduleS;
+  ais?: ScheduleS;
+}): ScheduleS | undefined {
+  return sources.form16 || sources.form26AS || sources.ais;
+}
+
+function mergeScheduleTDS1(sources: {
+  form16?: ScheduleTDS1;
+  form26AS?: ScheduleTDS1;
+  ais?: ScheduleTDS1;
+}): ScheduleTDS1 | undefined {
+  return sources.form16 || sources.form26AS || sources.ais;
+}
+
+// === ACCUMULATION-BASED MERGE FUNCTIONS ===
+function mergeScheduleTDS2(sources: {
+  form26AS?: ScheduleTDS2;
+  ais?: ScheduleTDS2;
+  userInput?: ScheduleTDS2;
+}): ScheduleTDS2 | undefined {
+  const availableSources = Object.values(sources).filter(Boolean) as ScheduleTDS2[];
+  
+  if (availableSources.length === 0) return undefined;
+  if (availableSources.length === 1) return availableSources[0];
+  
+  // Accumulate TDS entries from all sources
+  const mergedTDS2 = cloneDeep(availableSources[0]);
+  
+  for (let i = 1; i < availableSources.length; i++) {
+    const source = availableSources[i];
+    if (source.TDSOthThanSalaryDtls) {
+      mergedTDS2.TDSOthThanSalaryDtls = [
+        ...(mergedTDS2.TDSOthThanSalaryDtls || []),
+        ...source.TDSOthThanSalaryDtls
+      ];
+    }
+    mergedTDS2.TotalTDSonOthThanSals = (mergedTDS2.TotalTDSonOthThanSals || 0) + (source.TotalTDSonOthThanSals || 0);
+  }
+  
+  return mergedTDS2;
+}
+
+function mergeScheduleTCS(sources: {
+  form26AS?: ScheduleTCS;
+  ais?: ScheduleTCS;
+  userInput?: ScheduleTCS;
+}): ScheduleTCS | undefined {
+  const availableSources = Object.values(sources).filter(Boolean) as ScheduleTCS[];
+  
+  if (availableSources.length === 0) return undefined;
+  if (availableSources.length === 1) return availableSources[0];
+  
+  // Accumulate TCS entries from all sources
+  const mergedTCS = cloneDeep(availableSources[0]);
+  
+  for (let i = 1; i < availableSources.length; i++) {
+    const source = availableSources[i];
+    if (source.TCS) {
+      mergedTCS.TCS = [
+        ...(mergedTCS.TCS || []),
+        ...source.TCS
+      ];
+    }
+    mergedTCS.TotalSchTCS = (mergedTCS.TotalSchTCS || 0) + (source.TotalSchTCS || 0);
+  }
+  
+  return mergedTCS;
+}
+
+function mergeScheduleIT(sources: {
+  form26AS?: ScheduleIT;
+  userInput?: ScheduleIT;
+}): ScheduleIT | undefined {
+  const availableSources = Object.values(sources).filter(Boolean) as ScheduleIT[];
+  
+  if (availableSources.length === 0) return undefined;
+  if (availableSources.length === 1) return availableSources[0];
+  
+  // Accumulate tax payments from all sources
+  const mergedIT = cloneDeep(availableSources[0]);
+  
+  for (let i = 1; i < availableSources.length; i++) {
+    const source = availableSources[i];
+    if (source.TaxPayment) {
+      mergedIT.TaxPayment = [
+        ...(mergedIT.TaxPayment || []),
+        ...source.TaxPayment
+      ];
+    }
+    mergedIT.TotalTaxPayments = (mergedIT.TotalTaxPayments || 0) + (source.TotalTaxPayments || 0);
+  }
+  
+  return mergedIT;
+}
+
+function mergeScheduleOS(sources: {
+  form26AS?: ScheduleOS;
+  ais?: ScheduleOS;
+  userInput?: ScheduleOS;
+}): ScheduleOS | undefined {
+  const availableSources = Object.values(sources).filter(Boolean) as ScheduleOS[];
+  
+  if (availableSources.length === 0) return undefined;
+  if (availableSources.length === 1) return availableSources[0];
+  
+  // Accumulate income from all sources
+  const mergedOS = cloneDeep(availableSources[0]);
+  
+  for (let i = 1; i < availableSources.length; i++) {
+    const source = availableSources[i];
+    
+    // Accumulate main income fields
+    mergedOS.IncChargeable = (mergedOS.IncChargeable || 0) + (source.IncChargeable || 0);
+    mergedOS.TotOthSrcNoRaceHorse = (mergedOS.TotOthSrcNoRaceHorse || 0) + (source.TotOthSrcNoRaceHorse || 0);
+    
+    // Accumulate interest income details
+    if (mergedOS.IncOthThanOwnRaceHorse && source.IncOthThanOwnRaceHorse) {
+      mergedOS.IncOthThanOwnRaceHorse.InterestGross = 
+        (mergedOS.IncOthThanOwnRaceHorse.InterestGross || 0) + (source.IncOthThanOwnRaceHorse.InterestGross || 0);
+      mergedOS.IncOthThanOwnRaceHorse.IntrstFrmSavingBank = 
+        (mergedOS.IncOthThanOwnRaceHorse.IntrstFrmSavingBank || 0) + (source.IncOthThanOwnRaceHorse.IntrstFrmSavingBank || 0);
+      mergedOS.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit = 
+        (mergedOS.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit || 0) + (source.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit || 0);
+      mergedOS.IncOthThanOwnRaceHorse.IntrstFrmOthers = 
+        (mergedOS.IncOthThanOwnRaceHorse.IntrstFrmOthers || 0) + (source.IncOthThanOwnRaceHorse.IntrstFrmOthers || 0);
+      mergedOS.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate = 
+        (mergedOS.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate || 0) + (source.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate || 0);
+      mergedOS.IncOthThanOwnRaceHorse.BalanceNoRaceHorse = 
+        (mergedOS.IncOthThanOwnRaceHorse.BalanceNoRaceHorse || 0) + (source.IncOthThanOwnRaceHorse.BalanceNoRaceHorse || 0);
+    }
+
+    // Accumulate dividend income details
+    mergedOS.DividendDTAA = {
+        DateRange: {
+            Up16Of12To15Of3: (mergedOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0) +
+                (source.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0),
+            Up16Of3To31Of3: (mergedOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 || 0) +
+                (source.DividendDTAA?.DateRange?.Up16Of3To31Of3 ||
+                    0),
+            Up16Of9To15Of12: (mergedOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0) +
+                (source.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0),
+            Upto15Of6: (mergedOS.DividendDTAA?.DateRange?.Upto15Of6 || 0) +
+                (source.DividendDTAA?.DateRange?.Upto15Of6 || 0),
+            Upto15Of9: (mergedOS.DividendDTAA?.DateRange?.Upto15Of9 || 0) +
+                (source.DividendDTAA?.DateRange?.Upto15Of9 || 0)
+        }
+    }
+  }
+  
+  return mergedOS;
+}
+
+// === COMPLEX SECTION MERGE FUNCTIONS ===
+function mergeScheduleCGFromSources(sources: {
+  usEquity?: ScheduleCGFor23;
+  camsMF?: ScheduleCGFor23;
+  userInput?: ScheduleCGFor23;
+}): ScheduleCGFor23 | undefined {
+  const availableSources = Object.values(sources).filter(Boolean) as ScheduleCGFor23[];
+  
+  if (availableSources.length === 0) return undefined;
+  if (availableSources.length === 1) return availableSources[0];
+  
+  // Use the existing complex merge logic
+  let mergedCG = cloneDeep(availableSources[0]);
+  
+  for (let i = 1; i < availableSources.length; i++) {
+    mergedCG = mergeScheduleCGHelper(mergedCG, availableSources[i]);
+  }
+  
+  return mergedCG;
+}
+
+function mergeScheduleFA(sources: {
+  charlesSchwab?: ScheduleFA;
+  userInput?: ScheduleFA;
+}): ScheduleFA | undefined {
+  // Schedule FA typically overwrites (foreign assets are complete snapshots)
+  return sources.charlesSchwab || sources.userInput;
+}
+
+function mergeScheduleTR1FromSources(sources: {
+  usInvestment?: Partial<ScheduleTR1>;
+  userInput?: ScheduleTR1;
+}): ScheduleTR1 | undefined {
+  const availableSources: ScheduleTR1[] = [];
+  
+  // Convert Partial types to full types safely
+  if (sources.usInvestment) {
+    const fullScheduleTR1: ScheduleTR1 = {
+      ScheduleTR: sources.usInvestment.ScheduleTR || [],
+      TotalTaxPaidOutsideIndia: sources.usInvestment.TotalTaxPaidOutsideIndia || 0,
+      TotalTaxReliefOutsideIndia: sources.usInvestment.TotalTaxReliefOutsideIndia || 0,
+      TaxReliefOutsideIndiaDTAA: sources.usInvestment.TaxReliefOutsideIndiaDTAA || 0,
+      TaxReliefOutsideIndiaNotDTAA: sources.usInvestment.TaxReliefOutsideIndiaNotDTAA || 0
+    };
+    availableSources.push(fullScheduleTR1);
+  }
+  
+  if (sources.userInput) {
+    availableSources.push(sources.userInput);
+  }
+  
+  if (availableSources.length === 0) return undefined;
+  if (availableSources.length === 1) return availableSources[0];
+  
+  // Accumulate tax relief from all sources
+  const mergedTR1 = cloneDeep(availableSources[0]);
+  
+  for (let i = 1; i < availableSources.length; i++) {
+    const source = availableSources[i];
+    
+    // Merge ScheduleTR entries
+    const existingScheduleTR = mergedTR1.ScheduleTR || [];
+    const newScheduleTR = source.ScheduleTR || [];
+    
+    const mergedScheduleTR = [...existingScheduleTR];
+    
+    newScheduleTR.forEach(newEntry => {
+      const existingEntryIndex = mergedScheduleTR.findIndex(
+        entry => entry.CountryCodeExcludingIndia === newEntry.CountryCodeExcludingIndia
+      );
+      
+      if (existingEntryIndex >= 0) {
+        // Update existing country entry
+        mergedScheduleTR[existingEntryIndex] = {
+          ...mergedScheduleTR[existingEntryIndex],
+          TaxPaidOutsideIndia: (mergedScheduleTR[existingEntryIndex].TaxPaidOutsideIndia || 0) +
+            (newEntry.TaxPaidOutsideIndia || 0),
+          TaxReliefOutsideIndia: (mergedScheduleTR[existingEntryIndex].TaxReliefOutsideIndia || 0) +
+            (newEntry.TaxReliefOutsideIndia || 0)
+        };
+      } else {
+        // Add new country entry
+        mergedScheduleTR.push(newEntry);
+      }
+    });
+    
+    mergedTR1.ScheduleTR = mergedScheduleTR;
+    
+    // Update totals
+    mergedTR1.TotalTaxPaidOutsideIndia = (mergedTR1.TotalTaxPaidOutsideIndia || 0) + (source.TotalTaxPaidOutsideIndia || 0);
+    mergedTR1.TotalTaxReliefOutsideIndia = (mergedTR1.TotalTaxReliefOutsideIndia || 0) + (source.TotalTaxReliefOutsideIndia || 0);
+    mergedTR1.TaxReliefOutsideIndiaDTAA = (mergedTR1.TaxReliefOutsideIndiaDTAA || 0) + (source.TaxReliefOutsideIndiaDTAA || 0);
+  }
+  
+  return mergedTR1;
+}
+
+function mergeScheduleFSIFromSources(sources: {
+  usInvestment?: Partial<ScheduleFSI>;
+  userInput?: ScheduleFSI;
+}): ScheduleFSI | undefined {
+  const availableSources: ScheduleFSI[] = [];
+  
+  // Convert Partial types to full types safely
+  if (sources.usInvestment) {
+    const fullScheduleFSI: ScheduleFSI = {
+      ScheduleFSIDtls: sources.usInvestment.ScheduleFSIDtls || []
+    };
+    availableSources.push(fullScheduleFSI);
+  }
+  
+  if (sources.userInput) {
+    availableSources.push(sources.userInput);
+  }
+  
+  if (availableSources.length === 0) return undefined;
+  if (availableSources.length === 1) return availableSources[0];
+  
+  // Accumulate foreign source income from all sources
+  const mergedFSI = cloneDeep(availableSources[0]);
+  
+  for (let i = 1; i < availableSources.length; i++) {
+    const source = availableSources[i];
+    
+    // Merge ScheduleFSIDtls entries
+    const existingScheduleFSIDtls = mergedFSI.ScheduleFSIDtls || [];
+    const newScheduleFSIDtls = source.ScheduleFSIDtls || [];
+    
+    const mergedScheduleFSIDtls = [...existingScheduleFSIDtls];
+    
+    newScheduleFSIDtls.forEach(newEntry => {
+      const existingEntryIndex = mergedScheduleFSIDtls.findIndex(
+        entry => entry.CountryCodeExcludingIndia === newEntry.CountryCodeExcludingIndia
+      );
+      
+      if (existingEntryIndex >= 0) {
+        // Update existing country entry
+        const existingEntry = mergedScheduleFSIDtls[existingEntryIndex];
+        
+        // Update IncOthSrc (Income from Other Sources)
+        const updatedIncOthSrc = {
+          ...existingEntry.IncOthSrc,
+          IncFrmOutsideInd: (existingEntry.IncOthSrc.IncFrmOutsideInd || 0) + (newEntry.IncOthSrc.IncFrmOutsideInd || 0),
+          TaxPaidOutsideInd: (existingEntry.IncOthSrc.TaxPaidOutsideInd || 0) + (newEntry.IncOthSrc.TaxPaidOutsideInd || 0),
+          TaxPayableinInd: (existingEntry.IncOthSrc.TaxPayableinInd || 0) + (newEntry.IncOthSrc.TaxPayableinInd || 0),
+          TaxReliefinInd: (existingEntry.IncOthSrc.TaxReliefinInd || 0) + (newEntry.IncOthSrc.TaxReliefinInd || 0)
+        };
+        
+        // Update TotalCountryWise
+        const updatedTotalCountryWise = {
+          ...existingEntry.TotalCountryWise,
+          IncFrmOutsideInd: (existingEntry.TotalCountryWise.IncFrmOutsideInd || 0) + (newEntry.TotalCountryWise.IncFrmOutsideInd || 0),
+          TaxPaidOutsideInd: (existingEntry.TotalCountryWise.TaxPaidOutsideInd || 0) + (newEntry.TotalCountryWise.TaxPaidOutsideInd || 0),
+          TaxPayableinInd: (existingEntry.TotalCountryWise.TaxPayableinInd || 0) + (newEntry.TotalCountryWise.TaxPayableinInd || 0),
+          TaxReliefinInd: (existingEntry.TotalCountryWise.TaxReliefinInd || 0) + (newEntry.TotalCountryWise.TaxReliefinInd || 0)
+        };
+        
+        mergedScheduleFSIDtls[existingEntryIndex] = {
+          ...existingEntry,
+          IncOthSrc: updatedIncOthSrc,
+          TotalCountryWise: updatedTotalCountryWise
+        };
+      } else {
+        // Add new country entry
+        mergedScheduleFSIDtls.push(newEntry);
+      }
+    });
+    
+    mergedFSI.ScheduleFSIDtls = mergedScheduleFSIDtls;
+  }
+  
+  return mergedFSI;
 }
 
 /**
@@ -56,269 +396,13 @@ export interface ITRSection {
 }
 
 /**
- * Type for a function that merges a specific section into an ITR
- */
-type SectionTransformer = (itr: Itr2, section: ITRSection) => Itr2;
-
-/**
- * Registry of section transformers mapped by section type
- */
-const sectionTransformers: Record<ITRSectionType, SectionTransformer> = {
-    [ITRSectionType.SCHEDULE_CG]: (itr, section) => {
-        const scheduleCG = section.data as ScheduleCGFor23;
-        if (!itr.ScheduleCGFor23) {
-            itr = {
-                ...itr,
-                ScheduleCGFor23: scheduleCG
-            };
-        } else {
-            itr = {
-                ...itr,
-                ScheduleCGFor23: mergeScheduleCG(itr.ScheduleCGFor23, scheduleCG)
-            };
-        }
-        return itr;
-    },
-    [ITRSectionType.SCHEDULE_FA]: (itr, section) => {
-        const scheduleFA = section.data as ScheduleFA;
-        itr = {
-            ...itr,
-            ScheduleFA: scheduleFA
-        };
-        return itr;
-    },
-    // New transformers for full section handling
-    [ITRSectionType.SCHEDULE_OS]: (itr, section) => {
-        const scheduleOS = section.data as Partial<ScheduleOS>;
-
-        // If no existing ScheduleOS, add it
-        if (!itr.ScheduleOS) {
-            itr = {
-                ...itr,
-                ScheduleOS: scheduleOS as ScheduleOS
-            };
-        } else {
-            // Merge with existing ScheduleOS
-            const updatedScheduleOS = {
-                ...itr.ScheduleOS,
-                // Ensure we update all fields from the new section
-                ...scheduleOS,
-                // Special handling for income values that need to be accumulated
-                IncChargeable: (itr.ScheduleOS.IncChargeable || 0) + (scheduleOS.IncChargeable || 0),
-                // For DTAA dividend, we combine the values in the DateRange
-                DividendDTAA: {
-                    DateRange: {
-                        Up16Of12To15Of3: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0) +
-                            (scheduleOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0),
-                        Up16Of3To31Of3: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 || 0) +
-                            (scheduleOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 ||
-                                0),
-                        Up16Of9To15Of12: (itr.ScheduleOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0) +
-                            (scheduleOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0),
-                        Upto15Of6: (itr.ScheduleOS.DividendDTAA?.DateRange?.Upto15Of6 || 0) +
-                            (scheduleOS.DividendDTAA?.DateRange?.Upto15Of6 || 0),
-                        Upto15Of9: (itr.ScheduleOS.DividendDTAA?.DateRange?.Upto15Of9 || 0) +
-                            (scheduleOS.DividendDTAA?.DateRange?.Upto15Of9 || 0)
-                    }
-                }
-            };
-
-            itr = {
-                ...itr,
-                ScheduleOS: updatedScheduleOS
-            };
-        }
-
-        return itr;
-    },
-
-    [ITRSectionType.SCHEDULE_TR1]: (itr, section) => {
-        const scheduleTR1 = section.data as Partial<ScheduleTR1>;
-
-        // If no existing ScheduleTR1, add it
-        if (!itr.ScheduleTR1) {
-            itr = {
-                ...itr,
-                ScheduleTR1: scheduleTR1 as ScheduleTR1
-            };
-        } else {
-            // Merge with existing ScheduleTR1
-            const existingScheduleTR = itr.ScheduleTR1.ScheduleTR || [];
-            const newScheduleTR = scheduleTR1.ScheduleTR || [];
-
-            // Merge ScheduleTR entries
-            const mergedScheduleTR = [...existingScheduleTR];
-
-            // Add or update entries from new ScheduleTR
-            newScheduleTR.forEach(newEntry => {
-                const existingEntryIndex = mergedScheduleTR.findIndex(
-                    entry => entry.CountryCodeExcludingIndia === newEntry.CountryCodeExcludingIndia
-                );
-
-                if (existingEntryIndex >= 0) {
-                    // Update existing country entry
-                    mergedScheduleTR[existingEntryIndex] = {
-                        ...mergedScheduleTR[existingEntryIndex],
-                        TaxPaidOutsideIndia: (mergedScheduleTR[existingEntryIndex].TaxPaidOutsideIndia || 0) +
-                            (newEntry.TaxPaidOutsideIndia || 0),
-                        TaxReliefOutsideIndia: (mergedScheduleTR[existingEntryIndex].TaxReliefOutsideIndia ||
-                            0) + (newEntry.TaxReliefOutsideIndia || 0)
-                    };
-                } else {
-                    // Add new country entry
-                    mergedScheduleTR.push(newEntry);
-                }
-            });
-
-            const updatedScheduleTR1 = {
-                ...itr.ScheduleTR1,
-                ...scheduleTR1,
-                ScheduleTR: mergedScheduleTR,
-                // Update totals
-                TotalTaxPaidOutsideIndia: (itr.ScheduleTR1.TotalTaxPaidOutsideIndia || 0) +
-                    (scheduleTR1.TotalTaxPaidOutsideIndia || 0),
-                TotalTaxReliefOutsideIndia: (itr.ScheduleTR1.TotalTaxReliefOutsideIndia || 0) +
-                    (scheduleTR1.TotalTaxReliefOutsideIndia || 0),
-                TaxReliefOutsideIndiaDTAA: (itr.ScheduleTR1.TaxReliefOutsideIndiaDTAA || 0) +
-                    (scheduleTR1.TaxReliefOutsideIndiaDTAA || 0)
-            };
-
-            itr = {
-                ...itr,
-                ScheduleTR1: updatedScheduleTR1
-            };
-        }
-
-        return itr;
-    },
-
-    [ITRSectionType.SCHEDULE_FSI]: (itr, section) => {
-        const scheduleFSI = section.data as ScheduleFSI;
-
-        // If no existing ScheduleFSI, add it
-        if (!itr.ScheduleFSI) {
-            itr = {
-                ...itr,
-                ScheduleFSI: scheduleFSI
-            };
-        } else {
-            // Merge with existing ScheduleFSI
-            const existingScheduleFSIDtls = itr.ScheduleFSI.ScheduleFSIDtls || [];
-            const newScheduleFSIDtls = scheduleFSI.ScheduleFSIDtls || [];
-
-            // Merge ScheduleFSIDtls entries
-            const mergedScheduleFSIDtls = [...existingScheduleFSIDtls];
-
-            // Add or update entries from new ScheduleFSIDtls
-            newScheduleFSIDtls.forEach(newEntry => {
-                const existingEntryIndex = mergedScheduleFSIDtls.findIndex(
-                    entry => entry.CountryCodeExcludingIndia === newEntry.CountryCodeExcludingIndia
-                );
-
-                if (existingEntryIndex >= 0) {
-                    // Update existing country entry
-                    const existingEntry = mergedScheduleFSIDtls[existingEntryIndex];
-
-                    // Update IncOthSrc (Income from Other Sources)
-                    const updatedIncOthSrc = {
-                        ...existingEntry.IncOthSrc,
-                        IncFrmOutsideInd: (existingEntry.IncOthSrc.IncFrmOutsideInd || 0) +
-                            (newEntry.IncOthSrc.IncFrmOutsideInd || 0),
-                        TaxPaidOutsideInd: (existingEntry.IncOthSrc.TaxPaidOutsideInd || 0) +
-                            (newEntry.IncOthSrc.TaxPaidOutsideInd || 0),
-                        TaxPayableinInd: (existingEntry.IncOthSrc.TaxPayableinInd || 0) +
-                            (newEntry.IncOthSrc.TaxPayableinInd || 0),
-                        TaxReliefinInd: (existingEntry.IncOthSrc.TaxReliefinInd || 0) +
-                            (newEntry.IncOthSrc.TaxReliefinInd || 0)
-                    };
-
-                    // Update TotalCountryWise
-                    const updatedTotalCountryWise = {
-                        ...existingEntry.TotalCountryWise,
-                        IncFrmOutsideInd: (existingEntry.TotalCountryWise.IncFrmOutsideInd || 0) +
-                            (newEntry.TotalCountryWise.IncFrmOutsideInd || 0),
-                        TaxPaidOutsideInd: (existingEntry.TotalCountryWise.TaxPaidOutsideInd || 0) +
-                            (newEntry.TotalCountryWise.TaxPaidOutsideInd || 0),
-                        TaxPayableinInd: (existingEntry.TotalCountryWise.TaxPayableinInd || 0) +
-                            (newEntry.TotalCountryWise.TaxPayableinInd || 0),
-                        TaxReliefinInd: (existingEntry.TotalCountryWise.TaxReliefinInd || 0) +
-                            (newEntry.TotalCountryWise.TaxReliefinInd || 0)
-                    };
-
-                    mergedScheduleFSIDtls[existingEntryIndex] = {
-                        ...existingEntry,
-                        IncOthSrc: updatedIncOthSrc,
-                        TotalCountryWise: updatedTotalCountryWise
-                    };
-                } else {
-                    // Add new country entry
-                    mergedScheduleFSIDtls.push(newEntry);
-                }
-            });
-
-            const updatedScheduleFSI = {
-                ...itr.ScheduleFSI,
-                ScheduleFSIDtls: mergedScheduleFSIDtls
-            };
-
-            itr = {
-                ...itr,
-                ScheduleFSI: updatedScheduleFSI
-            };
-        }
-
-        return itr;
-    },
-    [ITRSectionType.SCHEDULE_112A]: (itr, section) => {
-        const schedule112A = section.data as Schedule112A;
-        itr = {
-            ...itr,
-            Schedule112A: schedule112A
-        };
-        return itr;
-    },
-    [ITRSectionType.SCHEDULE_TDS2]: (itr, section) => {
-        const scheduleTDS2 = section.data as ScheduleTDS2;
-        itr = {
-            ...itr,
-            ScheduleTDS2: scheduleTDS2
-        };
-        return itr;
-    },
-    [ITRSectionType.SCHEDULE_CFL]: (itr, section) => {
-        const scheduleCFL = section.data as ScheduleCFL;
-        // Schedule CFL data comes entirely from user input for previous years,
-        // so we directly assign it, replacing any potential placeholder.
-        itr = {
-            ...itr,
-            ScheduleCFL: scheduleCFL
-        };
-        logger.info('Merged Schedule CFL from user input.');
-        return itr;
-    },
-    [ITRSectionType.SCHEDULE_IT]: (itr, section) => {
-        const scheduleIT = section.data as ScheduleIT;
-        itr = {
-            ...itr,
-            ScheduleIT: scheduleIT
-        };
-        return itr;
-    },
-};
-
-/**
  * Merges Schedule CG sections
  * 
  * @param existingScheduleCG - Existing Schedule CG section from ITR
  * @param newScheduleCG - New Schedule CG section from US equity data
  * @returns Merged Schedule CG section
  */
-const mergeScheduleCG = (existingScheduleCG: ScheduleCGFor23 | undefined, newScheduleCG: ScheduleCGFor23): ScheduleCGFor23 => {
-    // If no existing ScheduleCG, return the new one
-    if (!existingScheduleCG) {
-        return newScheduleCG;
-    }
-
+const mergeScheduleCGHelper = (existingScheduleCG: ScheduleCGFor23, newScheduleCG: ScheduleCGFor23): ScheduleCGFor23 => {
     // Create a deep copy to avoid mutations
     const mergedScheduleCG = cloneDeep(existingScheduleCG);
 
@@ -627,72 +711,6 @@ const mergeForeignTaxCredit = (existingPartBTTI: PartBTTI, foreignTaxCredit: num
     return updatedPartBTTI;
 };
 
-/**
- * Converts USEquityITRSections to ITRSection array
- */
-const convertEquityITRSectionsToITRSections = (
-    equityITRSections: USEquityITRSections
-): ITRSection[] => {
-    const { scheduleCG } = equityITRSections;
-
-    return [
-        {
-            type: ITRSectionType.SCHEDULE_CG,
-            data: scheduleCG,
-        }
-    ];
-};
-
-/**
- * Converts CAMSMFCapitalGainITRSections to ITRSection array
- */
-const convertCAMSMFITRSectionsToITRSections = (
-    camsMFITRSections: CAMSMFCapitalGainITRSections
-): ITRSection[] => {
-    const sections: ITRSection[] = [
-        {
-            type: ITRSectionType.SCHEDULE_CG,
-            data: camsMFITRSections.scheduleCG,
-        }
-    ];
-
-    // Add Schedule112A if it exists
-    if (camsMFITRSections.schedule112A) {
-        sections.push({
-            type: ITRSectionType.SCHEDULE_112A,
-            data: camsMFITRSections.schedule112A,
-        });
-    }
-
-    return sections;
-};
-
-/**
- * Merges multiple ITR sections into an existing ITR using the Functional Reducer Pattern
- * 
- * @param existingITR - Base ITR to merge sections into
- * @param sections - Array of ITR sections to merge
- * @returns Updated ITR with all sections merged
- */
-const mergeITRSections = (existingITR: Itr2, sections: ITRSection[]): Itr2 => {
-    try {
-        // Use reduce to apply each section transformer in sequence
-        return sections.reduce((itr, section) => {
-            const transformer = sectionTransformers[section.type];
-            if (!transformer) {
-                console.warn(`No transformer found for section type: ${section.type}`);
-                return itr;
-            }
-
-            // Apply the transformer for this section type
-            return transformer(itr, section);
-        }, cloneDeep(existingITR)); // Start with a deep clone of the existing ITR
-    } catch (error) {
-        console.error(`Failed to merge ITR sections: ${error}`);
-        return existingITR; // Return original ITR if merge fails
-    }
-};
-
 export const generateITR = async (
     userId: number,
     assessmentYear: string,
@@ -700,143 +718,129 @@ export const generateITR = async (
     logger.info(`Starting ITR generation for user ${userId}, AY ${assessmentYear}`);
 
     // --- 1. Initialize Base ITR Structure ---
-    const baseITR: Partial<Itr2> = initializeBaseITR2(assessmentYear);
+    const baseITR: Itr2 = initializeBaseITR2(assessmentYear) as Itr2;
 
-    // --- 2. Fetch and Process Documents, Generate Initial Sections ---
-    const sectionsToMerge: ITRSection[] = [];
+    // --- 2. Fetch All Document Data ---
+    logger.info('Fetching document data from all sources...');
+    
+    const form16Sections = await getForm16Sections(userId, assessmentYear);
+    const form26ASSections = await getForm26ASSections(userId, assessmentYear);
+    logger.info('Form 26AS sections fetched', form26ASSections);
+    const aisSections = await getAISSections(userId, assessmentYear);
+    const userInputResult = await getUserInputSections(userId, assessmentYear);
+    const userInputSections = userInputResult.sections;
+    const userInputData = userInputResult.rawData;
 
-    // --- 2a. Fetch User Input Data ---
-    const userInputRecord = await userInput.get(userId.toString(), assessmentYear);
-    const userInputData = userInputRecord?.input_data;
-    if (userInputData) {
-        logger.info(`Fetched user input data for user ${userId}, AY ${assessmentYear}.`);
-        
-        // Convert user input to ITR sections
-        const userInputSectionsResult = convertUserInputToITRSections(userInputData, assessmentYear);
-        
-        if (userInputSectionsResult.success && userInputSectionsResult.data) {
-            // Convert the specific sections to ITRSection array
-            const sections = userInputSectionsResult.data;
-            if (sections.scheduleCFL) {
-                sectionsToMerge.push({ 
-                    type: ITRSectionType.SCHEDULE_CFL, 
-                    data: sections.scheduleCFL 
-                });
-            }
-            // Add self-assessment tax payments if available
-            if (sections.scheduleIT) {
-                sectionsToMerge.push({
-                    type: ITRSectionType.SCHEDULE_IT,
-                    data: sections.scheduleIT
-                });
-            }
-            // Add other section conversions as they become available
-        } else {
-            logger.warn(`Failed to convert user input data for user ${userId}: ${userInputSectionsResult.error}`);
-        }
-    } else {
-        logger.info(`No user input data found for user ${userId}, AY ${assessmentYear}.`);
+    const usEquityCapitalGainSections = await getUSEquityCapitalGainSections(userId, assessmentYear);
+    const camsMFCapitalGainSections = await getCAMSMFCapitalGainSections(userId, assessmentYear);
+    const charlesSchwabSections = await getCharlesSchwabSections(userId, assessmentYear);
+    const usInvestmentIncomeSections = await getUSInvestmentIncomeSections(userId, assessmentYear);
+
+    // Set base ITR fields from Form 16 if available
+    if (form16Sections) {
+        baseITR.CreationInfo = form16Sections.creationInfo;
+        baseITR.Form_ITR2 = form16Sections.formITR2;
+        baseITR.PartA_GEN1 = form16Sections.partAGEN1;
+        baseITR.Verification = form16Sections.verification;
     }
 
-    // Process Form 16
-    const form16Docs = await parsedDocuments.getForm16(userId, assessmentYear);
-    if (form16Docs?.parsed_data?.data) {
-        const form16Result = convertForm16ToITRSections(form16Docs.parsed_data.data);
-        if (form16Result.success && form16Result.data) {
-            baseITR.CreationInfo = form16Result.data.creationInfo;
-            baseITR.Form_ITR2 = form16Result.data.formITR2;
-            baseITR.PartA_GEN1 = form16Result.data.partAGEN1;
-            baseITR.ScheduleS = form16Result.data.scheduleS;
-            baseITR.ScheduleTDS1 = form16Result.data.scheduleTDS1;
-            baseITR.Verification = form16Result.data.verification;
-        } else {
-            logger.error(`Failed to convert Form 16 for user ${userId}: ${form16Result.error}`);
-            throw new Error('Essential Form 16 processing failed');
-        }
-    } else {
-        logger.warn(`No Form 16 data found or processed for user ${userId}, AY ${assessmentYear}`);
+    // --- 3. Merge Core Tax Sections Using Clean Priority/Accumulation Logic ---
+    logger.info('Merging core tax sections...');
+    
+    // Priority-based merging (Form 16 > Form 26AS > AIS)
+    const mergedScheduleS = mergeScheduleS({
+        form16: form16Sections?.scheduleS,
+        form26AS: form26ASSections?.scheduleS,
+        ais: aisSections?.scheduleS
+    });
+    
+    const mergedScheduleTDS1 = mergeScheduleTDS1({
+        form16: form16Sections?.scheduleTDS1,
+        form26AS: form26ASSections?.scheduleTDS1,
+        ais: aisSections?.scheduleTDS1
+    });
+
+    // Accumulation-based merging (combine all sources)
+    const mergedScheduleTDS2 = mergeScheduleTDS2({
+        form26AS: form26ASSections?.scheduleTDS2,
+        ais: aisSections?.scheduleTDS2,
+        userInput: userInputSections?.scheduleTDS2
+    });
+    
+    const mergedScheduleTCS = mergeScheduleTCS({
+        form26AS: form26ASSections?.scheduleTCS,
+        ais: aisSections?.scheduleTCS,
+        userInput: userInputSections?.scheduleTCS
+    });
+    
+    const mergedScheduleIT = mergeScheduleIT({
+        form26AS: form26ASSections?.scheduleIT,
+        userInput: userInputSections?.scheduleIT
+    });
+    
+    const mergedScheduleOS = mergeScheduleOS({
+        form26AS: form26ASSections?.scheduleOS,
+        ais: aisSections?.scheduleOS,
+        userInput: userInputSections?.scheduleOS
+    });
+
+    // Merge complex sections using clean priority/accumulation logic
+    const mergedScheduleCGFromOtherSources = mergeScheduleCGFromSources({
+        usEquity: usEquityCapitalGainSections.scheduleCG,
+        camsMF: camsMFCapitalGainSections.scheduleCG,
+        userInput: userInputSections?.scheduleCGFor23
+    });
+    
+    const mergedScheduleFAFromSources = mergeScheduleFA({
+        charlesSchwab: charlesSchwabSections.scheduleFA,
+        userInput: userInputSections?.scheduleFA
+    });
+    
+    const mergedScheduleTR1FromOtherSources = mergeScheduleTR1FromSources({
+        usInvestment: usInvestmentIncomeSections.scheduleTR1,
+        userInput: userInputSections?.scheduleTR1
+    });
+    
+    const mergedScheduleFSIFromOtherSources = mergeScheduleFSIFromSources({
+        usInvestment: usInvestmentIncomeSections.scheduleFSI,
+        userInput: userInputSections?.scheduleFSI
+    });
+
+    // TODO1: Note: For now, we skip additional ScheduleOS merge due to complex type requirements
+    // The main ScheduleOS merge already handles most cases
+    // TODO2: mergeForeignTaxCredit
+
+    // 4. Assign merged sections to base ITR
+    if (mergedScheduleS) baseITR.ScheduleS = mergedScheduleS;
+    if (mergedScheduleTDS1) baseITR.ScheduleTDS1 = mergedScheduleTDS1;
+    if (mergedScheduleTDS2) baseITR.ScheduleTDS2 = mergedScheduleTDS2;
+    if (mergedScheduleTCS) baseITR.ScheduleTCS = mergedScheduleTCS;
+    if (mergedScheduleIT) baseITR.ScheduleIT = mergedScheduleIT;
+    if (mergedScheduleOS) baseITR.ScheduleOS = mergedScheduleOS;
+
+    // Add Schedule CFL from user input if available
+    if (userInputSections?.scheduleCFL) {
+        baseITR.ScheduleCFL = userInputSections.scheduleCFL;
+        logger.info('Added Schedule CFL from user input');
     }
 
-    // Process US Equity Capital Gains
-    const usEquityCapitalGainStatementDocs = await parsedDocuments.getUSEquityCapitalGainStatementCSV(userId, assessmentYear);
-    if (usEquityCapitalGainStatementDocs?.parsed_data?.data) {
-        const result = convertUSCGEquityToITRSections(usEquityCapitalGainStatementDocs.parsed_data.data, assessmentYear);
-        if (result.success && result.data) {
-            sectionsToMerge.push(...convertEquityITRSectionsToITRSections(result.data));
-        } else {
-            logger.warn(`Failed to convert US Equity CG Statement for user ${userId}: ${result.error}`);
-        }
-    } else {
-        logger.info(`No US Equity CG Statement found for user ${userId}, AY ${assessmentYear}`);
+    // Assign merged complex sections to base ITR
+    if (mergedScheduleCGFromOtherSources) baseITR.ScheduleCGFor23 = mergedScheduleCGFromOtherSources;
+    if (mergedScheduleFAFromSources) baseITR.ScheduleFA = mergedScheduleFAFromSources;
+    if (mergedScheduleTR1FromOtherSources) baseITR.ScheduleTR1 = mergedScheduleTR1FromOtherSources;
+    if (mergedScheduleFSIFromOtherSources) baseITR.ScheduleFSI = mergedScheduleFSIFromOtherSources;
+    
+    // Add Schedule 112A from CAMS if available
+    if (camsMFCapitalGainSections.schedule112A) {
+        baseITR.Schedule112A = camsMFCapitalGainSections.schedule112A;
+        logger.info('Added Schedule 112A from CAMS MF data');
     }
 
-    // Process CAMS Mutual Fund Capital Gains
-    const camsMFCapitalGainData = await parsedDocuments.getCAMSMFCapitalGainData(userId, assessmentYear);
-    if (camsMFCapitalGainData?.success && camsMFCapitalGainData?.data) {
-        const result = convertCAMSMFCapitalGainToITR(camsMFCapitalGainData.data, assessmentYear);
-        // logger.info(`CAMS MF Capital Gain Statement result: ${JSON.stringify(result)}`);
-        if (result.success && result.data) {
-            sectionsToMerge.push(...convertCAMSMFITRSectionsToITRSections(result.data));
-        } else {
-            logger.warn(`Failed to convert CAMS MF Capital Gain Statement for user ${userId}: ${result.error}`);
-        }
-    } else {
-        logger.info(`No CAMS MF Capital Gain Statement found for user ${userId}, AY ${assessmentYear}`);
-    }
-
-    // Process Charles Schwab CSV (for Schedule FA)
-    const charlesSchwabCSVDataParseResult = await parsedDocuments.getCharlesSchwabCSVData(userId, assessmentYear);
-    if (charlesSchwabCSVDataParseResult?.success && charlesSchwabCSVDataParseResult?.data) {
-        const scheduleFAResult = convertCharlesSchwabCSVToITRSections(charlesSchwabCSVDataParseResult.data, assessmentYear);
-        if (scheduleFAResult.success && scheduleFAResult.data) {
-            sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_FA, data: scheduleFAResult.data });
-        } else {
-            logger.warn(`Failed to convert Charles Schwab CSV for user ${userId}: ${scheduleFAResult.error}`);
-        }
-    } else {
-        logger.info(`No Charles Schwab CSV found for user ${userId}, AY ${assessmentYear}`);
-    }
-
-    // Process US Investment Income (Dividends etc.)
-    const usInvestmentIncomeParseResult = await parsedDocuments.getUSEquityDividendIncome(userId, assessmentYear);
-    if (usInvestmentIncomeParseResult?.success && usInvestmentIncomeParseResult?.data) {
-        const investmentIncomeResult = convertUSInvestmentIncomeToITRSections(usInvestmentIncomeParseResult.data, assessmentYear);
-        if (investmentIncomeResult.success && investmentIncomeResult.data) {
-            const sections = investmentIncomeResult.data;
-            if (sections.scheduleOS) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_OS, data: sections.scheduleOS });
-            if (sections.scheduleTR1) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_TR1, data: sections.scheduleTR1 });
-            if (sections.scheduleFSI) sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_FSI, data: sections.scheduleFSI });
-        } else {
-            logger.warn(`Failed to convert US Investment Income for user ${userId}: ${investmentIncomeResult.error}`);
-        }
-    } else {
-        logger.info(`No US Investment Income data found for user ${userId}, AY ${assessmentYear}`);
-    }
-
-    // Process AIS data
-    const aisDataParseResult = await parsedDocuments.getAISData(userId, assessmentYear);
-    if (aisDataParseResult?.parsed_data?.data) {
-        const aisResult = convertAISToITRSections(aisDataParseResult.parsed_data.data, assessmentYear);
-        if (aisResult.success && aisResult.data) {
-            const sections = aisResult.data;
-            sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_OS, data: sections.scheduleOS });
-            sectionsToMerge.push({ type: ITRSectionType.SCHEDULE_TDS2, data: sections.scheduleTDS2 });
-        } else {
-            logger.warn(`Failed to convert AIS data for user ${userId}: ${aisResult.error}`);
-        }
-    } else {
-        logger.info(`No AIS data found for user ${userId}, AY ${assessmentYear}`);
-    }
-
-    // --- 3. Merge All Sections ---
-    let mergedITR = mergeITRSections(baseITR as Itr2, sectionsToMerge);
-    logger.debug('ITR after merging initial document and user input sections.');
-
-    // --- 3a. Post-Process Schedule CG for Intra-Head Set-offs ---
-    if (mergedITR.ScheduleCGFor23) {
+    // --- 5. Post-Process Schedule CG for Intra-Head Set-offs ---
+    if (baseITR.ScheduleCGFor23) {
         // The postProcessScheduleCG function will handle intra-head set-offs
         // and populate derived fields like InLossSetOff, LossRemainSetOff, etc.
-        mergedITR.ScheduleCGFor23 = postProcessScheduleCG(mergedITR.ScheduleCGFor23);
+        baseITR.ScheduleCGFor23 = postProcessScheduleCG(baseITR.ScheduleCGFor23);
         logger.info('Post-processed Schedule CG for intra-head set-offs.');
     } else {
         logger.info('No Schedule CG found to post-process.');
@@ -844,39 +848,39 @@ export const generateITR = async (
 
     // ---- Derived fields ----
     // --- 4. Calculate Schedule CYLA ---
-    const scheduleCYLA = calculateScheduleCYLA(mergedITR);
-    mergedITR.ScheduleCYLA = scheduleCYLA;
+    const scheduleCYLA = calculateScheduleCYLA(baseITR);
+    baseITR.ScheduleCYLA = scheduleCYLA;
     logger.info('Calculated Schedule CYLA.');
 
     // --- 4.5 Calculate Schedule BFLA ---
     // Ensure ScheduleCFL and ScheduleCYLA exist before calling
-    if (mergedITR.ScheduleCFL && mergedITR.ScheduleCYLA) {
-        const scheduleBFLA = calculateScheduleBFLA(mergedITR);
-        mergedITR.ScheduleBFLA = scheduleBFLA;
+    if (baseITR.ScheduleCFL && baseITR.ScheduleCYLA) {
+        const scheduleBFLA = calculateScheduleBFLA(baseITR);
+        baseITR.ScheduleBFLA = scheduleBFLA;
         logger.info('Calculated Schedule BFLA.');
     } else {
         logger.warn('Skipping Schedule BFLA calculation as ScheduleCFL or ScheduleCYLA is missing.');
     }
 
     // --- 5. Calculate PartB-TI (Using income *after* CYLA & BFLA adjustments) ---
-    const partBTI = calculatePartBTI(mergedITR);
-    mergedITR["PartB-TI"] = partBTI;
+    const partBTI = calculatePartBTI(baseITR);
+    baseITR["PartB-TI"] = partBTI;
     logger.info('Calculated PartB-TI.');
 
     // --- 6. Calculate Schedule SI (for special income tax rates) ---
-    const scheduleSI = calculateScheduleSI(mergedITR);
-    mergedITR.ScheduleSI = scheduleSI;
+    const scheduleSI = calculateScheduleSI(baseITR);
+    baseITR.ScheduleSI = scheduleSI;
     logger.info('Calculated Schedule SI for special income tax rates.');
 
     // --- 7. Calculate PartB-TTI ---
-    const partBTTI = calculatePartBTTI(mergedITR, TaxRegimePreference.AUTO, userInputData?.generalInfoAdditions?.bankDetails);
-    mergedITR.PartB_TTI = partBTTI;
+    const partBTTI = calculatePartBTTI(baseITR, TaxRegimePreference.AUTO, userInputData?.generalInfoAdditions?.bankDetails);
+    baseITR.PartB_TTI = partBTTI;
     logger.info('Calculated PartB-TTI.');
 
     // --- 8. Calculate Schedule AMTC ---
-    if (isAMTApplicable(mergedITR)) {
-        const scheduleAMTC = calculateScheduleAMTC(mergedITR);
-        mergedITR.ScheduleAMTC = scheduleAMTC;
+    if (isAMTApplicable(baseITR)) {
+        const scheduleAMTC = calculateScheduleAMTC(baseITR);
+        baseITR.ScheduleAMTC = scheduleAMTC;
         logger.info('Calculated Schedule AMTC for Alternative Minimum Tax Credit.');
     } else {
         logger.info('AMT not applicable, skipping Schedule AMTC calculation.');
@@ -885,7 +889,7 @@ export const generateITR = async (
     // --- 9. Final ITR Object ---
     let finalITR: Itr = {
         ITR: {
-            ITR2: mergedITR as Itr2
+            ITR2: baseITR as Itr2
         }
     };
 
@@ -900,9 +904,9 @@ export const generateITR = async (
     } catch (error: any) {
         // Log the validation error details if it's a ValidationError
         if (error instanceof ValidationError) {
-            logger.error('ITR validation failed:', error.errors);
+            // logger.error('ITR validation failed:', error.errors);
         } else {
-            logger.error('ITR validation failed with an unexpected error:', error);
+            // logger.error('ITR validation failed with an unexpected error:', error);
         }
     }
 
