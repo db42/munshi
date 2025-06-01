@@ -5,7 +5,7 @@ import { Label } from '../ui/label';
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
 import { AlertCircle, Building, Home, Coffee } from 'lucide-react';
 import { getNestedValue } from '../../../utils/helpers';
-import { Itr } from '../../../types/itr';
+import { Itr, Salaries, PropertyDetails, ScheduleOS } from '../../../types/itr';
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
@@ -22,7 +22,7 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
   // Safely access the ITR data
   const scheduleS = itrData.ITR?.ITR2?.ScheduleS;
   const scheduleHP = itrData.ITR?.ITR2?.ScheduleHP;
-  const scheduleOS = itrData.ITR?.ITR2?.ScheduleOS as any; // Cast to any to avoid type errors
+  const scheduleOS = itrData.ITR?.ITR2?.ScheduleOS as ScheduleOS | undefined;
 
   // Get the official total salary income from Part B-TI instead of calculating it manually
   const totalSalaryIncome = itrData.ITR?.ITR2?.["PartB-TI"]?.Salaries || 0;
@@ -71,13 +71,13 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {Array.isArray(scheduleS) && scheduleS.length > 0 ? (
+              {Array.isArray(scheduleS?.Salaries) && scheduleS?.Salaries?.length > 0 ? (
                 <div className="space-y-6">
-                  {scheduleS.map((employer: any, index: number) => (
+                  {scheduleS.Salaries.map((employer: Salaries, index: number) => (
                     <div key={index} className="space-y-4 p-4 border rounded-md mb-4 bg-slate-50">
                       <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{employer?.employerName || 'Employer'}</h4>
-                        <Badge variant="outline" className="px-2">TAN: {employer?.employerTan || 'N/A'}</Badge>
+                        <h4 className="font-medium">{employer?.NameOfEmployer || 'Employer'}</h4>
+                        <Badge variant="outline" className="px-2">TAN: {employer?.TANofEmployer || 'N/A'}</Badge>
                       </div>
                       <Separator />
                       <Table>
@@ -90,23 +90,19 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
                         <TableBody>
                           <TableRow>
                             <TableCell>Gross Salary</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.grossSalary) || 0)}</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.GrossSalary || 0)}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell>Exempt Allowances</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.exemptAllowances) || 0)}</TableCell>
+                            <TableCell>Salary</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.Salary || 0)}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell>Deductions u/s 16</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.deductions16) || 0)}</TableCell>
-                          </TableRow>
-                          <TableRow className="font-medium">
-                            <TableCell>Net Salary</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.salary?.netSalary) || 0)}</TableCell>
+                            <TableCell>Perquisites</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.ValueOfPerquisites || 0)}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell>TDS on Salary</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(parseFloat(employer?.tdsDetails?.tdsSalary) || 0)}</TableCell>
+                            <TableCell>Profits in lieu of Salary</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.ProfitsinLieuOfSalary || 0)}</TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
@@ -136,27 +132,27 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {Array.isArray(scheduleHP) && scheduleHP.length > 0 ? (
+              {Array.isArray(scheduleHP?.PropertyDetails) && scheduleHP.PropertyDetails.length > 0 ? (
                 <div className="space-y-6">
-                  {scheduleHP.map((property: any, index: number) => {
+                  {scheduleHP.PropertyDetails.map((property: PropertyDetails, index: number) => {
                     // Calculate net income from house property
-                    const annualValue = parseFloat(property?.incomeDetails?.rentReceived) || 0;
-                    const municipalTax = parseFloat(property?.incomeDetails?.municipalTax) || 0;
-                    const interestPaid = parseFloat(property?.incomeDetails?.interestPaid) || 0;
-                    const netIncome = annualValue - municipalTax - interestPaid;
+                    const annualValue = property?.Rentdetails?.AnnualOfPropOwned || 0;
+                    const localTaxes = property?.Rentdetails?.LocalTaxes || 0;
+                    const interestPaid = property?.Rentdetails?.IntOnBorwCap || 0;
+                    const netIncome = property?.Rentdetails?.IncomeOfHP || 0;
                     
                     return (
                       <div key={index} className="space-y-4 p-4 border rounded-md mb-4 bg-slate-50">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium">
-                            {property?.propertyType || 'Property'} {index + 1}
+                            Property {index + 1}
                           </h4>
                           <Badge variant={netIncome >= 0 ? "default" : "destructive"}>
                             Net: {formatCurrencyINR(netIncome)}
                           </Badge>
                         </div>
                         <p className="text-sm text-gray-600">
-                          {property?.address?.fullAddress || 'Address not specified'}
+                          {property?.AddressDetailWithZipCode?.AddrDetail || 'Address not specified'}
                         </p>
                         <Separator />
                         <Table>
@@ -168,12 +164,12 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
                           </TableHeader>
                           <TableBody>
                             <TableRow>
-                              <TableCell>Annual Value / Rent Received</TableCell>
+                              <TableCell>Annual Value</TableCell>
                               <TableCell className="text-right">{formatCurrencyINR(annualValue)}</TableCell>
                             </TableRow>
                             <TableRow>
-                              <TableCell>Municipal Tax Paid</TableCell>
-                              <TableCell className="text-right">{formatCurrencyINR(municipalTax)}</TableCell>
+                              <TableCell>Local Taxes Paid</TableCell>
+                              <TableCell className="text-right">{formatCurrencyINR(localTaxes)}</TableCell>
                             </TableRow>
                             <TableRow>
                               <TableCell>Interest on Housing Loan</TableCell>
@@ -212,7 +208,7 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {typeof scheduleOS === 'object' && scheduleOS !== null ? (
+              {scheduleOS ? (
                 <div className="p-4 border rounded-md bg-slate-50">
                   <Table>
                     <TableHeader>
@@ -225,43 +221,31 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
                       <TableRow>
                         <TableCell>Interest from Savings Account</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrencyINR(parseFloat(scheduleOS?.interestIncome?.savingsBank) || 0)}
+                          {formatCurrencyINR(scheduleOS?.IncOthThanOwnRaceHorse?.IntrstFrmSavingBank || 0)}
                         </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Interest from Fixed Deposits</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrencyINR(parseFloat(scheduleOS?.interestIncome?.fixedDeposits) || 0)}
+                          {formatCurrencyINR(scheduleOS?.IncOthThanOwnRaceHorse?.IntrstFrmTermDeposit || 0)}
                         </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Dividends</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrencyINR(parseFloat(scheduleOS?.dividends) || 0)}
+                          {formatCurrencyINR(scheduleOS?.IncOthThanOwnRaceHorse?.DividendGross || 0)}
                         </TableCell>
                       </TableRow>
                       <TableRow>
                         <TableCell>Other Income</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrencyINR(parseFloat(scheduleOS?.otherIncome) || 0)}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell>Deduction under Section 57</TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrencyINR(parseFloat(scheduleOS?.deductions57) || 0)}
+                          {formatCurrencyINR(scheduleOS?.IncOthThanOwnRaceHorse?.AnyOtherIncome || 0)}
                         </TableCell>
                       </TableRow>
                       <TableRow className="font-medium">
-                        <TableCell>Net Income from Other Sources</TableCell>
+                        <TableCell>Total Income from Other Sources</TableCell>
                         <TableCell className="text-right">
-                          {formatCurrencyINR(
-                            (parseFloat(scheduleOS?.interestIncome?.savingsBank) || 0) +
-                            (parseFloat(scheduleOS?.interestIncome?.fixedDeposits) || 0) +
-                            (parseFloat(scheduleOS?.dividends) || 0) +
-                            (parseFloat(scheduleOS?.otherIncome) || 0) -
-                            (parseFloat(scheduleOS?.deductions57) || 0)
-                          )}
+                          {formatCurrencyINR(totalOtherSourcesIncome)}
                         </TableCell>
                       </TableRow>
                     </TableBody>

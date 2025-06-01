@@ -122,6 +122,35 @@ export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, con
                 </AlertDescription>
             </Alert>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-lg">Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableBody>
+                            <TableRow>
+                                <TableCell className="font-medium">Total Short Term Capital Gains</TableCell>
+                                <TableCell className="text-right">{formatAmount(shortTermGains?.TotalSTCG)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="font-medium">Total Long Term Capital Gains</TableCell>
+                                <TableCell className="text-right">{formatAmount(longTermGains?.TotalLTCG)}</TableCell>
+                            </TableRow>
+                            <TableRow>
+                                <TableCell className="font-medium">Income from VDA Transfer</TableCell>
+                                <TableCell className="text-right">{formatAmount(cgData?.IncmFromVDATrnsf)}</TableCell>
+                            </TableRow>
+                            <Separator className="my-2" />
+                            <TableRow className="bg-slate-100 font-semibold">
+                                <TableCell>Income chargeable under Capital Gains</TableCell>
+                                <TableCell className="text-right">{formatAmount(cgData?.TotScheduleCGFor23)}</TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
             <Tabs defaultValue="short-term" className="w-full">
                 <TabsList className="grid grid-cols-2 mb-4">
                     <TabsTrigger value="short-term" className="flex items-center">
@@ -254,34 +283,6 @@ export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, con
                 </TabsContent>
             </Tabs>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle className="text-lg">Summary</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableBody>
-                            <TableRow>
-                                <TableCell className="font-medium">Total Short Term Capital Gains</TableCell>
-                                <TableCell className="text-right">{formatAmount(shortTermGains?.TotalSTCG)}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-medium">Total Long Term Capital Gains</TableCell>
-                                <TableCell className="text-right">{formatAmount(longTermGains?.TotalLTCG)}</TableCell>
-                            </TableRow>
-                            <TableRow>
-                                <TableCell className="font-medium">Income from VDA Transfer</TableCell>
-                                <TableCell className="text-right">{formatAmount(cgData?.IncmFromVDATrnsf)}</TableCell>
-                            </TableRow>
-                            <Separator className="my-2" />
-                            <TableRow className="bg-slate-100 font-semibold">
-                                <TableCell>Income chargeable under Capital Gains</TableCell>
-                                <TableCell className="text-right">{formatAmount(cgData?.TotScheduleCGFor23)}</TableCell>
-                            </TableRow>
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
         </div>
     );
 };
