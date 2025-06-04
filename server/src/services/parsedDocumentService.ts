@@ -16,6 +16,7 @@ import {
 import { convertDateStringsToDates } from '../document-parsers/aisUtils';
 import { logger } from '../utils/logger';
 import { CAMSMFCapitalGainData } from '../document-parsers/camsMFCapitalGainParser';
+import { ParsedDocumentData } from '../types/parsedDocumentData';
 
 // Types
 export type ParsedDocumentState = 'pending' | 'success' | 'error';
@@ -25,7 +26,7 @@ export interface ParsedDocument {
   document_id: string;
   json_schema_type: DocumentType;
   json_schema_version: string;
-  parsed_data: any;
+  parsed_data: ParsedDocumentData;
   parser_version: string;
   state: ParsedDocumentState;
   state_message?: string;
@@ -141,7 +142,7 @@ export const updateParsedDocumentState = (pool: Pool) => async (
 // Update the parsed data of a document
 export const updateParsedDocumentData = (pool: Pool) => async (
   id: string,
-  parsedData: any,
+  parsedData: ParsedDocumentData,
   schemaVersion?: string
 ): Promise<ParsedDocument> => {
   const query = `
