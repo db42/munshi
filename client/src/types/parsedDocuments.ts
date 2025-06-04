@@ -61,6 +61,110 @@ export interface CAMSMFCapitalGainData {
   };
 }
 
+// Add these new type definitions at an appropriate place,
+// likely before the `ParsedDocumentData` union type.
+
+type AmountInRupees = number;
+
+export interface AISTaxpayerInfo {
+  pan: string;
+  aadhaar?: string;
+  name: string;
+  dateOfBirth?: Date | string; // Using Date | string for client-side flexibility
+  mobileNumber?: string;
+  emailAddress?: string;
+  address?: string;
+}
+
+export interface AISTransactionLine {
+  quarter?: string;
+  dateOfPaymentCredit?: Date | string; // Using Date | string
+  amountPaidCredited: AmountInRupees;
+  taxDeductedCollected: AmountInRupees;
+  taxDeposited?: AmountInRupees;
+}
+
+export interface AISTdsTcsDetail {
+  deductorCollectorName: string;
+  deductorCollectorTan: string;
+  sectionCode?: string;
+  description?: string;
+  amountPaidCredited: AmountInRupees;
+  taxDeductedCollected: AmountInRupees;
+  count?: number;
+  status?: string;
+  transactionBreakdown?: AISTransactionLine[];
+}
+
+export enum SftCode {
+  SFT_001 = 'SFT-001',
+  SFT_002 = 'SFT-002',
+  SFT_003 = 'SFT-003',
+  SFT_004 = 'SFT-004',
+  SFT_005 = 'SFT-005',
+  SFT_006 = 'SFT-006',
+  SFT_007 = 'SFT-007',
+  SFT_008 = 'SFT-008',
+  SFT_009 = 'SFT-009',
+  SFT_010 = 'SFT-010',
+  SFT_011 = 'SFT-011',
+  SFT_012 = 'SFT-012',
+  SFT_013 = 'SFT-013',
+  SFT_014 = 'SFT-014',
+  SFT_015 = 'SFT-015',
+  SFT_016 = 'SFT-016',
+  SFT_017 = 'SFT-017',
+  SFT_018 = 'SFT-018',
+  UNKNOWN = 'UNKNOWN'
+}
+
+export interface AISSftBreakdownLine {
+  reportedOnDate?: Date | string; // Using Date | string
+  accountNumber?: string;
+  accountType?: string;
+  interestAmount?: AmountInRupees;
+  status?: string;
+}
+
+export interface AISSftDetail {
+  sftCode: SftCode | string;
+  description: string;
+  reportingEntityName: string;
+  reportingEntityPan?: string;
+  transactionValue: AmountInRupees;
+  count?: number;
+  singleOrJointParty?: 'Single' | 'Joint';
+  numberOfParties?: number;
+  remarks?: string;
+  breakdown?: AISSftBreakdownLine[];
+}
+
+export interface AISTaxPaymentDetail {
+  type: 'Advance Tax' | 'Self-Assessment Tax' | 'TDS/TCS' | string;
+  bsrCode: string;
+  challanSerialNumber: string;
+  dateOfDeposit: Date | string; // Using Date | string
+  amount: AmountInRupees;
+  assessmentYear?: string;
+}
+
+export interface AISDemandRefundDetail {
+  assessmentYear: string;
+  status: 'Demand' | 'Refund' | string;
+  amount: AmountInRupees;
+  date?: Date | string; // Using Date | string
+  sectionCode?: string;
+  remarks?: string;
+}
+
+export interface AISOtherInformation {
+  informationCode: string;
+  description: string;
+  reportingEntity?: string;
+  amount: AmountInRupees;
+  date?: Date | string; // Using Date | string
+}
+
 /**
  * Union type for all possible parsed document data types
  */
@@ -71,8 +175,7 @@ export type ParsedDocumentData =
   | Form16Data
   | AISData
   | CAMSMFCapitalGainData
-  | Form26ASData
-  | GenericParsedData;
+  | Form26ASData;
 
 /**
  * Interface for US Equity Statement data
@@ -316,47 +419,23 @@ export interface Form16Data {
 /**
  * Interface for AIS (Annual Information Statement) data
  */
+// Find and replace the existing AISData interface with this:
+// Make sure this new AISData interface is exported.
 export interface AISData {
   assessmentYear: string;
   financialYear: string;
-  taxpayerInfo: {
-    pan: string;
-    name: string;
-    [key: string]: any;
-  };
-  tdsDetails?: Array<{
-    deductorCollectorName: string;
-    deductorCollectorTan?: string;
-    amountPaidCredited: number;
-    taxDeductedCollected: number;
-    [key: string]: any;
-  }>;
-  sftDetails?: Array<{
-    description: string;
-    reportingEntityName: string;
-    transactionValue: number;
-    [key: string]: any;
-  }>;
-  taxPaymentDetails?: Array<{
-    type: string;
-    amount: number;
-    dateOfDeposit: string;
-    [key: string]: any;
-  }>;
-  demandRefundDetails?: Array<{
-    assessmentYear: string;
-    status: string;
-    amount: number;
-    [key: string]: any;
-  }>;
-  [key: string]: any;
-}
-
-/**
- * Generic interface for any parsed document data
- */
-export interface GenericParsedData {
-  [key: string]: any;
+  taxpayerInfo: AISTaxpayerInfo; // Uses the new specific interface
+  tdsDetails?: AISTdsTcsDetail[]; // Uses the new specific interface
+  tcsDetails?: AISTdsTcsDetail[]; // Uses the new specific interface
+  sftDetails?: AISSftDetail[];   // Uses the new specific interface
+  taxPaymentDetails?: AISTaxPaymentDetail[]; // Uses the new specific interface
+  demandRefundDetails?: AISDemandRefundDetail[]; // Uses the new specific interface
+  otherInformation?: AISOtherInformation[];   // Uses the new specific interface
+  summary?: {
+    totalIncomeReported?: AmountInRupees;
+    totalTaxDeposited?: AmountInRupees;
+  }
+  // Removed [key: string]: any;
 }
 
 /**

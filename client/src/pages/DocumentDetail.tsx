@@ -256,7 +256,7 @@ const DocumentDetail = () => {
               )}
             </div>
             <ParsedDocumentViewer 
-              parsedData={parsedDocument?.parsed_data.data} 
+              parsedData={parsedDocument?.parsed_data}
               documentType={document.documentType || DocumentType.OTHER} 
             />
           </>
