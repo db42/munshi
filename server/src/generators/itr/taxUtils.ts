@@ -110,6 +110,71 @@ export const calculateRebate87A = (totalIncome: number, tax: number, isNewRegime
     return rebate;
 };
 
+/**
+ * Calculates tax based on income and tax slabs without logging the process.
+ * Used for internal checks where logging is not desired.
+ *
+ * @param totalIncome - The income to be taxed.
+ * @param slabs - The tax slabs to apply.
+ * @returns The calculated tax amount.
+ */
+export const getSlabTax = (totalIncome: number, slabs: TaxSlab[]): number => {
+    let tax = 0;
+    let remainingIncome = totalIncome;
+
+    for (let i = slabs.length - 1; i >= 0; i--) {
+        const currentSlab = slabs[i];
+        const previousThreshold = i > 0 ? slabs[i-1].threshold : 0;
+
+        if (remainingIncome > previousThreshold) {
+            const taxableInSlab = remainingIncome - previousThreshold;
+            tax += taxableInSlab * currentSlab.rate;
+            remainingIncome = previousThreshold;
+        }
+    }
+    return tax;
+};
+
+/**
+ * Generates a formatted string array representing the tax slab calculation breakdown.
+ * This is a presentation function, separate from the calculation logic.
+ *
+ * @param totalIncome - The income to be taxed at slab rates.
+ * @param slabs - The tax slabs to apply (e.g., NEW_REGIME_SLABS).
+ * @param regimeName - The name of the regime for the header.
+ * @returns An array of strings forming a readable table.
+ */
+export const getSlabCalculationBreakdownText = (totalIncome: number, slabs: TaxSlab[], regimeName: string): string[] => {
+    const breakdown: string[] = [];
+    let tax = 0;
+    let remainingIncome = totalIncome;
+
+    breakdown.push(`\n   Calculation Breakdown (${regimeName}):`);
+    breakdown.push("   ┌──────────────────────────────────┬──────────────────────┬──────────────────────┐");
+
+    for (let i = slabs.length - 1; i >= 0; i--) {
+        const currentSlab = slabs[i];
+        const previousThreshold = i > 0 ? slabs[i-1].threshold : 0;
+
+        if (remainingIncome > previousThreshold) {
+            const taxableInSlab = remainingIncome - previousThreshold;
+            const taxForSlab = taxableInSlab * currentSlab.rate;
+            tax += taxForSlab;
+            
+            const slabLabel = `   Slab @ ${`${(currentSlab.rate * 100).toFixed(0)}%`.padEnd(3)}`;
+            const taxableAmountStr = `₹${Math.round(taxableInSlab).toLocaleString('en-IN')}`.padStart(20);
+            const taxOwedStr = `₹${Math.round(taxForSlab).toLocaleString('en-IN')}`.padStart(20);
+
+            breakdown.push(`   │ ${slabLabel.padEnd(10)} │ ${taxableAmountStr} │ ${taxOwedStr} │`);
+
+            remainingIncome = previousThreshold;
+        }
+    }
+
+    breakdown.push("   └──────────────────────────────────┴──────────────────────┴──────────────────────┘");
+    return breakdown;
+};
+
 export const createEmptyPartBTTI = () => {
     return {
         TaxPayDeemedTotIncUs115JC: 0,

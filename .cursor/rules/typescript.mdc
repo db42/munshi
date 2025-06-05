@@ -1,8 +1,10 @@
 ---
 description: 
-globs: *.ts
+globs: 
 alwaysApply: false
 ---
+Use more tools e.g. command line tools
+
 Typescript guidance:
 - avoid using 'any'
 - avoid mutating an argument within function

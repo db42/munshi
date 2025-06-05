@@ -13,6 +13,11 @@ export enum TaxRegimePreference {
     AUTO = 'AUTO'
 }
 
+export interface PartBTTIResult {
+    partBTTI: PartBTTI;
+    chosenRegimeName: 'OLD' | 'NEW';
+}
+
 /**
  * Calculates PartB_TTI based on PartB_TI and other ITR sections
  * 
@@ -25,14 +30,15 @@ export enum TaxRegimePreference {
  * 
  * @param itr - The complete ITR object with all sections
  * @param regimePreference - Tax regime preference (OLD, NEW, or AUTO)
- * @returns The calculated PartB_TTI section
+ * @returns The calculated PartB_TTI section and the name of the chosen regime
  */
 export const calculatePartBTTI = (
     itr: Itr2,
     regimePreference: TaxRegimePreference = TaxRegimePreference.AUTO,
     bankDetails?: UserInputBankAccount[] | undefined
-): PartBTTI => {
+): PartBTTIResult => {
     let regimeResult: PartBTTI;
+    let chosenRegimeName: 'OLD' | 'NEW';
 
     // Calculate tax under both regimes and compare
     logger.info('\n=== Comparing Both Tax Regimes ===\n');
@@ -50,9 +56,11 @@ export const calculatePartBTTI = (
     if (regimePreference === TaxRegimePreference.OLD) {
         logger.info('\nUsing Old Tax Regime as per preference');
         regimeResult = oldRegimeResult;
+        chosenRegimeName = 'OLD';
     } else if (regimePreference === TaxRegimePreference.NEW) {
         logger.info('\nUsing New Tax Regime as per preference');
         regimeResult = newRegimeResult;
+        chosenRegimeName = 'NEW';
     } else {
         logger.info('\nBoth regimes result in same tax liability - Using New Regime as default');
         // Determine which regime is more beneficial
@@ -63,17 +71,20 @@ export const calculatePartBTTI = (
         if (taxDifference > 0) {
             logger.info(`\nNew Regime is more beneficial - Saves ₹${taxDifference.toLocaleString('en-IN')}`);
             regimeResult = newRegimeResult;
+            chosenRegimeName = 'NEW';
         } else if (taxDifference < 0) {
             logger.info(`\nOld Regime is more beneficial - Saves ₹${Math.abs(taxDifference).toLocaleString('en-IN')}`);
             regimeResult = oldRegimeResult;
+            chosenRegimeName = 'OLD';
         } else {
             logger.info('\nBoth regimes result in same tax liability - Using New Regime as default');
             regimeResult = newRegimeResult;
+            chosenRegimeName = 'NEW';
         }
     }
 
     regimeResult.Refund.BankAccountDtls = getBankAccountDtls(bankDetails);
-    return regimeResult;
+    return { partBTTI: regimeResult, chosenRegimeName };
 };
 
 const getBankAccountDtls = (bankDetails?: UserInputBankAccount[] | undefined): BankAccountDtls => {
@@ -137,10 +148,11 @@ const calculateTaxAndPreparePartBTTI = (
     slabs: TaxSlab[], 
     regimeName: string
 ): PartBTTI => {
-    logger.info(`\n=== Starting ${regimeName} Tax Calculation ===\n`);
+    logger.info(`\n=== Starting ${regimeName} Tax Calculation with Special Rates Integration ===\n`);
     
     // Initialize values
-    let taxOnIncome = 0;
+    let taxOnRegularIncome = 0;
+    let taxOnSpecialRates = 0;
     let rebate87A = 0;
     let surcharge = 0;
     let healthAndEducationCess = 0;
@@ -155,26 +167,42 @@ const calculateTaxAndPreparePartBTTI = (
         return createEmptyPartBTTI();
     }
     
+    // Get separated income components
     const totalIncome = partBTI.TotalIncome || 0;
-    logCalculation('Total Taxable Income', totalIncome);
+    const specialRateIncome = itr.ScheduleSI?.TotSplRateInc || 0;
+    const regularIncome = Math.max(0, totalIncome - specialRateIncome);
     
-    // Calculate tax based on selected regime
-    taxOnIncome = calculateTaxForSlabs(totalIncome, slabs, regimeName);
-    logCalculation('Tax on Income (before surcharge)', taxOnIncome);
+    logCalculation('Total Income', totalIncome);
+    logCalculation('Special Rate Income', specialRateIncome);
+    logCalculation('Regular Income (for slab rates)', regularIncome);
     
-    // Apply Rebate under section 87A
-    rebate87A = calculateRebate87A(totalIncome, taxOnIncome, isNewRegime);
+    // Calculate tax on regular income using slabs
+    taxOnRegularIncome = calculateTaxForSlabs(regularIncome, slabs, regimeName);
+    logCalculation('Tax on Regular Income (before rebate)', taxOnRegularIncome);
     
-    // Calculate Surcharge (if applicable)
-    surcharge = calculateSurcharge(taxOnIncome, totalIncome);
+    // Get pre-calculated tax on special rates from Schedule SI
+    taxOnSpecialRates = itr.ScheduleSI?.TotSplRateIncTax || 0;
+    logCalculation('Tax on Special Rates', taxOnSpecialRates);
+    
+    // Apply Rebate under section 87A (ONLY on regular income tax)
+    rebate87A = calculateRebate87A(regularIncome, taxOnRegularIncome, isNewRegime);
+    logCalculation('Rebate 87A (on regular income only)', rebate87A);
+    
+    // Calculate total tax after rebate
+    const taxOnRegularIncomeAfterRebate = Math.max(0, taxOnRegularIncome - rebate87A);
+    const totalTaxBeforeSurcharge = taxOnRegularIncomeAfterRebate + taxOnSpecialRates;
+    logCalculation('Total Tax before Surcharge', totalTaxBeforeSurcharge);
+    
+    // Calculate Surcharge on total tax (regular + special)
+    surcharge = calculateSurcharge(totalTaxBeforeSurcharge, totalIncome);
     logCalculation('Surcharge', surcharge);
     
-    // Calculate Health and Education Cess
-    healthAndEducationCess = calculatePercentage(taxOnIncome + surcharge, 0.04);
+    // Calculate Health and Education Cess on total tax including surcharge
+    healthAndEducationCess = calculatePercentage(totalTaxBeforeSurcharge + surcharge, 0.04);
     logCalculation('Health and Education Cess', healthAndEducationCess);
     
     // Calculate tax liability before relief
-    const taxLiabilityBeforeRelief = Math.max(0, taxOnIncome + surcharge + healthAndEducationCess - rebate87A);
+    const taxLiabilityBeforeRelief = totalTaxBeforeSurcharge + surcharge + healthAndEducationCess;
     logCalculation('Tax Liability (before relief)', taxLiabilityBeforeRelief);
     
     // Process foreign tax credit from Schedule TR1
@@ -225,23 +253,23 @@ const calculateTaxAndPreparePartBTTI = (
     logCalculation('Balance Tax Payable', balanceTaxPayable);
     logCalculation('Refund Due', refundDue);
 
-    logger.info(`\n=== End ${regimeName} Tax Calculation ===\n`);
+    logger.info(`\n=== End ${regimeName} Tax Calculation with Special Rates Integration ===\n`);
     
-    // Construct and return PartB_TTI
+    // Construct and return PartB_TTI with properly integrated calculations
     return {
         TaxPayDeemedTotIncUs115JC: 0,
         TotalTaxPayablDeemedTotInc: 0,
 
         ComputationOfTaxLiability: {
             TaxPayableOnTI: {
-                TaxAtNormalRatesOnAggrInc: taxOnIncome,
-                TaxAtSpecialRates: 0,
+                TaxAtNormalRatesOnAggrInc: taxOnRegularIncome,
+                TaxAtSpecialRates: taxOnSpecialRates, // Properly populated from Schedule SI!
                 RebateOnAgriInc: 0,
-                TaxPayableOnTotInc: taxOnIncome
+                TaxPayableOnTotInc: taxOnRegularIncome + taxOnSpecialRates
             },
             
             Rebate87A: rebate87A,
-            TaxPayableOnRebate: Math.max(0, taxOnIncome - rebate87A),
+            TaxPayableOnRebate: taxOnRegularIncomeAfterRebate + taxOnSpecialRates,
             
             Surcharge25ofSI: 0,
             SurchargeOnAboveCrore: surcharge,

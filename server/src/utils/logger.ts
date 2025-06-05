@@ -28,11 +28,11 @@ const loggerConfig: Record<string, LogLevel> = {
   'scheduleCGPostProcessing': 'none',
   'charlesSchwabToITR': 'none',
   'usCGEquityToITR': 'none',
-  'taxUtils': 'none',
+  // 'taxUtils': 'none',
   'currencyConverter': 'none',
   'parserTypes': 'none',
   'equityPriceUtils': 'none',
-  'partBTTI': 'none',
+  // 'partBTTI': 'none',
   'calculateScheduleBFLA': 'none',
 };
 

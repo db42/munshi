@@ -1,6 +1,9 @@
 import { getLogger, ILogger } from '../../utils/logger';
 import { Itr2, ScheduleSI, SplCodeRateTax, SECCode } from '../../types/itr';
 
+// Define a constant for the foreign equity LTCG tax rate
+const FOREIGN_EQUITY_LTCG_RATE = 0.125; // 12.5% as per Budget 2024 for unlisted shares/stocks
+
 const logger: ILogger = getLogger('scheduleSIGenerator');
 
 /**
@@ -54,18 +57,50 @@ export const calculateScheduleSI = (itr: Itr2): ScheduleSI => {
         if (itr.ScheduleCGFor23.LongTermCapGain23?.SaleOfEquityShareUs112A) {
             const ltcgAmount = itr.ScheduleCGFor23.LongTermCapGain23.SaleOfEquityShareUs112A.CapgainonAssets || 0;
             if (ltcgAmount > 0) {
-                // 10% tax rate for LTCG on shares/units where STT paid (Section 112A)
-                const taxRate = 10;
-                const taxAmount = (ltcgAmount * taxRate) / 100;
+                // Apply ₹1 lakh exemption under Section 112A
+                const LTCG_EXEMPTION_LIMIT = 100000;
+                const taxableAmount = Math.max(0, ltcgAmount - LTCG_EXEMPTION_LIMIT);
+                
+                if (taxableAmount > 0) {
+                    // 10% tax rate for LTCG on shares/units where STT paid (Section 112A)
+                    const taxRate = 10;
+                    const taxAmount = (taxableAmount * taxRate) / 100;
+                    
+                    specialIncomeSources.push({
+                        SecCode: SECCode.The2A, // 112A - LTCG on equity shares/MF with STT
+                        SplRateInc: taxableAmount, // Only the taxable amount above ₹1 lakh
+                        SplRatePercent: taxRate,
+                        SplRateIncTax: taxAmount
+                    });
+                    
+                    totalSpecialIncome += taxableAmount;
+                    totalSpecialIncomeTax += taxAmount;
+                    
+                    logger.info(`LTCG Section 112A: Total gain ₹${ltcgAmount.toLocaleString('en-IN')}, Exemption ₹${LTCG_EXEMPTION_LIMIT.toLocaleString('en-IN')}, Taxable ₹${taxableAmount.toLocaleString('en-IN')}, Tax ₹${taxAmount.toLocaleString('en-IN')}`);
+                } else {
+                    logger.info(`LTCG Section 112A: Total gain ₹${ltcgAmount.toLocaleString('en-IN')} is within ₹1 lakh exemption limit - No tax applicable`);
+                }
+            }
+        }
+        
+        // Post-budget 2024, LTCG on unlisted shares/stocks (including foreign equity) is 12.5%
+        if (itr.ScheduleCGFor23?.LongTermCapGain23?.SaleofAssetNA?.CapgainonAssets) {
+            const otherLTCG = itr.ScheduleCGFor23.LongTermCapGain23.SaleofAssetNA.CapgainonAssets;
+            if (otherLTCG > 0) {
+                // Using 12.5% rate as requested for now.
+                const taxAmount = otherLTCG * FOREIGN_EQUITY_LTCG_RATE;
+
+                logger.info(`Found Other LTCG of ₹${otherLTCG.toLocaleString('en-IN')}, Tax: ₹${taxAmount.toLocaleString('en-IN')}`);
                 
                 specialIncomeSources.push({
-                    SecCode: SECCode.The2A, // 112A - LTCG on equity shares/MF with STT
-                    SplRateInc: ltcgAmount,
-                    SplRatePercent: taxRate,
+                    SecCode: SECCode.The5ACA1B, // Using existing foreign asset section for foreign equity
+                    SplRateInc: otherLTCG,
+                    SplRatePercent: FOREIGN_EQUITY_LTCG_RATE * 100,
                     SplRateIncTax: taxAmount
                 });
-                
-                totalSpecialIncome += ltcgAmount;
+
+                // Add to the running totals
+                totalSpecialIncome += otherLTCG;
                 totalSpecialIncomeTax += taxAmount;
             }
         }

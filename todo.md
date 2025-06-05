@@ -37,6 +37,7 @@
 - todo section112A paytm entries
 - how to get tax deducted from charles schwab - WIP - needs to verify
 - [] add tests
+- [6 june] test again on fy 23-24 via UI. complete for fy 24-25
 
 Year 2025-26
 - [ done 17 May] upload AIS

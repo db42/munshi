@@ -30,16 +30,29 @@ import {
   StateCode, 
   Salarys as SalaryDetailsType, 
   NatureOfEmployment,
-  NatureOfDisability // Added for TCSCreditOwner
+  NatureOfDisability, // Added for TCSCreditOwner
+  CreationInfo,
+  FormITR2,
+  PartAGEN1,
+  Verification,
+  CountryCode,
+  ResidentialStatus,
+  Status,
+  TaxRescertifiedFlag,
+  Capacity
 } from '../types/itr';
 import { ParseResult } from '../utils/parserTypes';
 import { getLogger, ILogger } from '../utils/logger';
 import cloneDeep from 'lodash/cloneDeep';
-import { initializeScheduleOS, initializeScheduleSI, initializeScheduleIT, initializeScheduleTCS, initializeScheduleTDS2, initializeScheduleTDS1, initializeScheduleS } from './initializers';
+import { initializeScheduleOS, initializeScheduleSI, initializeScheduleIT, initializeScheduleTCS, initializeScheduleTDS2, initializeScheduleTDS1, initializeScheduleS, initializeVerification } from './initializers';
 
 const logger: ILogger = getLogger('form26ASToITR');
 
 export interface Form26ASITRSections {
+  creationInfo?: CreationInfo;
+  formITR2?: FormITR2;
+  partAGEN1?: PartAGEN1;
+  verification?: Verification;
   scheduleS?: ScheduleS;
   scheduleTDS1?: ScheduleTDS1;
   scheduleTDS2?: ScheduleTDS2;
@@ -71,9 +84,90 @@ const filterDeductorsExcludingSection = (deductors: PartIDeductor[], excludeSect
 // Each populator function will now create and return the specific schedule.
 // They will take ParsedForm26AS and assessmentYear as input.
 
-function populateScheduleSFromForm26AS(
+function populateCreationInfoFromForm26AS(
+  form26AS: ParsedForm26AS
+): CreationInfo {
+  return {
+    SWVersionNo: "1.0",
+    SWCreatedBy: "SW12345678",
+    JSONCreatedBy: "SW12345678",
+    JSONCreationDate: new Date().toISOString().split('T')[0],
+    IntermediaryCity: "Delhi",
+    Digest: "-"
+  };
+}
+
+function populateFormITR2FromForm26AS(
   form26AS: ParsedForm26AS,
   assessmentYear: string
+): FormITR2 {
+  return {
+    FormName: "ITR-2",
+    Description: "For Individuals and HUFs not having income from profits and gains of business or profession",
+    AssessmentYear: assessmentYear.substring(0, 4),
+    SchemaVer: "Ver1.0",
+    FormVer: "Ver1.0"
+  };
+}
+
+function populatePartAGEN1FromForm26AS(
+  form26AS: ParsedForm26AS
+): PartAGEN1 {
+  const name = form26AS.header?.nameOfAssessee || "Unknown";
+  const nameParts = name.split(' ');
+  const firstName = nameParts[0];
+  const surNameOrOrgName = nameParts.slice(1).join(' ') || firstName;
+  
+  return {
+    PersonalInfo: {
+      AssesseeName: {
+        FirstName: firstName,
+        SurNameOrOrgName: surNameOrOrgName
+      },
+      PAN: form26AS.header?.permanentAccountNumberPAN || "",
+      Address: {
+        ResidenceNo: "",
+        LocalityOrArea: form26AS.header?.addressOfAssessee?.slice(0, 49) || "",
+        CityOrTownOrDistrict: "",
+        StateCode: StateCode.The99,
+        CountryCode: CountryCode.The91,
+        PinCode: 0,
+        CountryCodeMobile: 91,
+        MobileNo: 0,
+        EmailAddress: ""
+      },
+      DOB: "",
+      Status: Status.I,
+    },
+    FilingStatus: {
+      FiiFpiFlag: TaxRescertifiedFlag.N,
+      ResidentialStatus: ResidentialStatus.Res,
+      HeldUnlistedEqShrPrYrFlg: TaxRescertifiedFlag.N,
+      ItrFilingDueDate: "",
+      OptOutNewTaxRegime: TaxRescertifiedFlag.N,
+      ReturnFileSec: 11,
+      SeventhProvisio139: TaxRescertifiedFlag.N,
+    }
+  };
+}
+
+function populateVerificationFromForm26AS(
+  form26AS: ParsedForm26AS
+): Verification {
+  return {
+    Capacity: Capacity.A,
+    Date: new Date().toISOString().split('T')[0],
+    Declaration: {
+      AssesseeVerName: form26AS.header?.nameOfAssessee || "",
+      AssesseeVerPAN: form26AS.header?.permanentAccountNumberPAN || "",
+      FatherName: '',
+    },
+    Place: ''
+  };
+}
+
+function populateScheduleSFromForm26AS(
+  form26AS: ParsedForm26AS
 ): ScheduleS {
   const scheduleS = initializeScheduleS();
   // PartI contains all TDS, including salary (if Form 16 not available or for other scenarios)
@@ -100,10 +194,10 @@ function populateScheduleSFromForm26AS(
             ValueOfPerquisites: 0,
         },
         AddressDetail: { 
-            AddrDetail: form26AS.header?.addressOfAssessee || 'N/A',
-            CityOrTownOrDistrict: 'N/A', // Form 26AS address is usually a single string
+            AddrDetail: form26AS.header?.addressOfAssessee || '',
+            CityOrTownOrDistrict: '',
             StateCode: StateCode.The99, 
-            PinCode: 0, // Form 26AS usually doesn't have a separate pincode
+            PinCode: 0,
         },
         NatureOfEmployment: NatureOfEmployment.Oth, 
       };
@@ -112,13 +206,12 @@ function populateScheduleSFromForm26AS(
     scheduleS.TotalGrossSalary = scheduleS.Salaries.reduce((sum, s) => sum + s.Salarys.GrossSalary, 0);
     scheduleS.TotIncUnderHeadSalaries = scheduleS.TotalGrossSalary; // Simplified, deductions not handled here
   }
-  logger.info(`Populated Schedule S from Form 26AS for AY ${assessmentYear}`);
+  logger.info('Populated Schedule S from Form 26AS');
   return scheduleS;
 }
 
 function populateScheduleTDS1FromForm26AS(
-  form26AS: ParsedForm26AS,
-  assessmentYear: string
+  form26AS: ParsedForm26AS
 ): ScheduleTDS1 {
   const scheduleTDS1 = initializeScheduleTDS1();
   const allDeductors = form26AS.partI?.deductors || [] as PartIDeductor[];
@@ -150,13 +243,12 @@ function populateScheduleTDS1FromForm26AS(
     
     scheduleTDS1.TotalTDSonSalaries = scheduleTDS1.TDSonSalary.reduce((sum, entry) => sum + entry.TotalTDSSal, 0);
   }
-  logger.info(`Populated Schedule TDS1 from Form 26AS for AY ${assessmentYear}`);
+  logger.info('Populated Schedule TDS1 from Form 26AS');
   return scheduleTDS1;
 }
 
 function populateScheduleTDS2FromForm26AS(
-  form26AS: ParsedForm26AS,
-  assessmentYear: string
+  form26AS: ParsedForm26AS
 ): ScheduleTDS2 {
   const scheduleTDS2 = initializeScheduleTDS2();
   const allDeductors = form26AS.partI?.deductors || [] as PartIDeductor[];
@@ -192,13 +284,12 @@ function populateScheduleTDS2FromForm26AS(
 
     scheduleTDS2.TotalTDSonOthThanSals = scheduleTDS2.TDSOthThanSalaryDtls.reduce((sum, entry) => sum + (entry.TaxDeductCreditDtls.TaxClaimedOwnHands || 0),0);
   }
-  logger.info(`Populated Schedule TDS2 from Form 26AS for AY ${assessmentYear}`);
+  logger.info('Populated Schedule TDS2 from Form 26AS');
   return scheduleTDS2;
 }
 
 function populateScheduleTCSFromForm26AS(
-  form26AS: ParsedForm26AS,
-  assessmentYear: string
+  form26AS: ParsedForm26AS
 ): ScheduleTCS {
   const scheduleTCS = initializeScheduleTCS();
   const collectors = form26AS.partVI?.collectors || [] as PartVICollector[]; 
@@ -219,13 +310,12 @@ function populateScheduleTCSFromForm26AS(
     });
     scheduleTCS.TotalSchTCS = collectors.reduce((sum, col) => sum + (col.totalTCSDeposited || 0), 0);
   }
-  logger.info(`Populated Schedule TCS from Form 26AS for AY ${assessmentYear}`);
+  logger.info('Populated Schedule TCS from Form 26AS');
   return scheduleTCS;
 }
 
 function populateScheduleITFromForm26AS(
-  form26AS: ParsedForm26AS,
-  assessmentYear: string
+  form26AS: ParsedForm26AS
 ): ScheduleIT {
   const scheduleIT = initializeScheduleIT();
   // Using corrected PartIIIDetails which has ChallanPaymentDetail for self-paid taxes
@@ -236,20 +326,19 @@ function populateScheduleITFromForm26AS(
       const taxPaymentEntry: TaxPayment = {
         DateDep: pmt.dateOfDeposit,
         SrlNoOfChaln: parseInt(pmt.challanSerialNumber || '0', 10) || 0, // Corrected: Parse to number, default to 0
-        BSRCode: pmt.bsrCodeOfBankBranch || 'N/A', 
+        BSRCode: pmt.bsrCodeOfBankBranch || '', 
         Amt: pmt.totalTaxDeposited,
       };
       return taxPaymentEntry;
     });
     scheduleIT.TotalTaxPayments = taxPayments.reduce((sum, pmt) => sum + pmt.totalTaxDeposited, 0);
   }
-  logger.info(`Populated Schedule IT from Form 26AS for AY ${assessmentYear}`);
+  logger.info('Populated Schedule IT from Form 26AS');
   return scheduleIT;
 }
 
 function populateScheduleOSFromForm26AS(
-  form26AS: ParsedForm26AS,
-  assessmentYear: string
+  form26AS: ParsedForm26AS
 ): ScheduleOS {
   const scheduleOS = initializeScheduleOS();
   const deductorSummaries = form26AS.partI?.deductors || [] as PartIDeductor[];
@@ -283,13 +372,12 @@ function populateScheduleOSFromForm26AS(
   }
   // SFT transactions from PartIV could also inform ScheduleOS, but mapping is complex.
 
-  logger.info(`Populated Schedule OS from Form 26AS for AY ${assessmentYear}`);
+  logger.info('Populated Schedule OS from Form 26AS');
   return scheduleOS;
 }
 
 function populateScheduleSIFromForm26AS(
-  form26AS: ParsedForm26AS,
-  assessmentYear: string
+  form26AS: ParsedForm26AS
 ): ScheduleSI {
   const scheduleSI = initializeScheduleSI();
   const deductorSummaries = form26AS.partI?.deductors || [] as PartIDeductor[];
@@ -329,7 +417,7 @@ function populateScheduleSIFromForm26AS(
     }
   }
 
-  logger.info(`Populated Schedule SI from Form 26AS for AY ${assessmentYear}`);
+  logger.info('Populated Schedule SI from Form 26AS');
   return scheduleSI;
 }
 
@@ -341,13 +429,17 @@ export const form26ASToITR = (
     logger.info(`Starting ITR generation from Form 26AS for Assessment Year: ${assessmentYear}`);
 
     const itrSections: Form26ASITRSections = {
-      scheduleS: populateScheduleSFromForm26AS(form26AS, assessmentYear),
-      scheduleTDS1: populateScheduleTDS1FromForm26AS(form26AS, assessmentYear),
-      scheduleTDS2: populateScheduleTDS2FromForm26AS(form26AS, assessmentYear),
-      scheduleTCS: populateScheduleTCSFromForm26AS(form26AS, assessmentYear),
-      scheduleIT: populateScheduleITFromForm26AS(form26AS, assessmentYear),
-      scheduleOS: populateScheduleOSFromForm26AS(form26AS, assessmentYear),
-      scheduleSI: populateScheduleSIFromForm26AS(form26AS, assessmentYear),
+      creationInfo: populateCreationInfoFromForm26AS(form26AS),
+      formITR2: populateFormITR2FromForm26AS(form26AS, assessmentYear),
+      partAGEN1: populatePartAGEN1FromForm26AS(form26AS),
+      verification: populateVerificationFromForm26AS(form26AS),
+      scheduleS: populateScheduleSFromForm26AS(form26AS),
+      scheduleTDS1: populateScheduleTDS1FromForm26AS(form26AS),
+      scheduleTDS2: populateScheduleTDS2FromForm26AS(form26AS),
+      scheduleTCS: populateScheduleTCSFromForm26AS(form26AS),
+      scheduleIT: populateScheduleITFromForm26AS(form26AS),
+      scheduleOS: populateScheduleOSFromForm26AS(form26AS),
+      scheduleSI: populateScheduleSIFromForm26AS(form26AS),
     };
 
     logger.info('Successfully generated ITR sections from Form 26AS.');

@@ -71,7 +71,12 @@ export function roundNumbersInObject(data: any): any {
         const newObj: { [key: string]: any } = {};
         for (const key in data) {
             if (Object.prototype.hasOwnProperty.call(data, key)) {
-                newObj[key] = roundNumbersInObject(data[key]);
+                // SplRatePercent is a percentage, so we don't want to round it
+                if (key === 'SplRatePercent') {
+                    newObj[key] = data[key];
+                } else {
+                    newObj[key] = roundNumbersInObject(data[key]);
+                }
             }
         }
         return newObj;

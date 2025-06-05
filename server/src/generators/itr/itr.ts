@@ -1,7 +1,7 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
 import { form26ASToITR, Form26ASITRSections } from '../../document-processors/form26ASToITR';
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA, ScheduleS, ScheduleTDS1, ScheduleTCS } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -20,6 +20,7 @@ import { postProcessScheduleCG } from './scheduleCGPostProcessing';
 import { getLogger, ILogger } from '../../utils/logger';
 import { validateITR, ValidationError } from '../../services/validations';
 import { roundNumbersInObject } from '../../utils/formatters';
+import { generateComputationSheet } from './computationSheet';
 import {
     getForm16Sections,
     getForm26ASSections,
@@ -42,6 +43,34 @@ export interface ITRData {
 }
 
 // === PRIORITY-BASED MERGE FUNCTIONS ===
+function mergeCreationInfo(sources: {
+  form16?: CreationInfo;
+  form26AS?: CreationInfo;
+}): CreationInfo | undefined {
+  return sources.form16 || sources.form26AS;
+}
+
+function mergeFormITR2(sources: {
+  form16?: FormITR2;
+  form26AS?: FormITR2;
+}): FormITR2 | undefined {
+  return sources.form16 || sources.form26AS;
+}
+
+function mergePartAGEN1(sources: {
+  form16?: PartAGEN1;
+  form26AS?: PartAGEN1;
+}): PartAGEN1 | undefined {
+  return sources.form16 || sources.form26AS;
+}
+
+function mergeVerification(sources: {
+  form16?: Verification;
+  form26AS?: Verification;
+}): Verification | undefined {
+  return sources.form16 || sources.form26AS;
+}
+
 function mergeScheduleS(sources: {
   form16?: ScheduleS;
   form26AS?: ScheduleS;
@@ -725,7 +754,7 @@ export const generateITR = async (
     
     const form16Sections = await getForm16Sections(userId, assessmentYear);
     const form26ASSections = await getForm26ASSections(userId, assessmentYear);
-    logger.info('Form 26AS sections fetched', form26ASSections);
+    // logger.info('Form 26AS sections fetched', form26ASSections);
     const aisSections = await getAISSections(userId, assessmentYear);
     const userInputResult = await getUserInputSections(userId, assessmentYear);
     const userInputSections = userInputResult.sections;
@@ -736,13 +765,31 @@ export const generateITR = async (
     const charlesSchwabSections = await getCharlesSchwabSections(userId, assessmentYear);
     const usInvestmentIncomeSections = await getUSInvestmentIncomeSections(userId, assessmentYear);
 
-    // Set base ITR fields from Form 16 if available
-    if (form16Sections) {
-        baseITR.CreationInfo = form16Sections.creationInfo;
-        baseITR.Form_ITR2 = form16Sections.formITR2;
-        baseITR.PartA_GEN1 = form16Sections.partAGEN1;
-        baseITR.Verification = form16Sections.verification;
-    }
+    // Set base ITR fields using merge functions (Form 16 > Form 26AS priority)
+    const mergedCreationInfo = mergeCreationInfo({
+        form16: form16Sections?.creationInfo,
+        form26AS: form26ASSections?.creationInfo
+    });
+    
+    const mergedFormITR2 = mergeFormITR2({
+        form16: form16Sections?.formITR2,
+        form26AS: form26ASSections?.formITR2
+    });
+    
+    const mergedPartAGEN1 = mergePartAGEN1({
+        form16: form16Sections?.partAGEN1,
+        form26AS: form26ASSections?.partAGEN1
+    });
+    
+    const mergedVerification = mergeVerification({
+        form16: form16Sections?.verification,
+        form26AS: form26ASSections?.verification
+    });
+
+    if (mergedCreationInfo) baseITR.CreationInfo = mergedCreationInfo;
+    if (mergedFormITR2) baseITR.Form_ITR2 = mergedFormITR2;
+    if (mergedPartAGEN1) baseITR.PartA_GEN1 = mergedPartAGEN1;
+    if (mergedVerification) baseITR.Verification = mergedVerification;
 
     // --- 3. Merge Core Tax Sections Using Clean Priority/Accumulation Logic ---
     logger.info('Merging core tax sections...');
@@ -862,20 +909,22 @@ export const generateITR = async (
         logger.warn('Skipping Schedule BFLA calculation as ScheduleCFL or ScheduleCYLA is missing.');
     }
 
-    // --- 5. Calculate PartB-TI (Using income *after* CYLA & BFLA adjustments) ---
-    const partBTI = calculatePartBTI(baseITR);
-    baseITR["PartB-TI"] = partBTI;
-    logger.info('Calculated PartB-TI.');
-
-    // --- 6. Calculate Schedule SI (for special income tax rates) ---
+    // --- 5. Calculate Schedule SI (for special income tax rates) BEFORE Part B-TI ---
     const scheduleSI = calculateScheduleSI(baseITR);
     baseITR.ScheduleSI = scheduleSI;
     logger.info('Calculated Schedule SI for special income tax rates.');
 
-    // --- 7. Calculate PartB-TTI ---
-    const partBTTI = calculatePartBTTI(baseITR, TaxRegimePreference.AUTO, userInputData?.generalInfoAdditions?.bankDetails);
-    baseITR.PartB_TTI = partBTTI;
-    logger.info('Calculated PartB-TTI.');
+    // --- 6. Calculate PartB-TI (Using post-exemption amounts from Schedule SI) ---
+    const partBTI = calculatePartBTI(baseITR);
+    baseITR["PartB-TI"] = partBTI;
+    logger.info('Calculated PartB-TI using post-exemption amounts.');
+
+    // --- 7. Calculate PartB-TTI (Integrated with Schedule SI) ---
+    const {partBTTI, chosenRegimeName} = calculatePartBTTI(baseITR, TaxRegimePreference.AUTO, userInputData?.generalInfoAdditions?.bankDetails);
+    baseITR.PartA_GEN1.FilingStatus.OptOutNewTaxRegime = chosenRegimeName === 'OLD' ? TaxRescertifiedFlag.Y : TaxRescertifiedFlag.N;
+
+    baseITR["PartB_TTI"] = partBTTI;
+    logger.info('Calculated PartB-TTI with integrated special rates.');
 
     // --- 8. Calculate Schedule AMTC ---
     if (isAMTApplicable(baseITR)) {
@@ -896,6 +945,12 @@ export const generateITR = async (
     // --- 10. Round all numbers in the final ITR object ---
     logger.info('Rounding numbers in the final ITR object.');
     finalITR = roundNumbersInObject(finalITR); // Apply rounding
+
+    // --- 11. Generate and log the final computation sheet ---
+    if (finalITR.ITR?.ITR2) {
+        const computationSheet = generateComputationSheet(finalITR.ITR.ITR2);
+        logger.info(`\n\n${computationSheet}\n\n`);
+    }
 
     //validate the ITR
     try {
