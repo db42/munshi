@@ -1,6 +1,16 @@
 // partBTTIProcessor.ts
 import { AssetOutIndiaFlag, BankAccountDtls, Itr2, PartBTI, PartBTTI, TaxRescertifiedFlag, BankDetailType, AccountType as ITR_AccountType } from '../../types/itr';
-import { logCalculation, TaxSlab, calculatePercentage, calculateSurcharge, calculateTaxForSlabs, calculateRebate87A, NEW_REGIME_SLABS, OLD_REGIME_SLABS, createEmptyPartBTTI } from './taxUtils';
+import {
+    logCalculation,
+    TaxSlab,
+    calculatePercentage,
+    calculateSurchargeWithCappedRates,
+    calculateTaxForSlabs,
+    calculateRebate87A,
+    NEW_REGIME_SLABS,
+    OLD_REGIME_SLABS,
+    createEmptyPartBTTI
+} from './taxUtils';
 import { getLogger, ILogger } from '../../utils/logger';
 import { BankAccount as UserInputBankAccount } from '../../types/userInput.types';
 
@@ -194,7 +204,8 @@ const calculateTaxAndPreparePartBTTI = (
     logCalculation('Total Tax before Surcharge', totalTaxBeforeSurcharge);
     
     // Calculate Surcharge on total tax (regular + special)
-    surcharge = calculateSurcharge(totalTaxBeforeSurcharge, totalIncome);
+    const surchargeResult = calculateSurchargeWithCappedRates(itr, totalTaxBeforeSurcharge, totalIncome);
+    surcharge = surchargeResult.surcharge;
     logCalculation('Surcharge', surcharge);
     
     // Calculate Health and Education Cess on total tax including surcharge
@@ -234,8 +245,6 @@ const calculateTaxAndPreparePartBTTI = (
     logCalculation('TDS Already Paid', tdsPaid);
     
     // Calculate any Advance Tax and Self Assessment Tax paid
-    // ScheduleIT contains the total of both Advance Tax and Self Assessment Tax.
-    // Assigning the total to SelfAssessmentTax for now as the structure requires separate fields.
     const advanceTax = 0; 
     const selfAssessmentTax = itr.ScheduleIT?.TotalTaxPayments || 0; 
     logCalculation('Self Assessment Tax Paid (includes Advance Tax)', selfAssessmentTax);
@@ -249,10 +258,8 @@ const calculateTaxAndPreparePartBTTI = (
     
     // Calculate balance tax payable or refund due
     const balanceTaxPayable = Math.max(0, totalTaxPayable - totalTaxesPaid);
-    const refundDue = totalTaxesPaid > totalTaxPayable ? totalTaxesPaid - totalTaxPayable : 0;
-    logCalculation('Balance Tax Payable', balanceTaxPayable);
-    logCalculation('Refund Due', refundDue);
-
+    const refundDue = Math.max(0, totalTaxesPaid - totalTaxPayable);
+    
     logger.info(`\n=== End ${regimeName} Tax Calculation with Special Rates Integration ===\n`);
     
     // Construct and return PartB_TTI with properly integrated calculations
@@ -263,19 +270,19 @@ const calculateTaxAndPreparePartBTTI = (
         ComputationOfTaxLiability: {
             TaxPayableOnTI: {
                 TaxAtNormalRatesOnAggrInc: taxOnRegularIncome,
-                TaxAtSpecialRates: taxOnSpecialRates, // Properly populated from Schedule SI!
+                TaxAtSpecialRates: taxOnSpecialRates,
                 RebateOnAgriInc: 0,
                 TaxPayableOnTotInc: taxOnRegularIncome + taxOnSpecialRates
             },
             
             Rebate87A: rebate87A,
-            TaxPayableOnRebate: taxOnRegularIncomeAfterRebate + taxOnSpecialRates,
+            TaxPayableOnRebate: totalTaxBeforeSurcharge,
             
-            Surcharge25ofSI: 0,
-            SurchargeOnAboveCrore: surcharge,
-            Surcharge25ofSIBeforeMarginal: 0,
-            SurchargeOnAboveCroreBeforeMarginal: surcharge,
-            TotalSurcharge: surcharge,
+            Surcharge25ofSI: 0, // Not currently used, placeholder
+            SurchargeOnAboveCrore: surchargeResult.surcharge,
+            Surcharge25ofSIBeforeMarginal: surchargeResult.surchargeBeforeMarginal,
+            SurchargeOnAboveCroreBeforeMarginal: surchargeResult.surchargeBeforeMarginal,
+            TotalSurcharge: surchargeResult.surcharge,
             
             EducationCess: healthAndEducationCess,
             
@@ -311,7 +318,7 @@ const calculateTaxAndPreparePartBTTI = (
             AggregateTaxInterestLiability: totalTaxPayable
         },
 
-        Surcharge: surcharge,
+        Surcharge: surchargeResult.surcharge,
         HealthEduCess: healthAndEducationCess,
 
         TaxPaid: {
@@ -331,26 +338,23 @@ const calculateTaxAndPreparePartBTTI = (
                 BankDtlsFlag: TaxRescertifiedFlag.N,
             }
         },
-
         AssetOutIndiaFlag: itr.ScheduleFA ? AssetOutIndiaFlag.Yes : AssetOutIndiaFlag.No,
     };
 };
 
 /**
- * Calculates PartB_TTI for New Tax Regime
- * 
+ * Calculates PartB_TTI using the new tax regime
  * @param itr - The complete ITR object with all sections
- * @returns The calculated PartB_TTI section under new regime
+ * @returns The calculated PartB_TTI section
  */
 const calculatePartBTTINewRegime = (itr: Itr2): PartBTTI => {
     return calculateTaxAndPreparePartBTTI(itr, true, NEW_REGIME_SLABS, 'New Regime');
 };
 
 /**
- * Calculates PartB_TTI for Old Tax Regime
- * 
+ * Calculates PartB_TTI using the old tax regime
  * @param itr - The complete ITR object with all sections
- * @returns The calculated PartB_TTI section under old regime
+ * @returns The calculated PartB_TTI section
  */
 const calculatePartBTTIOldRegime = (itr: Itr2): PartBTTI => {
     return calculateTaxAndPreparePartBTTI(itr, false, OLD_REGIME_SLABS, 'Old Regime');

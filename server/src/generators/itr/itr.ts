@@ -1,7 +1,7 @@
 import { parsedDocuments } from '../../services/parsedDocument';
 import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
 import { form26ASToITR, Form26ASITRSections } from '../../document-processors/form26ASToITR';
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag, TDSOthThanSalaryDtls } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
@@ -88,31 +88,34 @@ function mergeScheduleTDS1(sources: {
 }
 
 // === ACCUMULATION-BASED MERGE FUNCTIONS ===
+
+
+
 function mergeScheduleTDS2(sources: {
   form26AS?: ScheduleTDS2;
   ais?: ScheduleTDS2;
   userInput?: ScheduleTDS2;
 }): ScheduleTDS2 | undefined {
-  const availableSources = Object.values(sources).filter(Boolean) as ScheduleTDS2[];
+  // Priority: form26AS (official) < ais (validation/backup)
+  const governmentSource = sources.ais || sources.form26AS;
   
-  if (availableSources.length === 0) return undefined;
-  if (availableSources.length === 1) return availableSources[0];
+  if (!governmentSource && !sources.userInput) return undefined;
+  if (!sources.userInput) return governmentSource;
+  if (!governmentSource) return sources.userInput;
   
-  // Accumulate TDS entries from all sources
-  const mergedTDS2 = cloneDeep(availableSources[0]);
+  // Accumulate userInput with government source
+  const merged = cloneDeep(governmentSource);
   
-  for (let i = 1; i < availableSources.length; i++) {
-    const source = availableSources[i];
-    if (source.TDSOthThanSalaryDtls) {
-      mergedTDS2.TDSOthThanSalaryDtls = [
-        ...(mergedTDS2.TDSOthThanSalaryDtls || []),
-        ...source.TDSOthThanSalaryDtls
-      ];
-    }
-    mergedTDS2.TotalTDSonOthThanSals = (mergedTDS2.TotalTDSonOthThanSals || 0) + (source.TotalTDSonOthThanSals || 0);
+  if (sources.userInput.TDSOthThanSalaryDtls) {
+    merged.TDSOthThanSalaryDtls = [
+      ...(merged.TDSOthThanSalaryDtls || []),
+      ...sources.userInput.TDSOthThanSalaryDtls
+    ];
   }
   
-  return mergedTDS2;
+  merged.TotalTDSonOthThanSals = (merged.TotalTDSonOthThanSals || 0) + (sources.userInput.TotalTDSonOthThanSals || 0);
+  
+  return merged;
 }
 
 function mergeScheduleTCS(sources: {
@@ -173,56 +176,57 @@ function mergeScheduleOS(sources: {
   ais?: ScheduleOS;
   userInput?: ScheduleOS;
 }): ScheduleOS | undefined {
-  const availableSources = Object.values(sources).filter(Boolean) as ScheduleOS[];
+  // Priority: form26AS (official) < ais (validation/backup)
+  const governmentSource = sources.ais || sources.form26AS;
   
-  if (availableSources.length === 0) return undefined;
-  if (availableSources.length === 1) return availableSources[0];
+  if (!governmentSource && !sources.userInput) return undefined;
+  if (!sources.userInput) return governmentSource;
+  if (!governmentSource) return sources.userInput;
   
-  // Accumulate income from all sources
-  const mergedOS = cloneDeep(availableSources[0]);
+  // Accumulate userInput with government source
+  const merged = cloneDeep(governmentSource);
   
-  for (let i = 1; i < availableSources.length; i++) {
-    const source = availableSources[i];
-    
-    // Accumulate main income fields
-    mergedOS.IncChargeable = (mergedOS.IncChargeable || 0) + (source.IncChargeable || 0);
-    mergedOS.TotOthSrcNoRaceHorse = (mergedOS.TotOthSrcNoRaceHorse || 0) + (source.TotOthSrcNoRaceHorse || 0);
-    
-    // Accumulate interest income details
-    if (mergedOS.IncOthThanOwnRaceHorse && source.IncOthThanOwnRaceHorse) {
-      mergedOS.IncOthThanOwnRaceHorse.InterestGross = 
-        (mergedOS.IncOthThanOwnRaceHorse.InterestGross || 0) + (source.IncOthThanOwnRaceHorse.InterestGross || 0);
-      mergedOS.IncOthThanOwnRaceHorse.IntrstFrmSavingBank = 
-        (mergedOS.IncOthThanOwnRaceHorse.IntrstFrmSavingBank || 0) + (source.IncOthThanOwnRaceHorse.IntrstFrmSavingBank || 0);
-      mergedOS.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit = 
-        (mergedOS.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit || 0) + (source.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit || 0);
-      mergedOS.IncOthThanOwnRaceHorse.IntrstFrmOthers = 
-        (mergedOS.IncOthThanOwnRaceHorse.IntrstFrmOthers || 0) + (source.IncOthThanOwnRaceHorse.IntrstFrmOthers || 0);
-      mergedOS.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate = 
-        (mergedOS.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate || 0) + (source.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate || 0);
-      mergedOS.IncOthThanOwnRaceHorse.BalanceNoRaceHorse = 
-        (mergedOS.IncOthThanOwnRaceHorse.BalanceNoRaceHorse || 0) + (source.IncOthThanOwnRaceHorse.BalanceNoRaceHorse || 0);
-    }
+  // Accumulate main income fields
+  merged.IncChargeable = (merged.IncChargeable || 0) + (sources.userInput.IncChargeable || 0);
+  merged.TotOthSrcNoRaceHorse = (merged.TotOthSrcNoRaceHorse || 0) + (sources.userInput.TotOthSrcNoRaceHorse || 0);
+  
+  // Accumulate interest income details if both have detailed breakdowns
+  if (merged.IncOthThanOwnRaceHorse && sources.userInput.IncOthThanOwnRaceHorse) {
+    merged.IncOthThanOwnRaceHorse.InterestGross = 
+      (merged.IncOthThanOwnRaceHorse.InterestGross || 0) + (sources.userInput.IncOthThanOwnRaceHorse.InterestGross || 0);
+    merged.IncOthThanOwnRaceHorse.IntrstFrmSavingBank = 
+      (merged.IncOthThanOwnRaceHorse.IntrstFrmSavingBank || 0) + (sources.userInput.IncOthThanOwnRaceHorse.IntrstFrmSavingBank || 0);
+    merged.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit = 
+      (merged.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit || 0) + (sources.userInput.IncOthThanOwnRaceHorse.IntrstFrmTermDeposit || 0);
+    merged.IncOthThanOwnRaceHorse.IntrstFrmOthers = 
+      (merged.IncOthThanOwnRaceHorse.IntrstFrmOthers || 0) + (sources.userInput.IncOthThanOwnRaceHorse.IntrstFrmOthers || 0);
+    merged.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate = 
+      (merged.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate || 0) + (sources.userInput.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate || 0);
+    merged.IncOthThanOwnRaceHorse.BalanceNoRaceHorse = 
+      (merged.IncOthThanOwnRaceHorse.BalanceNoRaceHorse || 0) + (sources.userInput.IncOthThanOwnRaceHorse.BalanceNoRaceHorse || 0);
+  } else if (sources.userInput.IncOthThanOwnRaceHorse) {
+    merged.IncOthThanOwnRaceHorse = sources.userInput.IncOthThanOwnRaceHorse;
+  }
 
-    // Accumulate dividend income details
-    mergedOS.DividendDTAA = {
-        DateRange: {
-            Up16Of12To15Of3: (mergedOS.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0) +
-                (source.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0),
-            Up16Of3To31Of3: (mergedOS.DividendDTAA?.DateRange?.Up16Of3To31Of3 || 0) +
-                (source.DividendDTAA?.DateRange?.Up16Of3To31Of3 ||
-                    0),
-            Up16Of9To15Of12: (mergedOS.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0) +
-                (source.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0),
-            Upto15Of6: (mergedOS.DividendDTAA?.DateRange?.Upto15Of6 || 0) +
-                (source.DividendDTAA?.DateRange?.Upto15Of6 || 0),
-            Upto15Of9: (mergedOS.DividendDTAA?.DateRange?.Upto15Of9 || 0) +
-                (source.DividendDTAA?.DateRange?.Upto15Of9 || 0)
-        }
-    }
+  // Accumulate dividend income details
+  if (sources.userInput.DividendDTAA?.DateRange) {
+    merged.DividendDTAA = {
+      DateRange: {
+        Up16Of12To15Of3: (merged.DividendDTAA?.DateRange?.Up16Of12To15Of3 || 0) +
+          (sources.userInput.DividendDTAA.DateRange.Up16Of12To15Of3 || 0),
+        Up16Of3To31Of3: (merged.DividendDTAA?.DateRange?.Up16Of3To31Of3 || 0) +
+          (sources.userInput.DividendDTAA.DateRange.Up16Of3To31Of3 || 0),
+        Up16Of9To15Of12: (merged.DividendDTAA?.DateRange?.Up16Of9To15Of12 || 0) +
+          (sources.userInput.DividendDTAA.DateRange.Up16Of9To15Of12 || 0),
+        Upto15Of6: (merged.DividendDTAA?.DateRange?.Upto15Of6 || 0) +
+          (sources.userInput.DividendDTAA.DateRange.Upto15Of6 || 0),
+        Upto15Of9: (merged.DividendDTAA?.DateRange?.Upto15Of9 || 0) +
+          (sources.userInput.DividendDTAA.DateRange.Upto15Of9 || 0)
+      }
+    };
   }
   
-  return mergedOS;
+  return merged;
 }
 
 // === COMPLEX SECTION MERGE FUNCTIONS ===

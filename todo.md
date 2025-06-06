@@ -61,6 +61,9 @@ Phase 3
 - more ITR support
 - avoid following code smells and mistakes
 
+Phase 4
+- what happens when banks, zerodha, everyone has MCP servers
+
 ```
 let obj2 = { name: "original" };
 let obj1 = obj2;

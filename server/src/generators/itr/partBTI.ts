@@ -47,16 +47,22 @@ export const calculatePartBTI = (itr: Itr2): PartBTI => {
     // Total Income (Net Taxable Income)
     const totalIncome = Math.max(0, grossTotalIncome - deductionsUnderVIA);
 
+    // Calculate Aggregate Income (excludes special rate income like LTCG under Section 112A)
+    const specialRateIncome = itr.ScheduleSI?.TotSplRateInc ?? 0;
+    const aggregateIncome = Math.max(0, totalIncome - specialRateIncome);
+
     logger.info(`Gross Total Income (post CYLA & BFLA): ₹${grossTotalIncome.toLocaleString('en-IN')}`);
     logger.info(`Deductions under Chapter VI-A: ₹${deductionsUnderVIA.toLocaleString('en-IN')}`);
     logger.info(`Total Income (Net Taxable Income): ₹${totalIncome.toLocaleString('en-IN')}`);
+    logger.info(`Special Rate Income: ₹${specialRateIncome.toLocaleString('en-IN')}`);
+    logger.info(`Aggregate Income (Normal Rate): ₹${aggregateIncome.toLocaleString('en-IN')}`);
 
     // Create the PartB-TI object ensuring all mandatory fields are present
     const partBTI: PartBTI = {
         GrossTotalIncome: grossTotalIncome,
         DeductionsUnderScheduleVIA: deductionsUnderVIA,
         TotalIncome: totalIncome,
-        TotalTI: totalIncome,
+        TotalTI: grossTotalIncomePostCYLA, // Total Income before BFLA (same as BalanceAfterSetoffLosses)
         BalanceAfterSetoffLosses: grossTotalIncomePostCYLA, // GTI after CYLA but before BFLA
         BroughtFwdLossesSetoff: broughtForwardLossesSetoff,
         Salaries: incomeFromSalaries,
@@ -85,18 +91,20 @@ export const calculatePartBTI = (itr: Itr2): PartBTI => {
             OtherSrcThanOwnRaceHorse: incomeFromOS,
             TotIncFromOS: incomeFromOS,
         },
-        AggregateIncome: totalIncome, 
+        AggregateIncome: aggregateIncome, 
         NetAgricultureIncomeOrOtherIncomeForRate: itr.ScheduleEI?.NetAgriIncOrOthrIncRule7 ?? 0,
         IncChargeableTaxSplRates: itr.ScheduleSI?.TotSplRateInc ?? 0,
         IncChargeTaxSplRate111A112: itr.ScheduleSI?.SplCodeRateTax?.find(
-            (item) => item.SecCode === '1A' || item.SecCode === '2A'
+            (item) => ['1A', '2A', '21'].includes(item.SecCode)
         )?.SplRateInc ?? 0,
         DeemedIncomeUs115JC: 0,
-        CurrentYearLoss: (itr.ScheduleCYLA?.TotalCurYr.TotHPlossCurYr ?? 0) + (itr.ScheduleCYLA?.TotalCurYr.TotOthSrcLossNoRaceHorse ?? 0),
-        LossesOfCurrentYearCarriedFwd: ((itr.ScheduleCFL?.TotalLossCFSummary?.LossSummaryDetail?.TotalHPPTILossCF ?? 0) +
-                                       (itr.ScheduleCFL?.TotalLossCFSummary?.LossSummaryDetail?.TotalLTCGPTILossCF ?? 0) +
-                                       (itr.ScheduleCFL?.TotalLossCFSummary?.LossSummaryDetail?.TotalSTCGPTILossCF ?? 0) +
-                                       (itr.ScheduleCFL?.TotalLossCFSummary?.LossSummaryDetail?.OthSrcLossRaceHorseCF ?? 0)),
+        CurrentYearLoss: (itr.ScheduleCYLA?.TotalCurYr?.TotHPlossCurYr ?? 0) +
+                         (itr.ScheduleCYLA?.TotalCurYr?.TotOthSrcLossNoRaceHorse ?? 0),
+        LossesOfCurrentYearCarriedFwd: itr.ScheduleCFL?.CurrentAYloss?.LossSummaryDetail ? 
+                                       ((itr.ScheduleCFL.CurrentAYloss.LossSummaryDetail.TotalHPPTILossCF ?? 0) +
+                                        (itr.ScheduleCFL.CurrentAYloss.LossSummaryDetail.TotalLTCGPTILossCF ?? 0) +
+                                        (itr.ScheduleCFL.CurrentAYloss.LossSummaryDetail.TotalSTCGPTILossCF ?? 0) +
+                                        (itr.ScheduleCFL.CurrentAYloss.LossSummaryDetail.OthSrcLossRaceHorseCF ?? 0)) : 0,
     };
 
     logger.info('--- Finished PartB-TI Calculation ---\n');

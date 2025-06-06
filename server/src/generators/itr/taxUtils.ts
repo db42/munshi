@@ -1,4 +1,4 @@
-import { AssetOutIndiaFlag, TaxRescertifiedFlag } from '../../types/itr';
+import { AssetOutIndiaFlag, TaxRescertifiedFlag, Itr2 } from '../../types/itr';
 import { getLogger, ILogger } from '../../utils/logger';
 
 // Create a named logger instance for this module
@@ -33,30 +33,72 @@ export const logCalculation = (step: string, value: number) => {
     logger.info(`${step}: ₹${value.toLocaleString('en-IN')}`);
 };
 
-export const calculateSurcharge = (taxAmount: number, totalIncome: number): number => {
-    logger.info('\n--- Surcharge Calculation ---');
-    let surchargePercentage = 0;
-    
-    if (totalIncome <= 5000000) {
-        surchargePercentage = 0;
+export const calculateSurchargeWithCappedRates = (itr: Itr2, totalTaxBeforeSurcharge: number, totalIncome: number): { surcharge: number, surchargeBeforeMarginal: number } => {
+    logger.info('\n--- Surcharge Calculation (with Capped Rates) ---');
+    let surchargeRate = 0;
+
+    if (totalIncome <= 5000000) { 
+        surchargeRate = 0;
     } else if (totalIncome <= 10000000) {
-        surchargePercentage = 10;
+        surchargeRate = 10;
     } else if (totalIncome <= 20000000) {
-        surchargePercentage = 15;
+        surchargeRate = 15;
     } else if (totalIncome <= 50000000) {
-        surchargePercentage = 25;
+        surchargeRate = 25;
     } else {
-        surchargePercentage = 37;
+        surchargeRate = 37;
     }
 
-    logger.info(`Income: ₹${totalIncome.toLocaleString('en-IN')}`);
-    logger.info(`Applicable surcharge rate: ${surchargePercentage}%`);
+    logger.info(`Total Income: ₹${totalIncome.toLocaleString('en-IN')}`);
+    logger.info(`Applicable Surcharge Rate: ${surchargeRate}%`);
+
+    if (surchargeRate <= 15) {
+        const surcharge = calculatePercentage(totalTaxBeforeSurcharge, surchargeRate / 100);
+        logger.info(`Surcharge calculated at a flat rate: ₹${surcharge.toLocaleString('en-IN')}`);
+        // NOTE: Marginal relief calculation is not implemented yet.
+        return { surcharge, surchargeBeforeMarginal: surcharge };
+    }
+
+    // --- Logic for surcharge rates > 15% (25% and 37%) ---
+    let taxOnCappedIncome = 0;
+    const cappedRateSecCodes = [
+        "1A",  // STCG u/s 111A @ 15%
+        "2A",  // LTCG u/s 112A @ 10%
+        "21",  // LTCG u/s 112 @ 20% (on specified assets like property)
+        "5ACA1B", // LTCG on other assets (unlisted shares, etc.)
+        "5A1AI",  // Assumed to be dividend income for this calculation
+    ];
+
+    if (itr.ScheduleSI?.SplCodeRateTax) {
+        for (const specialTax of itr.ScheduleSI.SplCodeRateTax) {
+            if (cappedRateSecCodes.includes(specialTax.SecCode)) {
+                taxOnCappedIncome += specialTax.SplRateIncTax || 0;
+            }
+        }
+    }
+
+    logger.info(`Tax on income with capped surcharge (CGs & Dividends): ₹${taxOnCappedIncome.toLocaleString('en-IN')}`);
+
+    const surchargeOnCapped = calculatePercentage(taxOnCappedIncome, 0.15);
+    logger.info(`Surcharge on capped portion (at 15%): ₹${surchargeOnCapped.toLocaleString('en-IN')}`);
     
-    const surcharge = calculatePercentage(taxAmount, surchargePercentage / 100);
-    logger.info(`Calculated surcharge: ₹${surcharge.toLocaleString('en-IN')}`);
+    const taxOnUncappedIncome = totalTaxBeforeSurcharge - taxOnCappedIncome;
+    logger.info(`Tax on remaining income: ₹${taxOnUncappedIncome.toLocaleString('en-IN')}`);
+
+    const surchargeOnUncapped = calculatePercentage(taxOnUncappedIncome, surchargeRate / 100);
+    logger.info(`Surcharge on remaining portion (at ${surchargeRate}%): ₹${surchargeOnUncapped.toLocaleString('en-IN')}`);
+
+    const totalSurcharge = surchargeOnCapped + surchargeOnUncapped;
+    logger.info(`Total Surcharge (before marginal relief): ₹${totalSurcharge.toLocaleString('en-IN')}`);
+
+    // TODO: Implement marginal relief calculation.
+    // For now, the surcharge before and after marginal relief are the same.
+    const surchargeBeforeMarginal = totalSurcharge;
+    const finalSurcharge = totalSurcharge; 
+
     logger.info('--- End Surcharge Calculation ---\n');
-    
-    return surcharge;
+
+    return { surcharge: finalSurcharge, surchargeBeforeMarginal };
 };
 
 export const calculateTaxForSlabs = (totalIncome: number, slabs: TaxSlab[], regimeName: string): number => {
@@ -196,6 +238,11 @@ export const createEmptyPartBTTI = () => {
             EducationCess: 0,
             GrossTaxLiability: 0,
             GrossTaxPayable: 0,
+            GrossTaxPay: {
+                TaxDeferred17: 0,
+                TaxDeferredPayableCY: 0,
+                TaxInc17: 0
+            },
             CreditUS115JD: 0,
             TaxPayAfterCreditUs115JD: 0,
             TaxRelief: {

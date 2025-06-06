@@ -51,8 +51,7 @@ function extractHeadwiseIncomeLoss(itr: Itr2): HeadwiseIncomeLoss {
     
     const salaryIncome = getNum(itr.ScheduleS?.TotIncUnderHeadSalaries);
     const hpIncomeLoss = getNum(itr.ScheduleHP?.TotalIncomeChargeableUnHP);
-    const osIncomeLoss = getNum(itr.ScheduleOS?.IncOthThanOwnRaceHorse?.InterestGross) + 
-                         getNum(itr.ScheduleOS?.IncOthThanOwnRaceHorse?.DividendGross);
+    const osIncomeLoss = getNum(itr.ScheduleOS?.TotOthSrcNoRaceHorse);
 
     const incomeLoss: HeadwiseIncomeLoss = {
         salary: salaryIncome,

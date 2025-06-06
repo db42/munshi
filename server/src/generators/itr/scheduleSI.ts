@@ -20,119 +20,99 @@ export const calculateScheduleSI = (itr: Itr2): ScheduleSI => {
     let totalSpecialIncome = 0;
     let totalSpecialIncomeTax = 0;
     
-    // Check for capital gains with special rates from ScheduleCG
-    if (itr.ScheduleCGFor23) {
+    // Check for capital gains with special rates from post-BFLA amounts
+    // Use Schedule BFLA figures if available, otherwise fall back to ScheduleCG
+    if (itr.ScheduleBFLA || itr.ScheduleCGFor23) {
         // Short-term capital gains on shares/equity where STT paid (15%)
-        if (itr.ScheduleCGFor23.ShortTermCapGainFor23?.EquityMFonSTT) {
-            // Calculate total STCG at 15% rate from equity/MF transactions
-            let stcgAmount = 0;
-            const equityMFArray = itr.ScheduleCGFor23.ShortTermCapGainFor23.EquityMFonSTT;
+        // Use post-BFLA amount if available
+        const stcg15Amount = itr.ScheduleBFLA?.STCG15Per?.IncBFLA?.IncOfCurYrAfterSetOffBFLosses ?? 
+                            itr.ScheduleCYLA?.STCG15Per?.IncCYLA?.IncOfCurYrAfterSetOff ?? 0;
+        
+        if (stcg15Amount > 0) {
+            // 15% tax rate for STCG on shares where STT paid (Section 111A)
+            const taxRate = 15;
+            const taxAmount = (stcg15Amount * taxRate) / 100;
             
-            if (Array.isArray(equityMFArray) && equityMFArray.length > 0) {
-                for (const item of equityMFArray) {
-                    if (item.EquityMFonSTTDtls && item.EquityMFonSTTDtls.CapgainonAssets) {
-                        stcgAmount += item.EquityMFonSTTDtls.CapgainonAssets;
-                    }
-                }
-            }
+            specialIncomeSources.push({
+                SecCode: SECCode.The1A, // 111A - STCG on shares with STT paid
+                SplRateInc: stcg15Amount,
+                SplRatePercent: taxRate,
+                SplRateIncTax: taxAmount
+            });
             
-            if (stcgAmount > 0) {
-                // 15% tax rate for STCG on shares where STT paid (Section 111A)
-                const taxRate = 15;
-                const taxAmount = (stcgAmount * taxRate) / 100;
-                
-                specialIncomeSources.push({
-                    SecCode: SECCode.The1A, // 111A - STCG on shares with STT paid
-                    SplRateInc: stcgAmount,
-                    SplRatePercent: taxRate,
-                    SplRateIncTax: taxAmount
-                });
-                
-                totalSpecialIncome += stcgAmount;
-                totalSpecialIncomeTax += taxAmount;
-            }
+            totalSpecialIncome += stcg15Amount;
+            totalSpecialIncomeTax += taxAmount;
         }
         
         // Long-term capital gains on equity shares/units with STT paid (10% > 1L without indexation)
-        if (itr.ScheduleCGFor23.LongTermCapGain23?.SaleOfEquityShareUs112A) {
-            const ltcgAmount = itr.ScheduleCGFor23.LongTermCapGain23.SaleOfEquityShareUs112A.CapgainonAssets || 0;
-            if (ltcgAmount > 0) {
-                // Apply ₹1 lakh exemption under Section 112A
-                const LTCG_EXEMPTION_LIMIT = 100000;
-                const taxableAmount = Math.max(0, ltcgAmount - LTCG_EXEMPTION_LIMIT);
-                
-                if (taxableAmount > 0) {
-                    // 10% tax rate for LTCG on shares/units where STT paid (Section 112A)
-                    const taxRate = 10;
-                    const taxAmount = (taxableAmount * taxRate) / 100;
-                    
-                    specialIncomeSources.push({
-                        SecCode: SECCode.The2A, // 112A - LTCG on equity shares/MF with STT
-                        SplRateInc: taxableAmount, // Only the taxable amount above ₹1 lakh
-                        SplRatePercent: taxRate,
-                        SplRateIncTax: taxAmount
-                    });
-                    
-                    totalSpecialIncome += taxableAmount;
-                    totalSpecialIncomeTax += taxAmount;
-                    
-                    logger.info(`LTCG Section 112A: Total gain ₹${ltcgAmount.toLocaleString('en-IN')}, Exemption ₹${LTCG_EXEMPTION_LIMIT.toLocaleString('en-IN')}, Taxable ₹${taxableAmount.toLocaleString('en-IN')}, Tax ₹${taxAmount.toLocaleString('en-IN')}`);
-                } else {
-                    logger.info(`LTCG Section 112A: Total gain ₹${ltcgAmount.toLocaleString('en-IN')} is within ₹1 lakh exemption limit - No tax applicable`);
-                }
-            }
-        }
+        // Use post-BFLA amount if available
+        const ltcg10Amount = itr.ScheduleBFLA?.LTCG10Per?.IncBFLA?.IncOfCurYrAfterSetOffBFLosses ?? 
+                           itr.ScheduleCYLA?.LTCG10Per?.IncCYLA?.IncOfCurYrAfterSetOff ?? 0;
         
-        // Post-budget 2024, LTCG on unlisted shares/stocks (including foreign equity) is 12.5%
-        if (itr.ScheduleCGFor23?.LongTermCapGain23?.SaleofAssetNA?.CapgainonAssets) {
-            const otherLTCG = itr.ScheduleCGFor23.LongTermCapGain23.SaleofAssetNA.CapgainonAssets;
-            if (otherLTCG > 0) {
-                // Using 12.5% rate as requested for now.
-                const taxAmount = otherLTCG * FOREIGN_EQUITY_LTCG_RATE;
-
-                logger.info(`Found Other LTCG of ₹${otherLTCG.toLocaleString('en-IN')}, Tax: ₹${taxAmount.toLocaleString('en-IN')}`);
-                
-                specialIncomeSources.push({
-                    SecCode: SECCode.The5ACA1B, // Using existing foreign asset section for foreign equity
-                    SplRateInc: otherLTCG,
-                    SplRatePercent: FOREIGN_EQUITY_LTCG_RATE * 100,
-                    SplRateIncTax: taxAmount
-                });
-
-                // Add to the running totals
-                totalSpecialIncome += otherLTCG;
-                totalSpecialIncomeTax += taxAmount;
-            }
+        if (ltcg10Amount > 0) {
+            // Apply ₹1 lakh exemption under Section 112A for tax calculation only
+            const LTCG_EXEMPTION_LIMIT = 100000;
+            const taxableAmount = Math.max(0, ltcg10Amount - LTCG_EXEMPTION_LIMIT);
+            
+            // 10% tax rate for LTCG on shares/units where STT paid (Section 112A)
+            const taxRate = 10;
+            const taxAmount = (taxableAmount * taxRate) / 100;
+            
+            specialIncomeSources.push({
+                SecCode: SECCode.The2A, // 112A - LTCG on equity shares/MF with STT
+                SplRateInc: ltcg10Amount, // Gross amount subject to special rate
+                SplRatePercent: taxRate,
+                SplRateIncTax: taxAmount  // Tax after applying exemption
+            });
+            
+            totalSpecialIncome += ltcg10Amount;
+            totalSpecialIncomeTax += taxAmount;
+            
+            logger.info(`LTCG Section 112A (post-BFLA): Total gain ₹${ltcg10Amount.toLocaleString('en-IN')}, Exemption ₹${LTCG_EXEMPTION_LIMIT.toLocaleString('en-IN')}, Taxable ₹${taxableAmount.toLocaleString('en-IN')}, Tax ₹${taxAmount.toLocaleString('en-IN')}`);
         }
         
         // Traditional LTCG with indexation benefit (20%)
-        if (itr.ScheduleCGFor23.LongTermCapGain23?.SaleofLandBuild) {
-            let ltcgAmount = 0;
+        const ltcg20Amount = itr.ScheduleBFLA?.LTCG20Per?.IncBFLA?.IncOfCurYrAfterSetOffBFLosses ?? 
+                           itr.ScheduleCYLA?.LTCG20Per?.IncCYLA?.IncOfCurYrAfterSetOff ?? 0;
+        
+        if (ltcg20Amount > 0) {
+            // 20% tax rate for LTCG with indexation (Section 112)
+            const taxRate = 20;
+            const taxAmount = (ltcg20Amount * taxRate) / 100;
             
-            // Sum up LTCG from land and building sales
-            if (itr.ScheduleCGFor23.LongTermCapGain23.SaleofLandBuild.SaleofLandBuildDtls) {
-                const saleItems = itr.ScheduleCGFor23.LongTermCapGain23.SaleofLandBuild.SaleofLandBuildDtls;
-                for (const item of saleItems) {
-                    if (item.LTCGonImmvblPrprty) {
-                        ltcgAmount += item.LTCGonImmvblPrprty;
-                    }
+            specialIncomeSources.push({
+                SecCode: SECCode.The21, // 112 - LTCG with indexation
+                SplRateInc: ltcg20Amount,
+                SplRatePercent: taxRate,
+                SplRateIncTax: taxAmount
+            });
+            
+            totalSpecialIncome += ltcg20Amount;
+            totalSpecialIncomeTax += taxAmount;
+        }
+        
+        // Check for any remaining ScheduleCG-specific items that don't have BFLA equivalents
+        if (itr.ScheduleCGFor23) {
+            // Post-budget 2024, LTCG on unlisted shares/stocks (including foreign equity) is 12.5%
+            if (itr.ScheduleCGFor23.LongTermCapGain23?.SaleofAssetNA?.CapgainonAssets) {
+                const otherLTCG = itr.ScheduleCGFor23.LongTermCapGain23.SaleofAssetNA.CapgainonAssets;
+                if (otherLTCG > 0) {
+                    // Using 12.5% rate as requested for now.
+                    const taxAmount = otherLTCG * FOREIGN_EQUITY_LTCG_RATE;
+
+                    logger.info(`Found Other LTCG of ₹${otherLTCG.toLocaleString('en-IN')}, Tax: ₹${taxAmount.toLocaleString('en-IN')}`);
+                    
+                    specialIncomeSources.push({
+                        SecCode: SECCode.The5ACA1B, // Using existing foreign asset section for foreign equity
+                        SplRateInc: otherLTCG,
+                        SplRatePercent: FOREIGN_EQUITY_LTCG_RATE * 100,
+                        SplRateIncTax: taxAmount
+                    });
+
+                    // Add to the running totals
+                    totalSpecialIncome += otherLTCG;
+                    totalSpecialIncomeTax += taxAmount;
                 }
-            }
-            
-            if (ltcgAmount > 0) {
-                // 20% tax rate for LTCG with indexation (Section 112)
-                const taxRate = 20;
-                const taxAmount = (ltcgAmount * taxRate) / 100;
-                
-                specialIncomeSources.push({
-                    SecCode: SECCode.The21, // 112 - LTCG with indexation
-                    SplRateInc: ltcgAmount,
-                    SplRatePercent: taxRate,
-                    SplRateIncTax: taxAmount
-                });
-                
-                totalSpecialIncome += ltcgAmount;
-                totalSpecialIncomeTax += taxAmount;
             }
         }
     }

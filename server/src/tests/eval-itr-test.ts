@@ -1,5 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { diff } from 'jest-diff';
 
 // Paths to files - store in tests directory
 const TESTS_DIR = path.join(process.cwd(), 'src', 'tests');
@@ -75,80 +76,23 @@ async function loadITRFromFile(filePath: string, description: string): Promise<a
 }
 
 /**
- * Deep comparison of two objects, ignoring certain fields
- */
-function deepCompare(obj1: any, obj2: any, path: string = ''): Array<{path: string, baseline: any, current: any}> {
-  const differences: Array<{path: string, baseline: any, current: any}> = [];
-  
-  // Skip comparison for timestamps and other dynamic fields
-  const skipFields = ['timestamp', 'createdAt', 'updatedAt', 'Date'];
-  
-  if (skipFields.some(field => path.endsWith(field))) {
-    return differences;
-  }
-  
-  if (obj1 === obj2) {
-    return differences;
-  }
-  
-  if (typeof obj1 !== typeof obj2) {
-    differences.push({ path, baseline: obj1, current: obj2 });
-    return differences;
-  }
-  
-  if (typeof obj1 === 'object' && obj1 !== null && obj2 !== null) {
-    const keys1 = Object.keys(obj1);
-    const keys2 = Object.keys(obj2);
-    const allKeys = [...new Set([...keys1, ...keys2])];
-    
-    for (const key of allKeys) {
-      const newPath = path ? `${path}.${key}` : key;
-      const subDiffs = deepCompare(obj1[key], obj2[key], newPath);
-      differences.push(...subDiffs);
-    }
-  } else if (obj1 !== obj2) {
-    differences.push({ path, baseline: obj1, current: obj2 });
-  }
-  
-  return differences;
-}
-
-/**
  * Compare key ITR sections for regression testing
  */
 function compareITRSections(baseline: any, current: any): boolean {
   console.log('\n=== ITR REGRESSION COMPARISON ===');
   
-  const differences = deepCompare(baseline, current);
+  const difference = diff(baseline, current, {
+    expand: false, // Don't expand large objects
+    contextLines: 3, // Show 3 lines of context around changes
+  });
   
-  if (differences.length === 0) {
+  if (!difference || difference.includes('Compared values have no visual difference')) {
     console.log('✅ No differences found - No regression detected!');
     return true;
   }
   
-  console.log(`❌ Found ${differences.length} differences:`);
-  
-  // Group differences by section
-  const sectionDiffs: Record<string, Array<{path: string, baseline: any, current: any}>> = {};
-  
-  differences.forEach(diff => {
-    const section = diff.path.split('.')[0] || 'root';
-    if (!sectionDiffs[section]) {
-      sectionDiffs[section] = [];
-    }
-    sectionDiffs[section].push(diff);
-  });
-  
-  // Report differences by section
-  Object.entries(sectionDiffs).forEach(([section, diffs]) => {
-    console.log(`\n--- ${section.toUpperCase()} (${diffs.length} differences) ---`);
-    diffs.slice(0, 5).forEach(diff => { // Show max 5 per section
-      console.log(`  ${diff.path}: ${JSON.stringify(diff.baseline)} → ${JSON.stringify(diff.current)}`);
-    });
-    if (diffs.length > 5) {
-      console.log(`  ... and ${diffs.length - 5} more differences`);
-    }
-  });
+  console.log('❌ Found differences:');
+  console.log(difference); // Print the detailed, colored diff
   
   return false;
 }
