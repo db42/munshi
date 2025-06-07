@@ -1,13 +1,4 @@
-import { parsedDocuments } from '../../services/parsedDocument';
-import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
-import { form26ASToITR, Form26ASITRSections } from '../../document-processors/form26ASToITR';
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, Schedule112A, ScheduleTDS2, ScheduleCFL, ScheduleIT, ScheduleBFLA, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag, TDSOthThanSalaryDtls } from '../../types/itr';
-import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
-import { convertUSCGEquityToITR as convertUSCGEquityToITRSections, USEquityITRSections } from '../../document-processors/usCGEquityToITR';
-import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
-import { convertAISToITRSections } from '../../document-processors/aisToITR';
-import { convertCAMSMFCapitalGainToITR, CAMSMFCapitalGainITRSections } from '../../document-processors/camsMFCapitalGainToITR';
-import { convertUserInputToITRSections } from '../../document-processors/userInputToITR';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, ScheduleTDS2, ScheduleIT, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag } from '../../types/itr';
 import cloneDeep from 'lodash/cloneDeep';
 import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
 import { calculatePartBTI } from './partBTI';
@@ -15,7 +6,6 @@ import { calculateScheduleCYLA } from './scheduleCYLA';
 import { calculateScheduleBFLA } from './calculateScheduleBFLA';
 import { calculateScheduleSI } from './scheduleSI';
 import { calculateScheduleAMTC, isAMTApplicable } from './scheduleAMTC';
-import { userInput } from '../../services/userInput';
 import { postProcessScheduleCG } from './scheduleCGPostProcessing';
 import { getLogger, ILogger } from '../../utils/logger';
 import { validateITR, ValidationError } from '../../services/validations';
@@ -802,26 +792,26 @@ export const generateITR = async (
     const mergedScheduleS = mergeScheduleS({
         form16: form16Sections?.scheduleS,
         form26AS: form26ASSections?.scheduleS,
-        ais: aisSections?.scheduleS
+        ais: undefined // Schedule S not available in AIS yet
     });
     
     const mergedScheduleTDS1 = mergeScheduleTDS1({
         form16: form16Sections?.scheduleTDS1,
         form26AS: form26ASSections?.scheduleTDS1,
-        ais: aisSections?.scheduleTDS1
+        ais: undefined // Schedule TDS1 not available in AIS yet
     });
 
     // Accumulation-based merging (combine all sources)
     const mergedScheduleTDS2 = mergeScheduleTDS2({
         form26AS: form26ASSections?.scheduleTDS2,
         ais: aisSections?.scheduleTDS2,
-        userInput: userInputSections?.scheduleTDS2
+        userInput: undefined // TDS2 not supported in user input yet
     });
     
     const mergedScheduleTCS = mergeScheduleTCS({
         form26AS: form26ASSections?.scheduleTCS,
-        ais: aisSections?.scheduleTCS,
-        userInput: userInputSections?.scheduleTCS
+        ais: undefined, // TCS not available in AIS yet
+        userInput: undefined // TCS not supported in user input yet
     });
     
     const mergedScheduleIT = mergeScheduleIT({
@@ -832,29 +822,29 @@ export const generateITR = async (
     const mergedScheduleOS = mergeScheduleOS({
         form26AS: form26ASSections?.scheduleOS,
         ais: aisSections?.scheduleOS,
-        userInput: userInputSections?.scheduleOS
+        userInput: undefined // OS not supported in user input yet
     });
 
     // Merge complex sections using clean priority/accumulation logic
     const mergedScheduleCGFromOtherSources = mergeScheduleCGFromSources({
         usEquity: usEquityCapitalGainSections.scheduleCG,
         camsMF: camsMFCapitalGainSections.scheduleCG,
-        userInput: userInputSections?.scheduleCGFor23
+        userInput: undefined // CG not supported in user input yet
     });
     
     const mergedScheduleFAFromSources = mergeScheduleFA({
         charlesSchwab: charlesSchwabSections.scheduleFA,
-        userInput: userInputSections?.scheduleFA
+        userInput: undefined // FA not supported in user input yet
     });
     
     const mergedScheduleTR1FromOtherSources = mergeScheduleTR1FromSources({
         usInvestment: usInvestmentIncomeSections.scheduleTR1,
-        userInput: userInputSections?.scheduleTR1
+        userInput: undefined // TR1 not supported in user input yet
     });
     
     const mergedScheduleFSIFromOtherSources = mergeScheduleFSIFromSources({
         usInvestment: usInvestmentIncomeSections.scheduleFSI,
-        userInput: userInputSections?.scheduleFSI
+        userInput: undefined // FSI not supported in user input yet
     });
 
     // TODO1: Note: For now, we skip additional ScheduleOS merge due to complex type requirements

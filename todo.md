@@ -43,10 +43,12 @@
 - [todo] baseline - add to version control
 
 Year 2025-26
-- [ done 17 May] upload AIS
+- [done] upload AIS
 - [] upload form 16 once available
 - [] schedule AL (how to get entries from previous ITRs)
-- [] support and upload 26AS since form-16 isn't available
+- [done] support and upload 26AS since form-16 isn't available
+- [todo] review other sources income
+- [todo] get scheduleIT (self assessment) from AIS
 - [] support ITR-1
 - [] download ITR offline utility once available https://www.incometax.gov.in/iec/foportal/downloads/income-tax-returns 
 - [] pre-filled data from ITR

@@ -17,7 +17,7 @@ const logger: ILogger = getLogger('aisToITRProcessor');
  */
 export interface AISITRSections {
   // Only include Schedule OS for now, other sections will be added later
-  scheduleOS: Partial<ScheduleOS>;
+  scheduleOS: ScheduleOS;
   scheduleTDS2: ScheduleTDS2;
   
   // TODO: Add these sections as they are implemented
@@ -182,7 +182,7 @@ function createDateRangeWithQuarterDistribution(transactionBreakdown: any[] = []
 /**
  * Generate Schedule OS from AIS data
  */
-function generateScheduleOS(aisData: AISData): Partial<ScheduleOS> {
+function generateScheduleOS(aisData: AISData): ScheduleOS {
   logger.info('Generating Schedule OS from AIS data');
   
   // Extract interest income from SFT details and TDS details with breakdown

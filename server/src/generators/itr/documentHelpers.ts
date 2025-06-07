@@ -1,14 +1,15 @@
 import { parsedDocuments } from '../../services/parsedDocument';
-import { convertForm16ToITR as convertForm16ToITRSections } from '../../document-processors/form16ToITR';
+import { convertForm16ToITR as convertForm16ToITRSections, Form16ITRSections } from '../../document-processors/form16ToITR';
 import { form26ASToITR, Form26ASITRSections } from '../../document-processors/form26ASToITR';
 import { ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, Schedule112A } from '../../types/itr';
 import { convertCharlesSchwabCSVToITR as convertCharlesSchwabCSVToITRSections } from '../../document-processors/charlesSchwabToITR';
 import { convertUSCGEquityToITR as convertUSCGEquityToITRSections } from '../../document-processors/usCGEquityToITR';
 import { convertUSInvestmentIncomeToITRSections } from '../../document-processors/usInvestmentIncomeToITR';
-import { convertAISToITRSections } from '../../document-processors/aisToITR';
+import { convertAISToITRSections, AISITRSections } from '../../document-processors/aisToITR';
 import { convertCAMSMFCapitalGainToITR } from '../../document-processors/camsMFCapitalGainToITR';
-import { convertUserInputToITRSections } from '../../document-processors/userInputToITR';
+import { convertUserInputToITRSections, UserInputITRSections } from '../../document-processors/userInputToITR';
 import { userInput } from '../../services/userInput';
+import { UserInputData } from '../../types/userInput.types';
 import { getLogger, ILogger } from '../../utils/logger';
 
 // Create a named logger instance for this module
@@ -16,7 +17,7 @@ const logger: ILogger = getLogger('documentHelpers');
 
 // === DOCUMENT FETCHING & PROCESSING HELPERS ===
 
-export async function getForm16Sections(userId: number, assessmentYear: string): Promise<any> {
+export async function getForm16Sections(userId: number, assessmentYear: string): Promise<Form16ITRSections | undefined> {
     const form16Docs = await parsedDocuments.getForm16(userId, assessmentYear);
     if (form16Docs?.parsed_data?.data) {
         const form16Result = convertForm16ToITRSections(form16Docs.parsed_data.data);
@@ -50,7 +51,7 @@ export async function getForm26ASSections(userId: number, assessmentYear: string
     }
 }
 
-export async function getAISSections(userId: number, assessmentYear: string): Promise<any> {
+export async function getAISSections(userId: number, assessmentYear: string): Promise<AISITRSections | undefined> {
     const aisDataParseResult = await parsedDocuments.getAISData(userId, assessmentYear);
     if (aisDataParseResult?.parsed_data?.data) {
         const aisResult = convertAISToITRSections(aisDataParseResult.parsed_data.data, assessmentYear);
@@ -67,7 +68,7 @@ export async function getAISSections(userId: number, assessmentYear: string): Pr
     }
 }
 
-export async function getUserInputSections(userId: number, assessmentYear: string): Promise<{ sections: any; rawData: any }> {
+export async function getUserInputSections(userId: number, assessmentYear: string): Promise<{ sections: UserInputITRSections | undefined; rawData: UserInputData | undefined }> {
     const userInputRecord = await userInput.get(userId.toString(), assessmentYear);
     const userInputData = userInputRecord?.input_data;
     if (userInputData) {
