@@ -23,8 +23,5 @@ export const DEFAULT_HEADERS = {
   'Content-Type': 'application/json',
 };
 
-// Default user ID (for development/testing)
-export const DEFAULT_USER_ID = '123';
-
 // Default assessment year (for development/testing)
 export const DEFAULT_ASSESSMENT_YEAR = '2024-25'; 

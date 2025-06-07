@@ -9,9 +9,9 @@ import { Itr } from '../types/itr';
  * @param assessmentYear - The assessment year in format YYYY-YY
  * @returns The ITR data
  */
-export const getITRByUserAndYear = async (userId: string, assessmentYear: string): Promise<Itr> => {
+export const getITRByUserAndYear = async (userId: number, assessmentYear: string): Promise<Itr> => {
   try {
-    const response = await fetch(ENDPOINTS.ITR_BY_USER_AND_YEAR(userId, assessmentYear), {
+    const response = await fetch(ENDPOINTS.ITR_BY_USER_AND_YEAR(String(userId), assessmentYear), {
       method: 'GET',
       headers: DEFAULT_HEADERS,
     });

@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
 import { UserInputData, UserItrInputRecord } from '../../../types/userInput.types';
 import { getUserItrInputRecord, saveUserInput, mergeUserInput } from '../../../api/userInput';
-import { DEFAULT_USER_ID } from '../../../api/config';
+import { useUser } from '../../../context/UserContext';
 
 interface UserInputContextType {
   userInput: UserInputData;
@@ -26,14 +26,14 @@ export const UserInputProvider: React.FC<{
   const [userInput, setUserInput] = useState<UserInputData>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { currentUser } = useUser();
 
-  // Fetch user input data once when the provider mounts
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
       try {
-        const record: UserItrInputRecord | null = await getUserItrInputRecord(DEFAULT_USER_ID, assessmentYear);
+        const record: UserItrInputRecord | null = await getUserItrInputRecord(currentUser.id, assessmentYear);
         setUserInput(record?.input_data || {});
       } catch (err) {
         console.error('Error fetching user input:', err);
@@ -44,14 +44,14 @@ export const UserInputProvider: React.FC<{
     };
 
     fetchData();
-  }, [assessmentYear]);
+  }, [assessmentYear, currentUser]);
 
   // Save complete user input data
   const saveUserInputData = async (data: UserInputData) => {
     setIsLoading(true);
     setError(null);
     try {
-      const savedRecord = await saveUserInput(DEFAULT_USER_ID, assessmentYear, data);
+      const savedRecord = await saveUserInput(currentUser.id, assessmentYear, data);
       setUserInput(savedRecord.input_data);
     } catch (err) {
       console.error('Error saving user input:', err);

@@ -1,3 +1,13 @@
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+    id INT PRIMARY KEY, -- Will eventually be Clerk User ID, for now just a string
+    email VARCHAR(255) UNIQUE,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create documents table
 CREATE TABLE IF NOT EXISTS documents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -9,7 +19,7 @@ CREATE TABLE IF NOT EXISTS documents (
     document_type VARCHAR(50),
     state VARCHAR(20) NOT NULL DEFAULT 'uploaded',
     state_message TEXT,
-    owner_id INT NOT NULL,
+    owner_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     assessment_year VARCHAR(7) NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -41,7 +51,7 @@ CREATE TABLE IF NOT EXISTS parsed_documents (
 -- Create user_itr_inputs table to store manual additions/edits by the user
 CREATE TABLE IF NOT EXISTS user_itr_inputs (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    owner_id INT NOT NULL,
+    owner_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     assessment_year VARCHAR(7) NOT NULL,
     -- The user's input/additions structured as JSON
     input_data JSONB NOT NULL,
@@ -52,3 +62,9 @@ CREATE TABLE IF NOT EXISTS user_itr_inputs (
     -- Ensure only one input set per user/year
     UNIQUE (owner_id, assessment_year)
 );
+
+-- Seed initial users for local development
+INSERT INTO users (id, email, first_name, last_name) VALUES
+(123, 'dushyant37@gmail.com', 'dushyant', 'bansal'),
+(456, 'vinodbansal1957@gmail.com', 'vinod kumar', 'bansal')
+ON CONFLICT (id) DO NOTHING;

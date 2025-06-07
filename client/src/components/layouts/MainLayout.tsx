@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import AssessmentYearSwitcher from '../AssessmentYearSwitcher';
 import { useAssessmentYear } from '../../context/AssessmentYearContext';
+import { UserSwitcher } from '../UserSwitcher';
+import { useUser } from '../../context/UserContext';
 
 interface NavItem {
   id: string;
@@ -16,6 +18,7 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { assessmentYear, setAssessmentYear } = useAssessmentYear();
+  const { currentUser } = useUser();
 
   const navItems: NavItem[] = [
     {
@@ -156,8 +159,11 @@ export default function MainLayout() {
             />
           </div>
           
-          <div className="flex items-center">
-            <span className="font-medium">John Doe</span>
+          <div className="flex items-center space-x-4">
+            <UserSwitcher />
+            {/* <span className="font-medium text-gray-700">
+              Welcome, {currentUser.first_name}!
+            </span> */}
           </div>
         </header>
 

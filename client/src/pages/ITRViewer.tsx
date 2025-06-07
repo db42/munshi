@@ -1,6 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { useITRData } from '@/components/ITRViewer/useITRData';
-import { DEFAULT_USER_ID, DEFAULT_ASSESSMENT_YEAR } from '../api/config';
 import { itr2StepsConfig } from '@/components/ITRViewer/config/itr-2-config';
 import { ITRViewerStepConfig } from '@/components/ITRViewer/types';
 import { Itr } from '../types/itr';
@@ -22,6 +21,7 @@ import { TaxCalculationPaymentsStep } from '@/components/ITRViewer/steps/TaxCalc
 import { AssetsLiabilitiesStep } from '@/components/ITRViewer/steps/AssetsLiabilitiesStep';
 import { SummaryConfirmationStep } from '@/components/ITRViewer/steps/SummaryConfirmationStep';
 import { useAssessmentYear } from '../context/AssessmentYearContext';
+import { useUser } from '../context/UserContext';
 
 // Map Step IDs to Components
 const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRViewerStepConfig }> } = {
@@ -36,9 +36,12 @@ const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRVie
 };
 
 export const ITRViewer: React.FC = () => {
-  const userId = DEFAULT_USER_ID;
   const { assessmentYear } = useAssessmentYear();
-  const { data: itrData, isLoading, error } = useITRData(userId, assessmentYear);
+  const { currentUser } = useUser();
+  const userId = currentUser.id;
+
+  // Only call the hook if userId is available
+  const { data: itrData, isLoading, error } = useITRData(String(userId), assessmentYear);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
 
   const allStepsConfig = itr2StepsConfig;

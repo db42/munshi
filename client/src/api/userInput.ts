@@ -9,9 +9,9 @@ import { UserInputData, UserItrInputRecord } from '../types/userInput.types';
  * @param assessmentYear - The assessment year in format YYYY-YY
  * @returns The user input data record or null if not found
  */
-export const getUserItrInputRecord = async (userId: string, assessmentYear: string): Promise<UserItrInputRecord | null> => {
+export const getUserItrInputRecord = async (userId: number, assessmentYear: string): Promise<UserItrInputRecord | null> => {
   try {
-    const response = await fetch(ENDPOINTS.USER_INPUT_BY_USER_AND_YEAR(userId, assessmentYear), {
+    const response = await fetch(ENDPOINTS.USER_INPUT_BY_USER_AND_YEAR(String(userId), assessmentYear), {
       method: 'GET',
       headers: DEFAULT_HEADERS,
     });
@@ -42,12 +42,12 @@ export const getUserItrInputRecord = async (userId: string, assessmentYear: stri
  * @returns The saved user input data AS THE FULL RECORD UserItrInputRecord
  */
 export const saveUserInput = async (
-  userId: string, 
+  userId: number, 
   assessmentYear: string, 
   data: UserInputData
 ): Promise<UserItrInputRecord> => {
   try {
-    const response = await fetch(ENDPOINTS.USER_INPUT_BY_USER_AND_YEAR(userId, assessmentYear), {
+    const response = await fetch(ENDPOINTS.USER_INPUT_BY_USER_AND_YEAR(String(userId), assessmentYear), {
       method: 'PUT',
       headers: DEFAULT_HEADERS,
       body: JSON.stringify(data),

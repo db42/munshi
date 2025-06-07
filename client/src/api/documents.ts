@@ -1,4 +1,4 @@
-import { ENDPOINTS, DEFAULT_HEADERS, DEFAULT_USER_ID, DEFAULT_ASSESSMENT_YEAR } from './config';
+import { ENDPOINTS, DEFAULT_HEADERS, DEFAULT_ASSESSMENT_YEAR } from './config';
 import { 
   Document, 
   DocumentsResponse, 
@@ -14,9 +14,9 @@ import {
  * @param userId - The user ID
  * @returns Promise with the documents
  */
-export const getDocumentsByUser = async (userId: string = DEFAULT_USER_ID): Promise<Document[]> => {
+export const getDocumentsByUser = async (userId: number): Promise<Document[]> => {
   try {
-    const response = await fetch(ENDPOINTS.DOCUMENTS_BY_USER(userId), {
+    const response = await fetch(ENDPOINTS.DOCUMENTS_BY_USER(String(userId)), {
       method: 'GET',
       headers: DEFAULT_HEADERS,
     });
@@ -41,11 +41,11 @@ export const getDocumentsByUser = async (userId: string = DEFAULT_USER_ID): Prom
  * @returns Promise with the documents
  */
 export const getDocumentsByUserAndYear = async (
-  userId: string = DEFAULT_USER_ID, 
-  year: string = DEFAULT_ASSESSMENT_YEAR
+  userId: number, 
+  year: string
 ): Promise<Document[]> => {
   try {
-    const response = await fetch(ENDPOINTS.DOCUMENTS_BY_USER_AND_YEAR(userId, year), {
+    const response = await fetch(ENDPOINTS.DOCUMENTS_BY_USER_AND_YEAR(String(userId), year), {
       method: 'GET',
       headers: DEFAULT_HEADERS,
     });
@@ -98,14 +98,14 @@ export const getDocumentById = async (documentId: string): Promise<Document> => 
  */
 export const uploadDocument = async (
   file: File,
-  ownerId: string = DEFAULT_USER_ID,
-  assessmentYear: string = DEFAULT_ASSESSMENT_YEAR,
+  ownerId: number,
+  assessmentYear: string,
   documentType?: DocumentType
 ): Promise<string> => {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('ownerId', ownerId);
+    formData.append('ownerId', String(ownerId));
     formData.append('assessmentYear', assessmentYear);
     
     if (documentType) {

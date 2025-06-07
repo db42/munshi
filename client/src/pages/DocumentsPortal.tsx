@@ -1,13 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { getDocumentsByUserAndYear, uploadDocument, processDocument, deleteDocument } from '../api/documents';
 import { Document, DocumentState, DocumentType } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';
-import { DEFAULT_USER_ID } from '../api/config';
 import { Link } from 'react-router-dom';
 import { useAssessmentYear } from '../context/AssessmentYearContext';
+import { useUser } from '../context/UserContext';
 
 // Helper function to format file size
 const formatFileSize = (bytes: number): string => {
@@ -23,6 +23,7 @@ const DocumentPortal = () => {
   const [error, setError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState<number>(0);
   const { assessmentYear } = useAssessmentYear();
+  const { currentUser } = useUser();
   
   // Upload state
   const [uploading, setUploading] = useState<boolean>(false);
@@ -50,7 +51,7 @@ const DocumentPortal = () => {
       setError(null);
       
       // Use the assessment year from context
-      const fetchedDocuments = await getDocumentsByUserAndYear(DEFAULT_USER_ID, assessmentYear);
+      const fetchedDocuments = await getDocumentsByUserAndYear(currentUser.id, assessmentYear);
       setDocuments(fetchedDocuments);
       
       // Count documents that are not in 'processed' state
@@ -130,9 +131,9 @@ const DocumentPortal = () => {
       // Upload the document with assessment year from context
       const documentId = await uploadDocument(
         file,
-        DEFAULT_USER_ID,
-        assessmentYear, // Use assessment year from context
-        selectedDocumentType
+        currentUser.id,
+        assessmentYear,
+        selectedDocumentType as DocumentType
       );
 
       // Optionally, process the document automatically

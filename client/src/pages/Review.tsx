@@ -1,36 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useAssessmentYear } from '../context/AssessmentYearContext';
 import { getITRByUserAndYear } from '../api/itr';
-import { DEFAULT_USER_ID } from '../api/config';
+import { useUser } from '../context/UserContext';
+import { Itr } from '../types/itr';
 import JsonDataViewer from '@/components/documents/JsonDataViewer';
 import { AlertCircle, Loader, Download } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Review = () => {
-  const [itrData, setItrData] = useState<any>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [itrData, setItrData] = useState<Itr | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { assessmentYear } = useAssessmentYear();
-
-  const fetchITRData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const data = await getITRByUserAndYear(DEFAULT_USER_ID, assessmentYear);
-      setItrData(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch ITR data');
-      console.error('Failed to fetch ITR data:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { currentUser } = useUser();
 
   useEffect(() => {
+    const fetchITRData = async () => {
+      if (!currentUser) {
+        setLoading(false);
+        return;
+      }
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const data = await getITRByUserAndYear(currentUser.id, assessmentYear);
+        setItrData(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch ITR data');
+        console.error('Failed to fetch ITR data:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchITRData();
-  }, [assessmentYear]);
+  }, [assessmentYear, currentUser]);
 
   const handleDownload = () => {
     if (!itrData) return;
