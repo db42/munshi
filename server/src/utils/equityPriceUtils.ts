@@ -64,7 +64,6 @@ export const findPeakPrice = (
 
   let peakPrice = 0;
   let peakDate: Date | undefined;
-  let pricesFound = false;
 
   // Iterate through all dates for this symbol
   for (const dateStr in closingPriceData[symbol]) {
@@ -78,7 +77,6 @@ export const findPeakPrice = (
         peakPrice = price;
         peakDate = currentDate;
       }
-      pricesFound = true;
     }
   }
 

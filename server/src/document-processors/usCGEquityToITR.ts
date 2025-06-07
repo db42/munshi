@@ -1,5 +1,4 @@
 import { CapitalGainSummary, USCGEquityTransaction, USEquityStatement } from '../types/usEquityStatement';
-import { ShortTerm, LongTerm, Proviso112SectionCode } from '../types/itr';
 import { ParseResult, getFinancialYear } from '../utils/parserTypes';
 
 import { 
@@ -21,9 +20,7 @@ import {
     InStcgDTAARate,
     AccruOrRecOfCG,
     NRITransacSec48Dtl,
-    DeducClaimInfo,
-    MFSectionCode,
-    CapGain
+    DeducClaimInfo
 } from '../types/itr';
 import { getExchangeRate, convertUSDtoINR } from '../utils/currencyConverter';
 import { getLogger, ILogger } from '../utils/logger';

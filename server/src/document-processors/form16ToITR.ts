@@ -41,7 +41,7 @@ export const convertForm16ToITR = (form16: Form16): ParseResult<Form16ITRSection
     try {
         const sections: Form16ITRSections = {
             creationInfo: processCreationInfo(form16),
-            formITR2: processFormITR2(form16),
+            formITR2: processFormITR2(),
             partAGEN1: processPartAGEN1(form16),
             scheduleS: processScheduleS(form16),
             scheduleTDS1: processScheduleTDS1(form16),

@@ -34,7 +34,7 @@ const storage = multer.diskStorage({
 });
 
 // Configure file filter
-const fileFilter = (req: express.Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+const fileFilter: multer.Options['fileFilter'] = (req, file, cb) => {
   logger.debug("file-mimetype", file.mimetype);
   const allowedMimes = [
     'application/pdf', 

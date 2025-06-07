@@ -1,7 +1,6 @@
 import { Form16 } from '../types/form16';
 import {
     Capacity,
-    Declaration,
     Verification,
     ScheduleS,
     ScheduleTDS1,
@@ -10,22 +9,7 @@ import {
     ScheduleIT,
     ScheduleOS,
     ScheduleSI,
-    Salaries, 
-    TDSonSalary, 
-    TDSOthThanSalaryDtls, 
-    Tc, 
-    TaxPayment, 
-    DateRangeType, 
-    DateRange, 
-    SplCodeRateTax, 
-    NatureOfEmployment,
-    AddressDetail,
-    StateCode,
-    Salarys as SalaryDetails, 
-    TaxDeductCreditDtls, 
-    TDSCreditName
-    // Removed: WinningLotteryIncType, PassThroughInc as they are not top-level exports
-    // Removed: TotalOSInc (it's a helper for a sub-structure, not a direct property of ScheduleOS)
+    DateRangeType
 } from '../types/itr';
 
 /**

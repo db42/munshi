@@ -188,7 +188,6 @@ export const getSlabTax = (totalIncome: number, slabs: TaxSlab[]): number => {
  */
 export const getSlabCalculationBreakdownText = (totalIncome: number, slabs: TaxSlab[], regimeName: string): string[] => {
     const breakdown: string[] = [];
-    let tax = 0;
     let remainingIncome = totalIncome;
 
     breakdown.push(`\n   Calculation Breakdown (${regimeName}):`);
@@ -201,7 +200,6 @@ export const getSlabCalculationBreakdownText = (totalIncome: number, slabs: TaxS
         if (remainingIncome > previousThreshold) {
             const taxableInSlab = remainingIncome - previousThreshold;
             const taxForSlab = taxableInSlab * currentSlab.rate;
-            tax += taxForSlab;
             
             const slabLabel = `   Slab @ ${`${(currentSlab.rate * 100).toFixed(0)}%`.padEnd(3)}`;
             const taxableAmountStr = `₹${Math.round(taxableInSlab).toLocaleString('en-IN')}`.padStart(20);

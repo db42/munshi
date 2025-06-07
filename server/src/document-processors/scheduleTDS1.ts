@@ -1,5 +1,5 @@
 import { Form16 } from '../types/form16';
-import { ScheduleTDS1, TDSonSalary, StateCode, EmployerOrDeductorOrCollectDetl } from '../types/itr';
+import { ScheduleTDS1, TDSonSalary, EmployerOrDeductorOrCollectDetl } from '../types/itr';
 
 /**
  * Processes Form 16 data to generate ScheduleTDS1

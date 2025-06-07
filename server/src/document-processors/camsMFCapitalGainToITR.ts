@@ -1,8 +1,7 @@
-import { CapGain, Itr2, ScheduleCGFor23, Schedule112A, Schedule112A115ADType, ShareOnOrBefore, Proviso112SectionCode } from '../types/itr';
+import { ScheduleCGFor23, Schedule112A, Schedule112A115ADType, ShareOnOrBefore, Proviso112SectionCode } from '../types/itr';
 import { CAMSMFCapitalGainData, CAMSMutualFundTransaction } from '../document-parsers/camsMFCapitalGainParser';
 import { ParseResult } from '../utils/parserTypes';
 import { getLogger, ILogger } from '../utils/logger';
-import cloneDeep from 'lodash/cloneDeep';
 import { 
     ShortTermCapGainFor23, 
     LongTermCapGain23, 
@@ -363,8 +362,6 @@ const processLongTermCapitalGains = (
     const debtLTCGTransactions = ltcgTransactions.filter(txn => txn.assetCategory === 'Debt' || txn.assetCategory === 'Hybrid');
     
     // Calculate totals
-    const equityTotalProceeds = equityLTCGTransactions.reduce((sum, txn) => sum + txn.saleValue, 0);
-    const equityTotalCost = equityLTCGTransactions.reduce((sum, txn) => sum + txn.acquisitionValue, 0);
     const equityTotalGain = equityLTCGTransactions.reduce((sum, txn) => sum + txn.gainOrLoss, 0);
     
     // TODO: Clarify if txn.acquisitionValue for debt LTCG already includes indexation.
@@ -538,7 +535,6 @@ const generateSchedule112A = (
         // These require data potentially missing from the current CAMSMutualFundTransaction type
         // or require more complex calculation logic (e.g., grandfathering).
         const fairMarketValuePerUnit = 0; // Needs FMV on 31-Jan-2018 if ShareOnOrBefore.Be
-        const costIfAcquiredBeforeGrandfathering = shareOnOrBefore === ShareOnOrBefore.Be ? 0 : costAcquisition;
         const ltcgBeforeLowerB1B2 = balance;
         const fairMarketValueTotal = fairMarketValuePerUnit * txn.units;
         const deductions = 0;

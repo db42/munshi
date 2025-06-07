@@ -1,9 +1,6 @@
 import { getLogger, ILogger } from '../../utils/logger';
 import { Itr2, ScheduleSI, SplCodeRateTax, SECCode } from '../../types/itr';
 
-// Define a constant for the foreign equity LTCG tax rate
-const FOREIGN_EQUITY_LTCG_RATE = 0.125; // 12.5% as per Budget 2024 for unlisted shares/stocks
-
 const logger: ILogger = getLogger('scheduleSIGenerator');
 
 /**

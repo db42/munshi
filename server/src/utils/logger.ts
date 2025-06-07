@@ -53,7 +53,7 @@ const logWithTimestamp = (level: LogLevel, name: string, message: string, ...arg
     const argsString = args.map(arg => {
       try {
         return JSON.stringify(arg);
-      } catch (e) {
+      } catch (_) {
         return '[UnserializableObject]';
       }
     }).join(', ');

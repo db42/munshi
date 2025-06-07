@@ -1,9 +1,7 @@
 import { UserInputData } from '../types/userInput.types';
-import { ITRSection, ITRSectionType } from '../generators/itr/itr';
 import { ScheduleCFL, ScheduleIT, TaxPayment } from '../types/itr';
 import { getLogger, ILogger } from '../utils/logger';
 import { ParseResult } from '../utils/parserTypes';
-import cloneDeep from 'lodash/cloneDeep';
 
 const logger: ILogger = getLogger('userInputToITRProcessor');
 
