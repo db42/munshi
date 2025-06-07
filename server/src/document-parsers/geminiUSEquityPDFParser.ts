@@ -2,9 +2,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from 'fs/promises';
 import { 
   USEquityStatement, 
-  USCGEquityTransaction, 
-  DividendIncome, 
-  CapitalGainSummary 
 } from '../types/usEquityStatement';
 import * as sampleData from './sampleUSEquityJsonGeminiPrompt.json';
 import { defaultConfig, Config } from "../config/geminiConfig";

@@ -41,10 +41,12 @@
 - [todo] consider 80c exemptions while calculating old regime
 - [done] verify which income gets used to determine surcharge 
 - [todo] baseline - add to version control
+- [done] add lint
+- [todo] fix lint server
 
 Year 2025-26
 - [done] upload AIS
-- [todo] fix dup entries in advance tax
+- [done] fix dup entries in advance tax
 - [] upload form 16 once available
 - [] schedule AL (how to get entries from previous ITRs)
 - [done] support and upload 26AS since form-16 isn't available

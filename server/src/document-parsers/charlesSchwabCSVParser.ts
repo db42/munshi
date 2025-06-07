@@ -1,13 +1,7 @@
 import fs from 'fs';
 import { parse } from 'csv-parse/sync';
 import { ParseResult } from '../utils/parserTypes';
-import { USCGEquityTransaction } from '../types/usEquityStatement';
 import omit from 'lodash/omit';
-
-interface TaxpayerInfo {
-  name: string;
-  pan: string;
-}
 // Define enum for transaction actions
 export enum TransactionAction {
   Buy = 'Buy',
@@ -51,7 +45,7 @@ export interface CharlesSchwabRecord {
   price: number;
   fees: number;
   amount: number;
-  [key: string]: any; // Allow for additional fields with any type
+  [key: string]: unknown; // Allow for additional fields
 }
 
 /**

@@ -3,8 +3,7 @@ import { parse } from 'csv-parse/sync';
 import { ParseResult } from '../utils/parserTypes';
 import { 
   USEquityStatement, 
-  USCGEquityTransaction, 
-  CapitalGainSummary
+  USCGEquityTransaction
 } from '../types/usEquityStatement';
 import { calculateCapitalGains } from '../document-processors/usCGEquityToITR';
 import { parseDate, parseNumericValue } from '../utils/formatters';

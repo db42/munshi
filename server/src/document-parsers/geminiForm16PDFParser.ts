@@ -2,10 +2,6 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as fs from 'fs/promises';
 import { 
   Form16, 
-  Form16Metadata,
-  EmployerInfo,
-  EmployeeInfo,
-  SalaryDetails,
 } from '../types/form16';
 import * as sampleData from './sampleForm16JsonGeminiPrompt.json';
 import { Config, defaultConfig } from "../config/geminiConfig";
@@ -26,11 +22,11 @@ type TypeStructure<T> = {
 };
 
 // Helper function to generate interface structure from TypeScript type
-function generateInterfaceStructure<T>(): TypeStructure<T> {
-  // This function is just a type helper - implementation is not needed
-  // as we're using TypeScript's type system at compile time
-  return {} as TypeStructure<T>;
-}
+// function generateInterfaceStructure<T>(): TypeStructure<T> {
+//   // This function is just a type helper - implementation is not needed
+//   // as we're using TypeScript's type system at compile time
+//   return {} as TypeStructure<T>;
+// }
 
 export const loadPDFGemini = async (filePath: string, config: Config = defaultConfig()): Promise<ParseResult<Form16>> => {
   try {
@@ -126,7 +122,7 @@ export const loadPDFGemini = async (filePath: string, config: Config = defaultCo
 };
 
 
-function isValidDate(dateStr: string): boolean {
-  const date = new Date(dateStr);
-  return date instanceof Date && !isNaN(date.getTime());
-}
+// function isValidDate(dateStr: string): boolean {
+//   const date = new Date(dateStr);
+//   return date instanceof Date && !isNaN(date.getTime());
+// }
