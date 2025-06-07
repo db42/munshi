@@ -30,14 +30,17 @@
 - TODO support for previous ITR in the computations for sectionFA, carry forward losses etc.
 - TODO verify the computations for sectionFA last return - WIP
 - TODO json renderer in client and ability to update fields in json - update AL,
-- TODO parse form 26AS - information like fd interest
-- TODO add validation
+- [done] parse form 26AS - information like fd interest
+- [done] add validation
 - TODO schedule AL from previous ITR
 - todo see the working of each section in UI
 - todo section112A paytm entries
 - how to get tax deducted from charles schwab - WIP - needs to verify
-- [] add tests
-- [6 june] test again on fy 23-24 via UI. complete for fy 24-25
+- [done] add IT
+- [6 june - DONE] test again on fy 23-24 via UI. complete for fy 24-25
+- [todo] consider 80c exemptions while calculating old regime
+- [done] verify which income gets used to determine surcharge 
+- [todo] baseline - add to version control
 
 Year 2025-26
 - [ done 17 May] upload AIS

@@ -1,4 +1,4 @@
-import { AssetOutIndiaFlag, TaxRescertifiedFlag, Itr2 } from '../../types/itr';
+import { AssetOutIndiaFlag, TaxRescertifiedFlag, Itr2, SECCode } from '../../types/itr';
 import { getLogger, ILogger } from '../../utils/logger';
 
 // Create a named logger instance for this module
@@ -62,11 +62,11 @@ export const calculateSurchargeWithCappedRates = (itr: Itr2, totalTaxBeforeSurch
     // --- Logic for surcharge rates > 15% (25% and 37%) ---
     let taxOnCappedIncome = 0;
     const cappedRateSecCodes = [
-        "1A",  // STCG u/s 111A @ 15%
-        "2A",  // LTCG u/s 112A @ 10%
-        "21",  // LTCG u/s 112 @ 20% (on specified assets like property)
-        "5ACA1B", // LTCG on other assets (unlisted shares, etc.)
-        "5A1AI",  // Assumed to be dividend income for this calculation
+        SECCode.The1A,      // STCG u/s 111A @ 15%
+        SECCode.The2A,      // LTCG u/s 112A @ 10%
+        SECCode.The21,      // LTCG u/s 112 @ 20% (on specified assets like property)
+        SECCode.The5ACA1B,  // LTCG on other assets (unlisted shares, etc.)
+        SECCode.The5A1AI,   // Assumed to be dividend income for this calculation
     ];
 
     if (itr.ScheduleSI?.SplCodeRateTax) {

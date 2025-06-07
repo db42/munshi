@@ -91,30 +91,12 @@ export const calculateScheduleSI = (itr: Itr2): ScheduleSI => {
             totalSpecialIncomeTax += taxAmount;
         }
         
-        // Check for any remaining ScheduleCG-specific items that don't have BFLA equivalents
-        if (itr.ScheduleCGFor23) {
-            // Post-budget 2024, LTCG on unlisted shares/stocks (including foreign equity) is 12.5%
-            if (itr.ScheduleCGFor23.LongTermCapGain23?.SaleofAssetNA?.CapgainonAssets) {
-                const otherLTCG = itr.ScheduleCGFor23.LongTermCapGain23.SaleofAssetNA.CapgainonAssets;
-                if (otherLTCG > 0) {
-                    // Using 12.5% rate as requested for now.
-                    const taxAmount = otherLTCG * FOREIGN_EQUITY_LTCG_RATE;
-
-                    logger.info(`Found Other LTCG of ₹${otherLTCG.toLocaleString('en-IN')}, Tax: ₹${taxAmount.toLocaleString('en-IN')}`);
-                    
-                    specialIncomeSources.push({
-                        SecCode: SECCode.The5ACA1B, // Using existing foreign asset section for foreign equity
-                        SplRateInc: otherLTCG,
-                        SplRatePercent: FOREIGN_EQUITY_LTCG_RATE * 100,
-                        SplRateIncTax: taxAmount
-                    });
-
-                    // Add to the running totals
-                    totalSpecialIncome += otherLTCG;
-                    totalSpecialIncomeTax += taxAmount;
-                }
-            }
-        }
+        // Note: Removed direct reading from ScheduleCGFor23.LongTermCapGain23.SaleofAssetNA 
+        // to prevent double taxation. All capital gains should flow through CYLA/BFLA processing.
+        // If additional foreign asset types need special rates, they should be:
+        // 1. Properly categorized in document processors 
+        // 2. Flow through ScheduleCG.CurrYrLosses processing
+        // 3. Appear in CYLA/BFLA with correct amounts
     }
     
     // Check for special income in Schedule OS (Other Sources)

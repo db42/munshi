@@ -25,7 +25,8 @@ export enum CapitalGainTaxCategory {
     STCG_APP_RATE = 'STCG_APP_RATE',     // Slab rates (e.g., debt MF STCG, non-STT equity STCG)
     STCG_DTAA_RATE = 'STCG_DTAA_RATE',   // STCG taxed at DTAA rates
     LTCG_10_PER = 'LTCG_10_PER',         // Sec 112A (STT paid equity over 1L)
-    LTCG_20_PER = 'LTCG_20_PER',         // Sec 112 (e.g., debt MF LTCG with indexation, non-STT equity LTCG)
+    LTCG_12_5_PER = 'LTCG_12_5_PER',     // Post-Budget 2024: Foreign equity, unlisted shares (12.5%)
+    LTCG_20_PER = 'LTCG_20_PER',         // Sec 112 (e.g., debt MF LTCG with indexation, property)
     LTCG_DTAA_RATE = 'LTCG_DTAA_RATE',   // LTCG taxed at DTAA rates
     // Add other specific categories if needed, e.g., VDA
 }
