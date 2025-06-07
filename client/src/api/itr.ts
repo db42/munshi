@@ -1,5 +1,6 @@
 import { ENDPOINTS, DEFAULT_HEADERS } from './config';
 import { formatApiError } from '../utils/api-helpers';
+import { Itr } from '../types/itr';
 
 /**
  * Fetch the ITR data for a specific user and assessment year
@@ -8,7 +9,7 @@ import { formatApiError } from '../utils/api-helpers';
  * @param assessmentYear - The assessment year in format YYYY-YY
  * @returns The ITR data
  */
-export const getITRByUserAndYear = async (userId: string, assessmentYear: string): Promise<any> => {
+export const getITRByUserAndYear = async (userId: string, assessmentYear: string): Promise<Itr> => {
   try {
     const response = await fetch(ENDPOINTS.ITR_BY_USER_AND_YEAR(userId, assessmentYear), {
       method: 'GET',

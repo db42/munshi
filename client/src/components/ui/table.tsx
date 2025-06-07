@@ -1,123 +1,117 @@
-import * as React from "react";
+import * as React from "react"
 
-interface TableProps {
-  className?: string;
-  children: React.ReactNode;
+import { cn } from "@/utils/utils"
+
+const Table = React.forwardRef<
+  HTMLTableElement,
+  React.HTMLAttributes<HTMLTableElement>
+>(({ className, ...props }, ref) => (
+  <div className="relative w-full overflow-auto">
+    <table
+      ref={ref}
+      className={cn("w-full caption-bottom text-sm", className)}
+      {...props}
+    />
+  </div>
+))
+Table.displayName = "Table"
+
+const TableHeader = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <thead ref={ref} className={cn("[&_tr]:border-b", className)} {...props} />
+))
+TableHeader.displayName = "TableHeader"
+
+const TableBody = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tbody
+    ref={ref}
+    className={cn("[&_tr:last-child]:border-0", className)}
+    {...props}
+  />
+))
+TableBody.displayName = "TableBody"
+
+const TableFooter = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>(({ className, ...props }, ref) => (
+  <tfoot
+    ref={ref}
+    className={cn(
+      "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
+      className
+    )}
+    {...props}
+  />
+))
+TableFooter.displayName = "TableFooter"
+
+const TableRow = React.forwardRef<
+  HTMLTableRowElement,
+  React.HTMLAttributes<HTMLTableRowElement>
+>(({ className, ...props }, ref) => (
+  <tr
+    ref={ref}
+    className={cn(
+      "border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted",
+      className
+    )}
+    {...props}
+  />
+))
+TableRow.displayName = "TableRow"
+
+const TableHead = React.forwardRef<
+  HTMLTableCellElement,
+  React.ThHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <th
+    ref={ref}
+    className={cn(
+      "h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0",
+      className
+    )}
+    {...props}
+  />
+))
+TableHead.displayName = "TableHead"
+
+const TableCell = React.forwardRef<
+  HTMLTableCellElement,
+  React.TdHTMLAttributes<HTMLTableCellElement>
+>(({ className, ...props }, ref) => (
+  <td
+    ref={ref}
+    className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
+    {...props}
+  />
+))
+TableCell.displayName = "TableCell"
+
+const TableCaption = React.forwardRef<
+  HTMLTableCaptionElement,
+  React.HTMLAttributes<HTMLTableCaptionElement>
+>(({ className, ...props }, ref) => (
+  <caption
+    ref={ref}
+    className={cn("mt-4 text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+TableCaption.displayName = "TableCaption"
+
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
 }
-
-interface TableHeaderProps {
-  className?: string;
-  children: React.ReactNode;
-}
-
-interface TableBodyProps {
-  className?: string;
-  children: React.ReactNode;
-}
-
-interface TableFooterProps {
-  className?: string;
-  children: React.ReactNode;
-}
-
-interface TableRowProps {
-  className?: string;
-  children: React.ReactNode;
-}
-
-interface TableHeadProps {
-  className?: string;
-  children: React.ReactNode;
-}
-
-interface TableCellProps {
-  className?: string;
-  children: React.ReactNode;
-  colSpan?: number;
-}
-
-export const Table: React.FC<TableProps> = ({ className = "", children }) => {
-  return (
-    <div className="w-full overflow-auto">
-      <table className={`w-full caption-bottom text-sm ${className}`}>
-        {children}
-      </table>
-    </div>
-  );
-};
-
-export const TableHeader: React.FC<TableHeaderProps> = ({
-  className = "",
-  children,
-}) => {
-  return (
-    <thead className={`[&_tr]:border-b ${className}`}>
-      {children}
-    </thead>
-  );
-};
-
-export const TableBody: React.FC<TableBodyProps> = ({
-  className = "",
-  children,
-}) => {
-  return (
-    <tbody className={`[&_tr:last-child]:border-0 ${className}`}>
-      {children}
-    </tbody>
-  );
-};
-
-export const TableFooter: React.FC<TableFooterProps> = ({
-  className = "",
-  children,
-}) => {
-  return (
-    <tfoot
-      className={`border-t bg-gray-100/50 font-medium [&>tr]:last:border-b-0 ${className}`}
-    >
-      {children}
-    </tfoot>
-  );
-};
-
-export const TableRow: React.FC<TableRowProps> = ({
-  className = "",
-  children,
-}) => {
-  return (
-    <tr
-      className={`border-b transition-colors hover:bg-gray-100/50 data-[state=selected]:bg-gray-100 ${className}`}
-    >
-      {children}
-    </tr>
-  );
-};
-
-export const TableHead: React.FC<TableHeadProps> = ({
-  className = "",
-  children,
-}) => {
-  return (
-    <th
-      className={`h-12 px-4 text-left align-middle font-medium text-gray-500 [&:has([role=checkbox])]:pr-0 ${className}`}
-    >
-      {children}
-    </th>
-  );
-};
-
-export const TableCell: React.FC<TableCellProps> = ({
-  className = "",
-  children,
-  colSpan,
-}) => {
-  return (
-    <td
-      className={`p-4 align-middle [&:has([role=checkbox])]:pr-0 ${className}`}
-      colSpan={colSpan}
-    >
-      {children}
-    </td>
-  );
-}; 

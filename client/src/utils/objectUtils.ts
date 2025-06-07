@@ -7,8 +7,8 @@ export const sortedObject = (obj: any): any => {
   if (obj === null || obj === undefined || typeof obj !== 'object') {
     return obj;
   }
-  return Object.keys(obj).sort().reduce((sorted, key) => {
+  return Object.keys(obj).sort().reduce((sorted: Record<string, any>, key: string) => {
     sorted[key] = sortedObject(obj[key]);
     return sorted;
-  }, {});
+  }, {} as Record<string, any>);
 }; 

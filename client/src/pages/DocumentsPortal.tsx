@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play, RefreshCw } from 'lucide-react';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { Card, CardContent } from '../components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
 import { getDocumentsByUserAndYear, uploadDocument, processDocument, deleteDocument } from '../api/documents';
 import { Document, DocumentState, DocumentType } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';

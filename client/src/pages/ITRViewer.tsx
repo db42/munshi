@@ -1,26 +1,26 @@
 import React, { useState, useMemo } from 'react';
-import { useITRData } from '../components/ITRViewer/useITRData';
+import { useITRData } from '@/components/ITRViewer/useITRData';
 import { DEFAULT_USER_ID, DEFAULT_ASSESSMENT_YEAR } from '../api/config';
-import { itr2StepsConfig } from '../components/ITRViewer/config/itr-2-config';
-import { ITRViewerStepConfig } from '../components/ITRViewer/types';
+import { itr2StepsConfig } from '@/components/ITRViewer/config/itr-2-config';
+import { ITRViewerStepConfig } from '@/components/ITRViewer/types';
 import { Itr } from '../types/itr';
 // Import UI components using correct relative paths
-import { Button } from '../components/ITRViewer/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ITRViewer/ui/card';
-import { Progress } from '../components/ITRViewer/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { ChevronLeft, ChevronRight, Save } from 'lucide-react';
-import { EditModeProvider } from '../components/ITRViewer/context/EditModeContext';
-import { UserInputProvider } from '../components/ITRViewer/context/UserInputContext';
+import { EditModeProvider } from '@/components/ITRViewer/context/EditModeContext';
+import { UserInputProvider } from '@/components/ITRViewer/context/UserInputContext';
 
 // Import Step Components using correct relative paths
-import { PersonalInfoStep } from '../components/ITRViewer/steps/PersonalInfoStep';
-import { IncomeDetailsStep } from '../components/ITRViewer/steps/IncomeDetailsStep';
-import { CapitalGainsStep } from '../components/ITRViewer/steps/CapitalGainsStep';
-import { ForeignAssetsIncomeStep } from '../components/ITRViewer/steps/ForeignAssetsIncomeStep';
-import { DeductionsLossesStep } from '../components/ITRViewer/steps/DeductionsLossesStep';
-import { TaxCalculationPaymentsStep } from '../components/ITRViewer/steps/TaxCalculationPaymentsStep';
-import { AssetsLiabilitiesStep } from '../components/ITRViewer/steps/AssetsLiabilitiesStep';
-import { SummaryConfirmationStep } from '../components/ITRViewer/steps/SummaryConfirmationStep';
+import { PersonalInfoStep } from '@/components/ITRViewer/steps/PersonalInfoStep';
+import { IncomeDetailsStep } from '@/components/ITRViewer/steps/IncomeDetailsStep';
+import { CapitalGainsStep } from '@/components/ITRViewer/steps/CapitalGainsStep';
+import { ForeignAssetsIncomeStep } from '@/components/ITRViewer/steps/ForeignAssetsIncomeStep';
+import { DeductionsLossesStep } from '@/components/ITRViewer/steps/DeductionsLossesStep';
+import { TaxCalculationPaymentsStep } from '@/components/ITRViewer/steps/TaxCalculationPaymentsStep';
+import { AssetsLiabilitiesStep } from '@/components/ITRViewer/steps/AssetsLiabilitiesStep';
+import { SummaryConfirmationStep } from '@/components/ITRViewer/steps/SummaryConfirmationStep';
 import { useAssessmentYear } from '../context/AssessmentYearContext';
 
 // Map Step IDs to Components

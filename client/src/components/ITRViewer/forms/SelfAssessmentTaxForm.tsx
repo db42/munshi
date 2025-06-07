@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
-import { Card } from '../ui/card';
-import { Separator } from '../ui/separator';
+import { Card } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import { useEditMode } from '../context/EditModeContext';
 import { useUserInput } from '../context/UserInputContext';
 import { SelfAssessmentTaxPayment } from '../../../types/userInput.types';
-import { CurrencyInput, DateInput, TextInput } from '../ui/forms/FormComponents';
+import { CurrencyInput, DateInput, TextInput } from '@/components/ui/forms/FormComponents';
 
 export const SelfAssessmentTaxForm: React.FC = () => {
   const { userInput, saveUserInputData, isLoading } = useUserInput();
@@ -36,7 +36,7 @@ export const SelfAssessmentTaxForm: React.FC = () => {
   };
 
   // Function to update an entry
-  const updateEntry = (index: number, field: keyof SelfAssessmentTaxPayment, value: any) => {
+  const updateEntry = (index: number, field: keyof SelfAssessmentTaxPayment, value: string | number) => {
     const updatedEntries = [...entries];
     updatedEntries[index] = {
       ...updatedEntries[index],

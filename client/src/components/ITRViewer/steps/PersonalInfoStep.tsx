@@ -1,14 +1,14 @@
 import React from 'react';
 import { Address, Itr, PersonalInfo } from '../../../types/itr';
 import { ITRViewerStepConfig } from '../types';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { BankAccountForm } from '../forms/BankAccountForm';
 import { useEditMode } from '../context/EditModeContext';
 import { useUserInput } from '../context/UserInputContext';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { Edit, List } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export interface StepProps {
   itrData: Itr;

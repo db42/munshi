@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../ui/table';
-import { Alert, AlertTitle, AlertDescription } from '../../ui/alert';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { Separator } from '../../ui/separator';
+import { Separator } from '@/components/ui/separator';
 import { formatAmount } from '../../../../utils/formatters';
 import { PartBTTI, ComputationOfTaxLiability, TaxPaid, Refund } from '../../../../types/itr';
 import _ from 'lodash';

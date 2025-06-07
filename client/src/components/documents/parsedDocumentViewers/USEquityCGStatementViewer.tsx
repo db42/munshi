@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { USEquityCGStatementData, DividendIncome, USCGEquityTransaction } from '../../../types/parsedDocuments';
-import { Card, CardContent, CardHeader, CardTitle } from '../../ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface USEquityCGStatementViewerProps {
   data: USEquityCGStatementData;

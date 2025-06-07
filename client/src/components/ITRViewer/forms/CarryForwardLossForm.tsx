@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
+import { Button } from '@/components/ui/button';
 import { Plus, Trash2 } from 'lucide-react';
-import { Card } from '../ui/card';
-import { Separator } from '../ui/separator';
+import { Card } from '@/components/ui/card';
 import { useEditMode } from '../context/EditModeContext';
 import { useUserInput } from '../context/UserInputContext';
-import { CurrencyInput, DateInput, TextInput } from '../ui/forms/FormComponents';
+import { CurrencyInput, DateInput, TextInput } from '@/components/ui/forms/FormComponents';
 import { CarryForwardLossEntry } from '../../../types/userInput.types';
 
 export const CarryForwardLossForm: React.FC = () => {
@@ -38,7 +37,7 @@ export const CarryForwardLossForm: React.FC = () => {
   };
 
   // Function to update an entry
-  const updateEntry = (index: number, field: keyof CarryForwardLossEntry, value: any) => {
+  const updateEntry = (index: number, field: keyof CarryForwardLossEntry, value: string | number | Date | undefined) => {
     const updatedEntries = [...entries];
     updatedEntries[index] = {
       ...updatedEntries[index],

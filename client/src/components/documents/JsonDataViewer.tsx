@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { JSONTree } from 'react-json-tree';
-import { Card, CardHeader, CardContent } from '../ui/card';
-import { Input } from '../ui/input';
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 interface JsonDataViewerProps {
   data: any;

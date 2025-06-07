@@ -33,7 +33,7 @@ export const UserInputProvider: React.FC<{
       setIsLoading(true);
       setError(null);
       try {
-        const record: UserItrInputRecordResponse = await getUserItrInputRecord(DEFAULT_USER_ID, assessmentYear);
+        const record: UserItrInputRecord | null = await getUserItrInputRecord(DEFAULT_USER_ID, assessmentYear);
         setUserInput(record?.input_data || {});
       } catch (err) {
         console.error('Error fetching user input:', err);

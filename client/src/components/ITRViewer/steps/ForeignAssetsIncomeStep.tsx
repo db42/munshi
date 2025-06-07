@@ -1,10 +1,10 @@
 import React from 'react';
 import { ITRViewerStepConfig } from '../types';
 import { Itr } from '../../../types/itr';
-import { Card, CardHeader, CardTitle, CardContent } from '../ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../ui/table';
-import { Alert, AlertTitle, AlertDescription } from '../ui/alert';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { formatCurrencyINR } from '../../../utils/formatters';
 

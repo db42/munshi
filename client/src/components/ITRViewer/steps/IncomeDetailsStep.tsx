@@ -1,16 +1,16 @@
 import React from 'react';
 import { ITRViewerStepConfig } from '../types';
-import { Input } from '../ui/input'; 
-import { Label } from '../ui/label'; 
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert"
+import { Input } from '@/components/ui/input'; 
+import { Label } from '@/components/ui/label'; 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Building, Home, Coffee } from 'lucide-react';
 import { getNestedValue } from '../../../utils/helpers';
 import { Itr, Salaries, PropertyDetails, ScheduleOS } from '../../../types/itr';
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "../ui/table";
-import { Separator } from '../ui/separator';
-import { Badge } from '../ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { formatCurrencyINR } from '../../../utils/formatters';
 
 interface StepProps {

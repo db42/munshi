@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useUserInput } from '../context/UserInputContext';
 import { useEditMode } from '../context/EditModeContext';
 import { BankAccount, UserInputData } from '../../../types/userInput.types';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Checkbox } from '../ui/checkbox';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Trash2, PlusCircle } from 'lucide-react';
 
 // Props for the form (if any, though direct context access is the pattern)
@@ -27,7 +27,7 @@ export const BankAccountForm: React.FC = () => {
     setBankAccounts(userInput.generalInfoAdditions?.bankDetails || []);
   }, [userInput.generalInfoAdditions?.bankDetails]);
 
-  const handleInputChange = (index: number, field: keyof BankAccount, value: any) => {
+  const handleInputChange = (index: number, field: keyof BankAccount, value: string | boolean) => {
     const updatedAccounts = bankAccounts.map((account, i) => {
       if (i === index) {
         return { ...account, [field]: value };

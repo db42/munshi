@@ -1,10 +1,10 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../ui/table';
-import { Alert, AlertTitle, AlertDescription } from '../../ui/alert';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
-import { Badge } from '../../ui/badge';
-import { Separator } from '../../ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { formatAmount, formatDate } from '../../../../utils/formatters';
 import { Itr, ScheduleTDS1, TDSonSalary, ScheduleTDS2, TDSOthThanSalaryDtls, ScheduleIT, TaxPayment, ScheduleTCS, Tc } from '../../../../types/itr';
 import _ from 'lodash';

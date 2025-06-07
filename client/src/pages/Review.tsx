@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAssessmentYear } from '../context/AssessmentYearContext';
 import { getITRByUserAndYear } from '../api/itr';
 import { DEFAULT_USER_ID } from '../api/config';
-import JsonDataViewer from '../components/documents/JsonDataViewer';
+import JsonDataViewer from '@/components/documents/JsonDataViewer';
 import { AlertCircle, Loader, Download } from 'lucide-react';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 const Review = () => {
   const [itrData, setItrData] = useState<any>(null);

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { USEquityStatementData, CharlesSchwabRecord } from '../../../types/parsedDocuments';
-import { Card, CardHeader, CardContent, CardTitle } from '../../ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../ui/table';
-import { Input } from '../../ui/input';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 
 interface USEquityStatementViewerProps {
   data: USEquityStatementData;
@@ -115,7 +115,11 @@ const USEquityStatementViewer: React.FC<USEquityStatementViewerProps> = ({ data 
       totalBuy: 0,
       totalSell: 0,
       totalDividends: 0,
+      totalOther: 0,
       totalFees: 0,
+      totalBuyAmount: 0,
+      totalSellAmount: 0,
+      totalDividendAmount: 0,
       uniqueSymbols: new Set<string>(),
       symbolCounts: {} as Record<string, number>
     };

@@ -1,7 +1,7 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../ui/card';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../../ui/table';
-import { Separator } from '../../ui/separator';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Separator } from '@/components/ui/separator';
 import { formatAmount } from '../../../../utils/formatters';
 import { PartBTI } from '../../../../types/itr';
 import _ from 'lodash';

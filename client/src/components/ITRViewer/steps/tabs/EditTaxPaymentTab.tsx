@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '../../../ui/card';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { SelfAssessmentTaxForm } from '../../forms/SelfAssessmentTaxForm';
 
 export const EditTaxPaymentTab: React.FC = () => {

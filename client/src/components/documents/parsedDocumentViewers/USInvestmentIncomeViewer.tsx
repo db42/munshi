@@ -85,7 +85,7 @@ const USInvestmentIncomeViewer: React.FC<USInvestmentIncomeViewerProps> = ({ dat
                 const enhancedIncome = income as EnhancedDividendIncome;
                 return (
                   <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="py-2 px-3 text-sm text-gray-900">{formatDate(enhancedIncome.paymentDate || enhancedIncome.date)}</td>
+                    <td className="py-2 px-3 text-sm text-gray-900">{formatDate(enhancedIncome.paymentDate || enhancedIncome.date || new Date())}</td>
                     <td className="py-2 px-3 text-sm font-medium text-gray-900">{enhancedIncome.symbol || '-'}</td>
                     <td className="py-2 px-3 text-sm text-gray-900">{enhancedIncome.securityName || '-'}</td>
                     <td className="py-2 px-3 text-sm text-gray-900">

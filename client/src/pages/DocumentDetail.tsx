@@ -4,12 +4,12 @@ import { getDocumentById, processDocument } from '../api/documents';
 import { getParsedDocumentData } from '../api/parsedDocuments';
 import { Document, DocumentType, DocumentState } from '../types/document';
 import { ParsedDocument } from '../types/parsedDocument';
-import DocumentPreviewModal from '../components/documents/DocumentPreviewModal';
-import ParsedDocumentViewer from '../components/documents/ParsedDocumentViewer';
+import DocumentPreviewModal from '@/components/documents/DocumentPreviewModal';
+import ParsedDocumentViewer from '@/components/documents/ParsedDocumentViewer';
 import { formatFileSize } from '../utils/formatters';
 import { formatApiError } from '../utils/api-helpers';
 import { Loader, FileText, AlertCircle, Play, RefreshCw } from 'lucide-react';
-import { Alert, AlertDescription } from '../components/ui/alert';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { config } from '../config/env';
 
 const DocumentDetail = () => {

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { ITRData } from './types';
 import { ENDPOINTS } from '../../api/config'; // Import from config file
 import { Itr } from '../../types/itr';
 
@@ -9,11 +8,8 @@ interface UseITRDataResult {
   error: Error | null;
 }
 
-// Remove local definition
-// const API_ENDPOINT_BASE = 'http://localhost:3000/api/itr';
-
 export function useITRData(userId: string, assessmentYear: string): UseITRDataResult {
-  const [data, setData] = useState<ITRData | null>(null);
+  const [data, setData] = useState<Itr | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -29,7 +25,7 @@ export function useITRData(userId: string, assessmentYear: string): UseITRDataRe
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const result: ITRData = await response.json();
+        const result: Itr = await response.json();
         setData(result);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('An unknown error occurred'));
