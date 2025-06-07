@@ -1,0 +1,22 @@
+{
+  "name": "munshi",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:server": "npm run lint -w server",
+    "lint:client": "npm run lint -w client"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0-alpha.22",
+    "@typescript-eslint/parser": "^8.0.0-alpha.22",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "typescript": "^5.4.5"
+  }
+} 
