@@ -14,10 +14,10 @@ interface TaxPaymentsTabProps {
 }
 
 export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
-  const scheduleTDS1Data = itrData.ITR?.ITR2?.ScheduleTDS1;
-  const scheduleTDS2Data = itrData.ITR?.ITR2?.ScheduleTDS2;
-  const scheduleITData = itrData.ITR?.ITR2?.ScheduleIT;
-  const scheduleTCSData = itrData.ITR?.ITR2?.ScheduleTCS;
+  const scheduleTDS1Data = itrData.ITR?.ITR2?.ScheduleTDS1; // TDS on Salary (Form 16)
+  const scheduleTDS2Data = itrData.ITR?.ITR2?.ScheduleTDS2; // TDS on Income Other than Salary (Form 16A/26AS)
+  const scheduleITData = itrData.ITR?.ITR2?.ScheduleIT; // Advance Tax and Self-Assessment Tax Payments
+  const scheduleTCSData = itrData.ITR?.ITR2?.ScheduleTCS; // Tax Collected at Source (TCS)
 
   // Ensure we handle arrays correctly
   const taxPaymentsArray: TaxPayment[] = scheduleITData?.TaxPayment || [];
@@ -47,6 +47,13 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
   const hasAnyScheduleITPayments = taxPaymentsArray.length > 0;
   const hasTaxPayments = hasTDS1 || hasTDS2 || hasAnyScheduleITPayments || hasTCS;
 
+  // Calculate totals
+  const totalTDSOnSalary = tdsOnSalaryDetailsArray.reduce((sum, tds) => sum + (tds.TotalTDSSal || 0), 0);
+  const totalTDSOnOtherIncome = scheduleTDS2Array.reduce((sum, tds) => sum + (tds.TaxDeductCreditDtls?.TaxClaimedTDS || 0), 0);
+  const totalTCS = scheduleTCSArray.reduce((sum, tcs) => sum + (tcs.TCSClaimedThisYearDtls?.TCSAmtCollOwnHand || 0), 0);
+  const totalAdvanceSelfAssessmentTax = taxPaymentsArray.reduce((sum, payment) => sum + (payment.Amt || 0), 0);
+  const grandTotal = totalTDSOnSalary + totalTDSOnOtherIncome + totalTCS + totalAdvanceSelfAssessmentTax;
+
   if (!hasTaxPayments) {
     return (
       <>
@@ -63,6 +70,46 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
 
   return (
     <>
+      {/* Summary Card */}
+      <Card className="mb-4">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg">Tax Payments Summary</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {totalTDSOnSalary > 0 && (
+              <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-gray-600">TDS on Salary</p>
+                <p className="text-lg font-semibold text-blue-700">{formatAmount(totalTDSOnSalary)}</p>
+              </div>
+            )}
+            {totalTDSOnOtherIncome > 0 && (
+              <div className="text-center p-3 bg-green-50 rounded-lg">
+                <p className="text-sm text-gray-600">TDS on Other Income</p>
+                <p className="text-lg font-semibold text-green-700">{formatAmount(totalTDSOnOtherIncome)}</p>
+              </div>
+            )}
+            {totalTCS > 0 && (
+              <div className="text-center p-3 bg-purple-50 rounded-lg">
+                <p className="text-sm text-gray-600">TCS</p>
+                <p className="text-lg font-semibold text-purple-700">{formatAmount(totalTCS)}</p>
+              </div>
+            )}
+            {totalAdvanceSelfAssessmentTax > 0 && (
+              <div className="text-center p-3 bg-orange-50 rounded-lg">
+                <p className="text-sm text-gray-600">Advance/Self-Assessment</p>
+                <p className="text-lg font-semibold text-orange-700">{formatAmount(totalAdvanceSelfAssessmentTax)}</p>
+              </div>
+            )}
+          </div>
+          <Separator className="my-4" />
+          <div className="text-center p-4 bg-gray-50 rounded-lg">
+            <p className="text-sm text-gray-600">Total Tax Payments</p>
+            <p className="text-2xl font-bold text-gray-900">{formatAmount(grandTotal)}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg">Details of Tax Payments</CardTitle>
@@ -162,16 +209,6 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
                   {selfAssessmentTaxPayments.map((payment: TaxPayment, index: number) => (
                     <TableRow key={`sa-${index}`}>
                       <TableCell><Badge>Self-Assessment</Badge></TableCell>
-                      <TableCell>{payment.BSRCode || "-"}</TableCell>
-                      <TableCell>{formatDate(payment.DateDep)}</TableCell>
-                      <TableCell>{payment.SrlNoOfChaln || "-"}</TableCell>
-                      <TableCell className="text-right">{formatAmount(payment.Amt)}</TableCell>
-                    </TableRow>
-                  ))}
-                  {/* For payments with no type, show as generic "Tax Paid" */}
-                  {advanceTaxPayments.length === 0 && selfAssessmentTaxPayments.length === 0 && taxPaymentsArray.map((payment: TaxPayment, index: number) => (
-                    <TableRow key={`other-${index}`}>
-                      <TableCell><Badge variant="secondary">Tax Paid</Badge></TableCell> 
                       <TableCell>{payment.BSRCode || "-"}</TableCell>
                       <TableCell>{formatDate(payment.DateDep)}</TableCell>
                       <TableCell>{payment.SrlNoOfChaln || "-"}</TableCell>
