@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, Part } from "@google/generative-ai";
 import * as fs from 'fs/promises';
 import { AISData } from '../types/ais'; // Import the AISData interface
 import * as sampleAISData from './sampleAISJsonGeminiPrompt.json';
@@ -20,29 +20,19 @@ const logger: ILogger = getLogger('geminiAISPDFParser');
 export const parseAISPDFWithGemini = async (filePath: string, config: Config = defaultConfig()): Promise<ParseResult<AISData>> => {
   logger.info(`Starting AIS PDF parsing for file: ${filePath}`);
   try {
-    // Initialize Gemini
+    logger.debug('Reading PDF file and converting to base64...');
+    const fileBuffer = await fs.readFile(filePath);
+    const base64Content = fileBuffer.toString('base64');
+    logger.debug('PDF content converted to base64.');
+
     logger.debug('Initializing Gemini with API key.');
     const genAI = new GoogleGenerativeAI(config.apiKey);
     const model = genAI.getGenerativeModel({ model: config.model });
 
-    // Read the PDF file
-    logger.debug(`Reading PDF file: ${filePath}`);
-    const fileContent = await fs.readFile(filePath);
-    
-    // Convert to base64
-    const base64Content = fileContent.toString('base64');
-    logger.debug('PDF content converted to base64.');
+    const instructions = `Please analyze this Annual Information Statement (AIS) document and extract the information according to the following JSON structure. Ensure all monetary amounts are numbers, not strings. Dates should ideally be in YYYY-MM-DD format if possible, otherwise use the format present in the document.`;
+    const promptText = `${instructions}\n\nJSON Structure Example:\n${JSON.stringify(sampleAISData, null, 2)}\n\nReturn ONLY the extracted data in strict JSON format matching the structure above. Do not include any introductory text, explanations, or markdown formatting like \`\`\`json.`;
 
-    // --- Construct the Prompt ---
-    const promptText = `Please analyze this Annual Information Statement (AIS) document and extract the information according to the following JSON structure. Ensure all monetary amounts are numbers, not strings. Dates should ideally be in YYYY-MM-DD format if possible, otherwise use the format present in the document.
-
-JSON Structure Example:
-${JSON.stringify(sampleAISData, null, 2)}
-
-Return ONLY the extracted data in strict JSON format matching the structure above. Do not include any introductory text, explanations, or markdown formatting like \\\`\\\`\\\`json.
-`;
-
-    const parts = [
+    const parts: Part[] = [
       { text: promptText },
       {
         inlineData: {
@@ -51,53 +41,80 @@ Return ONLY the extracted data in strict JSON format matching the structure abov
         }
       }
     ];
-    // --------------------------
 
-    // Generate content
-    logger.info('Sending request to Gemini API...');
-    const result = await model.generateContent(parts);
-    const response = await result.response;
-    const text = response.text();
-    logger.info('Received response from Gemini API.');
-    logger.debug('Gemini raw response text:', text);
-
-    try {
-      // Clean and Parse the JSON response
-      const cleanText = text.replace(/^```json|```$/g, "").trim(); // Remove markdown code fences
-      const parsedData: AISData = JSON.parse(cleanText);
-      logger.info('Successfully parsed Gemini response as JSON.');
-      
-      // Basic Validation (Add more comprehensive validation as needed)
-      if (!parsedData.assessmentYear || !parsedData.financialYear || !parsedData.taxpayerInfo || !parsedData.taxpayerInfo.pan) {
-          logger.warn('Parsed AIS data missing essential fields (AY, FY, PAN).');
-          // Depending on requirements, you might want to throw an error here
+    logger.debug('Sending request to Gemini for AIS parsing.');
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts }],
+      generationConfig: {
+        maxOutputTokens: config.maxOutputTokens,
+        responseMimeType: "application/json",
       }
+    });
 
-      // Convert date strings to Date objects
-      convertDateStringsToDates(parsedData);
-      
-      return {
-        success: true,
-        data: parsedData
-      };
-    } catch (parseError) {
-      logger.error('Error parsing Gemini JSON response:', { 
-          error: parseError instanceof Error ? parseError.message : parseError, 
-          rawResponse: text // Log the raw response for debugging
-      });
-      return {
-        success: false,
-        error: `Failed to parse Gemini response as JSON. Error: ${parseError instanceof Error ? parseError.message : String(parseError)}`
-      };
+    if (!result.response) {
+        logger.error('No response object in Gemini result.');
+        return { success: false, error: 'No response object in Gemini result' };
     }
-  } catch (error) {
-    logger.error('Error processing AIS PDF with Gemini:', { 
-        error: error instanceof Error ? error.message : error,
-        filePath: filePath 
+
+    const response = result.response;
+    if (!response.candidates || response.candidates.length === 0) {
+        logger.error('No candidates in Gemini response.');
+        return { success: false, error: 'No candidates in Gemini response' };
+    }
+
+    const candidate = response.candidates[0];
+    if (!candidate.content || !candidate.content.parts || candidate.content.parts.length === 0) {
+        logger.error('No parts in Gemini response candidate content.');
+        return { success: false, error: 'No parts in Gemini response candidate content' };
+    }
+    
+    const responseText = candidate.content.parts
+        .map((part: { text?: string }) => part.text || '')
+        .join('')
+        .trim();
+
+    if (!responseText) {
+        logger.error('Empty text response from Gemini.');
+        return { success: false, error: 'Empty text response from Gemini' };
+    }
+    
+    logger.info('Received response from Gemini. Attempting to parse JSON. length: ' + responseText.length);
+
+    let parsedData: AISData;
+    try {
+      parsedData = JSON.parse(responseText) as AISData;
+    } catch (parseError: any) {
+        logger.error('Failed to parse JSON response from Gemini:', parseError);
+        logger.error('Problematic Gemini response text:', responseText);
+        return {
+            success: false,
+            error: `Failed to parse JSON response from Gemini: ${parseError.message}`,
+        };
+    }
+      
+    // Basic Validation (Add more comprehensive validation as needed)
+    if (!parsedData.assessmentYear || !parsedData.financialYear || !parsedData.taxpayerInfo || !parsedData.taxpayerInfo.pan) {
+        logger.warn('Parsed AIS data missing essential fields (AY, FY, PAN).');
+        // Depending on requirements, you might want to throw an error here
+    }
+
+    // Convert date strings to Date objects
+    convertDateStringsToDates(parsedData);
+    logger.info('AIS PDF parsed successfully.');
+    
+    return {
+      success: true,
+      data: parsedData
+    };
+  } catch (error: any) {
+    logger.error('Error during AIS PDF parsing with Gemini:', { 
+        filePath, 
+        errorMessage: error.message, 
+        errorStack: error.stack 
     });
     return {
       success: false,
-      error: `AIS PDF parsing failed: ${error instanceof Error ? error.message : String(error)}`
+      error: `Error during AIS PDF parsing for file ${filePath}: ${error.message}`,
     };
   }
 }; 

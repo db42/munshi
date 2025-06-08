@@ -1,4 +1,4 @@
-// server/src/types/ais.ts
+// client/src/types/ais.ts
 
 /**
  * Represents an amount in Indian Rupees.

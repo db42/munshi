@@ -17,23 +17,22 @@
       "sectionCode": "192",
       "description": "Salary",
       "amountPaidCredited": 1200000,
-      "taxDeductedCollected": 120000,
-      "count": 12,
-      "status": "Active",
       "transactionBreakdown": [
         {
           "quarter": "Q1(Apr-Jun)",
           "dateOfPaymentCredit": "2022-06-30",
           "amountPaidCredited": 300000,
           "taxDeductedCollected": 30000,
-          "taxDeposited": 30000
+          "taxDeposited": 30000,
+          "status": "Active"
         },
         {
           "quarter": "Q2(Jul-Sep)",
           "dateOfPaymentCredit": "2022-09-30",
           "amountPaidCredited": 300000,
           "taxDeductedCollected": 30000,
-          "taxDeposited": 30000
+          "taxDeposited": 30000,
+          "status": "Inactive"
         }
       ]
     },
@@ -43,9 +42,7 @@
       "sectionCode": "194A",
       "description": "Interest other than interest on securities",
       "amountPaidCredited": 50000,
-      "taxDeductedCollected": 5000,
-      "count": 4,
-      "status": "Active"
+      "transactionBreakdown": []
     }
   ],
   "sftDetails": [
@@ -55,7 +52,6 @@
       "reportingEntityName": "HDFC Bank (AAAAA1111A)",
       "reportingEntityPan": "AAAAA1111A",
       "transactionValue": 150000,
-      "count": 2,
       "singleOrJointParty": "Single",
       "numberOfParties": 1,
       "remarks": "Multiple transactions",
@@ -80,7 +76,6 @@
       "reportingEntityName": "ICICI Bank (BBBBB2222B)",
       "reportingEntityPan": "BBBBB2222B",
       "transactionValue": 35000,
-      "count": 1,
       "breakdown": [
         {
           "reportedOnDate": "2023-03-31",
