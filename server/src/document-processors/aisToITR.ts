@@ -351,7 +351,7 @@ function generateScheduleTDS2(aisData: AISData): ScheduleTDS2 {
   }
 
   const tdsEntries: TDSOthThanSalaryDtls[] = epfTdsDetails.map(tds => {
-    const totalTDS = tds.transactionBreakdown?.reduce((sum, line) => sum + (line.taxDeductedCollected || 0), 0) || 0;
+    const totalTDS = tds.transactionBreakdown?.filter(tb => tb.status !== 'Inactive').reduce((sum, line) => sum + (line.taxDeductedCollected || 0), 0) || 0;
     const grossAmount = tds.amountPaidCredited || 0;
 
     return {
