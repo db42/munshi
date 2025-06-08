@@ -29,7 +29,9 @@ export const parseForm26ASPDFWithGemini = async (
 
         logger.debug('Initializing Gemini with API key.');
         const genAI = new GoogleGenerativeAI(config.apiKey);
-        const model = genAI.getGenerativeModel({ model: config.model });
+        const model = genAI.getGenerativeModel({ 
+          model: config.model,
+        });
 
         const promptText = `${samplePrompt.instructions}\n\nJSON Structure Example:\n${JSON.stringify(samplePrompt.outputSchemaExample, null, 2)}\n\nReturn ONLY the extracted data in strict JSON format matching the structure above. Do not include any introductory text, explanations, or markdown formatting like \`\`\`json.`;
 
@@ -44,7 +46,13 @@ export const parseForm26ASPDFWithGemini = async (
         ];
 
         logger.debug('Sending request to Gemini for Form 26AS parsing.');
-        const result = await model.generateContent({ contents: [{ role: "user", parts }] });
+        const result = await model.generateContent({ 
+          contents: [{ role: "user", parts }],
+          generationConfig: {
+            maxOutputTokens: config.maxOutputTokens,
+            responseMimeType: "application/json",
+          }
+        });
 
         if (!result.response) {
             logger.error('No response object in Gemini result.');
@@ -73,16 +81,14 @@ export const parseForm26ASPDFWithGemini = async (
             return { success: false, error: 'Empty text response from Gemini' };
         }
 
-        const cleanedResponseText = responseText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
-
-        logger.info('Received response from Gemini. Attempting to parse JSON.');
+        logger.info('Received response from Gemini. Attempting to parse JSON. length: ' + responseText.length);
 
         let parsedData: AnnualTaxStatement;
         try {
-            parsedData = JSON.parse(cleanedResponseText) as AnnualTaxStatement;
+            parsedData = JSON.parse(responseText) as AnnualTaxStatement;
         } catch (parseError: any) {
             logger.error('Failed to parse JSON response from Gemini:', parseError);
-            logger.error('Problematic Gemini response text:', cleanedResponseText);
+            logger.error('Problematic Gemini response text:', responseText);
             return {
                 success: false,
                 error: `Failed to parse JSON response from Gemini: ${parseError.message}`,

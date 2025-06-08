@@ -888,7 +888,7 @@ export const generateITR = async (
     }
 
     // ---- Derived fields ----
-    // --- 4. Calculate Schedule CYLA ---
+    // --- 4. Calculate Schedule CYLA: Statement of income after set off of current year's losses ---
     const scheduleCYLA = calculateScheduleCYLA(baseITR);
     baseITR.ScheduleCYLA = scheduleCYLA;
     logger.info('Calculated Schedule CYLA.');

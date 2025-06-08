@@ -346,31 +346,36 @@ function populateScheduleOSFromForm26AS(
   let totalInterestFrom194A = 0;
 
   if (deductorSummaries) {
-    deductorSummaries.forEach((dedSummary: PartIDeductor) => { // Corrected type
+    deductorSummaries.forEach((dedSummary: PartIDeductor) => { 
       dedSummary.transactions.forEach((txn: PartITransaction) => { 
         if (txn.section === '194A') { 
           totalInterestFrom194A += txn.amountPaidCredited;
         }
         // TODO: Add more mappings for other sections to relevant OS fields if applicable
-        // e.g., winnings from lottery (194B), horse races (194BB) if not covered in SI
       });
     });
   }
 
+  // If we have income from other sources (simplified to just interest for now),
+  // populate the relevant fields in Schedule OS.
   if (totalInterestFrom194A > 0) {
-    // A more detailed mapping would require initializing and populating IncOthThanOwnRaceHorse.
-    // For now, adding to IncChargeable and assuming it will be categorized by user or later processing.
-    scheduleOS.IncChargeable = (scheduleOS.IncChargeable || 0) + totalInterestFrom194A; 
+    const totalIncome = totalInterestFrom194A;
     
-    // Example for deeper mapping (requires IncOthThanOwnRaceHorse to be initialized if not optional or handled by initializeScheduleOS)
-    // if (!scheduleOS.IncOthThanOwnRaceHorse) {
-    //   // scheduleOS.IncOthThanOwnRaceHorse = initializeIncOthThanOwnRaceHorse(); // Assuming such an initializer
-    // }
-    // if(scheduleOS.IncOthThanOwnRaceHorse) { // Check if it exists
-    //    scheduleOS.IncOthThanOwnRaceHorse.InterestGross = (scheduleOS.IncOthThanOwnRaceHorse.InterestGross || 0) + totalInterestFrom194A;
-    // }
+    // This is the final income chargeable under the head "Income from Other Sources".
+    // Corresponds to Item 9 in Schedule OS.
+    scheduleOS.IncChargeable = totalIncome; 
+    
+    // This is the total income from other sources (excluding race horse)
+    // Corresponds to Item 7 in Schedule OS.
+    scheduleOS.TotOthSrcNoRaceHorse = totalIncome;
+
+    // Also populate the detailed breakdown for consistency and better data quality.
+    if (scheduleOS.IncOthThanOwnRaceHorse) {
+       scheduleOS.IncOthThanOwnRaceHorse.InterestGross = totalIncome;
+       scheduleOS.IncOthThanOwnRaceHorse.GrossIncChrgblTaxAtAppRate = totalIncome;
+       scheduleOS.IncOthThanOwnRaceHorse.BalanceNoRaceHorse = totalIncome;
+    }
   }
-  // SFT transactions from PartIV could also inform ScheduleOS, but mapping is complex.
 
   logger.info('Populated Schedule OS from Form 26AS');
   return scheduleOS;
@@ -442,7 +447,7 @@ export const form26ASToITR = (
       scheduleSI: populateScheduleSIFromForm26AS(form26AS),
     };
 
-    logger.info('Successfully generated ITR sections from Form 26AS.');
+    logger.info('Successfully generated ITR sections from Form 26AS.', itrSections);
     return {
       success: true,
       data: itrSections,

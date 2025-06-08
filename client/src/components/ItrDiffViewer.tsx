@@ -37,7 +37,7 @@ const ItrDiffViewer: React.FC = () => {
     ScheduleBFLA: "Brought forward loss adjustment",
     ScheduleCFL: "Capital Gains and Losses Carry Forward",
     ScheduleCGFor23: "Capital Gains for FY 2022-23",
-    ScheduleCYLA: "Current Year Loss Adjustment",
+    ScheduleCYLA: "Statement of income after set off of current year's losses",
     ScheduleEI: "Exempt Income",
     ScheduleFA: "Foreign Assets",
     ScheduleHP: "Income from House Property",
