@@ -100,7 +100,13 @@ cp .env.example .env
 
 3. Run PostgreSQL
 ```bash
-brew services start postgresql
+brew services start postgresql@14
+```
+
+if some error `Bootstrap failed: 5: Input/output error`, do:
+
+```bash
+brew services stop postgresql@14
 ```
 
 4. Start development server:

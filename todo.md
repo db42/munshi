@@ -51,6 +51,8 @@ Year 2025-26
 - [] schedule AL (how to get entries from previous ITRs)
 - [done] support and upload 26AS since form-16 isn't available
 - [todo] review other sources income
+- [todo] support deductions in old tax regime
+- [todo optional] user can specify tax regime
 - [todo] get scheduleIT (self assessment) from AIS
 - [] support ITR-1
 - [] download ITR offline utility once available https://www.incometax.gov.in/iec/foportal/downloads/income-tax-returns 

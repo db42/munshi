@@ -66,5 +66,6 @@ CREATE TABLE IF NOT EXISTS user_itr_inputs (
 -- Seed initial users for local development
 INSERT INTO users (id, email, first_name, last_name) VALUES
 (123, 'dushyant37@gmail.com', 'dushyant', 'bansal'),
-(456, 'vinodbansal1957@gmail.com', 'vinod kumar', 'bansal')
+(456, 'vinodbansal1957@gmail.com', 'vinod kumar', 'bansal'),
+(3, 'sheelabansal1960@gmail.com', 'sheela devi', 'bansal')
 ON CONFLICT (id) DO NOTHING;

@@ -12,6 +12,7 @@ interface User {
 const hardcodedUsers: User[] = [
   { id: 123, email: 'dushyant37@gmail.com', first_name: 'dushyant', last_name: 'bansal' },
   { id: 456, email: 'vinodbansal1957@gmail.com', first_name: 'vinod kumar', last_name: 'bansal' },
+  { id: 3, email: 'sheelabansal1960@gmail.com', first_name: 'sheela devi', last_name: 'bansal' }
 ];
 
 // Define the shape of the context state
