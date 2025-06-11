@@ -1,5 +1,5 @@
 import { ENDPOINTS, DEFAULT_HEADERS } from './config';
-import { ParsedDocument, ParsedDocumentResponse } from '../types/parsedDocument';
+import type { ParsedDocument, ParsedDocumentResponse } from '../types/parsedDocument';
 
 /**
  * Fetch parsed data for a document

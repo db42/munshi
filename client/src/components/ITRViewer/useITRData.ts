@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { ENDPOINTS } from '../../api/config'; // Import from config file
-import { Itr } from '../../types/itr';
+import type { Itr } from '../../types/itr';
 
 interface UseITRDataResult {
   data: Itr | null;

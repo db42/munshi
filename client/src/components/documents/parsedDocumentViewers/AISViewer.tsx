@@ -1,5 +1,5 @@
 import React from 'react';
-import { AISData, AISTaxpayerInfo, AISTdsTcsDetail, AISSftDetail, AISTaxPaymentDetail } from '../../../types/ais';
+import type { AISData, AISTaxpayerInfo, AISTdsTcsDetail, AISSftDetail, AISTaxPaymentDetail } from '../../../types/ais';
 import JsonDataViewer from '../JsonDataViewer';
 
 interface AISHeaderProps {

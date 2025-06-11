@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form26ASData } from '../../../types/parsedDocuments';
+import type { Form26ASData } from '../../../types/parsedDocuments';
 import JsonDataViewer from '../JsonDataViewer';
 
 interface Form26ASViewerProps {

@@ -3,7 +3,7 @@ import { Upload, FileText, Trash2, Eye, AlertCircle, Loader, Play, RefreshCw } f
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { getDocumentsByUserAndYear, uploadDocument, processDocument, deleteDocument } from '../api/documents';
-import { Document, DocumentState, DocumentType } from '../types/document';
+import type { Document, DocumentState, DocumentType } from '../types/document';
 import { formatApiError } from '../utils/api-helpers';
 import { Link } from 'react-router-dom';
 import { useAssessmentYear } from '../context/AssessmentYearContext';

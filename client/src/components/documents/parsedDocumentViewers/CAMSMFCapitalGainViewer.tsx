@@ -1,5 +1,5 @@
 import React from 'react';
-import { CAMSMFCapitalGainData } from '../../../types/parsedDocuments';
+import type { CAMSMFCapitalGainData } from '../../../types/parsedDocuments';
 import { formatDate, formatCurrency } from '../../../utils/formatters';
 
 interface CAMSMFCapitalGainViewerProps {

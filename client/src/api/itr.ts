@@ -1,6 +1,6 @@
 import { ENDPOINTS, DEFAULT_HEADERS } from './config';
 import { formatApiError } from '../utils/api-helpers';
-import { Itr } from '../types/itr';
+import type { Itr } from '../types/itr';
 
 /**
  * Fetch the ITR data for a specific user and assessment year

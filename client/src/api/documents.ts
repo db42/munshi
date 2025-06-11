@@ -1,5 +1,5 @@
 import { ENDPOINTS, DEFAULT_HEADERS, DEFAULT_ASSESSMENT_YEAR } from './config';
-import { 
+import type {
   Document, 
   DocumentsResponse, 
   DocumentResponse, 
