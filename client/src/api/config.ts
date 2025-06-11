@@ -12,6 +12,7 @@ export const ENDPOINTS = {
   PROCESS_DOCUMENT: `${API_BASE_URL}/documents/process`,
   
   // ITR endpoints
+  GENERATE_ITR: `${API_BASE_URL}/itr`,
   ITR_BY_USER_AND_YEAR: (userId: string, year: string) => `${API_BASE_URL}/itr/${userId}/${year}`,
   
   // User Input endpoints

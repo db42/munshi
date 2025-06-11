@@ -71,43 +71,78 @@ export const IncomeDetailsStep: React.FC<StepProps> = ({ itrData, config }) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {Array.isArray(scheduleS?.Salaries) && scheduleS?.Salaries?.length > 0 ? (
+              {scheduleS ? (
                 <div className="space-y-6">
-                  {scheduleS.Salaries.map((employer: Salaries, index: number) => (
-                    <div key={index} className="space-y-4 p-4 border rounded-md mb-4 bg-slate-50">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{employer?.NameOfEmployer || 'Employer'}</h4>
-                        <Badge variant="outline" className="px-2">TAN: {employer?.TANofEmployer || 'N/A'}</Badge>
-                      </div>
-                      <Separator />
+                  {/* Gross Salary Breakdown per Employer */}
+                  {Array.isArray(scheduleS.Salaries) && scheduleS.Salaries.length > 0 ? (
+                    <div className="space-y-6">
+                      <h4 className="font-medium">Gross Salary Details (per Employer)</h4>
+                      {scheduleS.Salaries.map((employer: Salaries, index: number) => (
+                        <div key={index} className="space-y-4 p-4 border rounded-md bg-slate-50">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium">{employer?.NameOfEmployer || 'Employer'}</h4>
+                            <Badge variant="outline" className="px-2">TAN: {employer?.TANofEmployer || 'N/A'}</Badge>
+                          </div>
+                          <Separator />
+                          <Table>
+                            <TableBody>
+                              <TableRow>
+                                <TableCell>Gross Salary</TableCell>
+                                <TableCell className="text-right font-medium">{formatCurrencyINR(employer?.Salarys?.GrossSalary || 0)}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="pl-8 text-sm">Salary (as per Section 17(1))</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrencyINR(employer?.Salarys?.Salary || 0)}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="pl-8 text-sm">Value of Perquisites (as per Section 17(2))</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrencyINR(employer?.Salarys?.ValueOfPerquisites || 0)}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="pl-8 text-sm">Profits in lieu of Salary (as per Section 17(3))</TableCell>
+                                <TableCell className="text-right text-sm">{formatCurrencyINR(employer?.Salarys?.ProfitsinLieuOfSalary || 0)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <Separator />
+
+                  {/* Consolidated Salary Calculation */}
+                  <h4 className="font-medium">Net Salary Calculation</h4>
+                  <div className="p-4 border rounded-md bg-slate-50">
                       <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Item</TableHead>
-                            <TableHead className="text-right">Amount</TableHead>
-                          </TableRow>
-                        </TableHeader>
                         <TableBody>
                           <TableRow>
-                            <TableCell>Gross Salary</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.GrossSalary || 0)}</TableCell>
+                            <TableCell>Total Gross Salary</TableCell>
+                            <TableCell className="text-right font-medium">{formatCurrencyINR(scheduleS.TotalGrossSalary || 0)}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell>Salary</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.Salary || 0)}</TableCell>
+                            <TableCell className="pl-8 text-gray-600">Less: Deductions under Section 16</TableCell>
+                            <TableCell className="text-right font-medium">-{formatCurrencyINR(scheduleS.DeductionUS16 || 0)}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell>Perquisites</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.ValueOfPerquisites || 0)}</TableCell>
+                            <TableCell className="pl-12 text-sm">Standard Deduction u/s 16(ia)</TableCell>
+                            <TableCell className="text-right text-sm">-{formatCurrencyINR(scheduleS.DeductionUnderSection16ia || 0)}</TableCell>
                           </TableRow>
                           <TableRow>
-                            <TableCell>Profits in lieu of Salary</TableCell>
-                            <TableCell className="text-right">{formatCurrencyINR(employer?.Salarys?.ProfitsinLieuOfSalary || 0)}</TableCell>
+                            <TableCell className="pl-12 text-sm">Entertainment Allowance u/s 16(ii)</TableCell>
+                            <TableCell className="text-right text-sm">-{formatCurrencyINR(scheduleS.EntertainmntalwncUs16ii || 0)}</TableCell>
+                          </TableRow>
+                          <TableRow>
+                            <TableCell className="pl-12 text-sm">Professional Tax u/s 16(iii)</TableCell>
+                            <TableCell className="text-right text-sm">-{formatCurrencyINR(scheduleS.ProfessionalTaxUs16iii || 0)}</TableCell>
+                          </TableRow>
+                          <TableRow className="font-bold border-t">
+                            <TableCell>Net Income from Salary</TableCell>
+                            <TableCell className="text-right">{formatCurrencyINR(totalSalaryIncome)}</TableCell>
                           </TableRow>
                         </TableBody>
                       </Table>
-                    </div>
-                  ))}
+                  </div>
                 </div>
               ) : (
                 <Alert variant="default" className="bg-amber-50">

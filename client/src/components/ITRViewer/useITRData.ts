@@ -1,45 +1,62 @@
 import { useState, useEffect } from 'react';
-import { ENDPOINTS } from '../../api/config'; // Import from config file
-import type { Itr } from '../../types/itr';
+import { ENDPOINTS, DEFAULT_HEADERS } from '../../api/config'; // Import from config file
+import { Itr } from '../../types/itr';
+import { TaxRegimePreference } from '../../types/tax.types';
+import type { TaxRegimeComparison } from '../../types/tax.types';
 
-interface UseITRDataResult {
-  data: Itr | null;
-  isLoading: boolean;
-  error: Error | null;
+interface ITRDataPayload {
+    itr: Itr;
+    taxRegimeComparison: TaxRegimeComparison;
 }
 
-export function useITRData(userId: string, assessmentYear: string): UseITRDataResult {
-  const [data, setData] = useState<Itr | null>(null);
+interface UseITRDataResult {
+  data: ITRDataPayload | null;
+  isLoading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+export function useITRData(
+    userId: string, 
+    assessmentYear: string, 
+    taxRegimePreference: TaxRegimePreference = TaxRegimePreference.AUTO
+): UseITRDataResult {
+  const [data, setData] = useState<ITRDataPayload | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Construct the URL using the imported endpoint function
-        const apiUrl = ENDPOINTS.ITR_BY_USER_AND_YEAR(userId, assessmentYear);
-        const response = await fetch(apiUrl);
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const apiUrl = ENDPOINTS.GENERATE_ITR;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: DEFAULT_HEADERS,
+        body: JSON.stringify({
+            userId,
+            assessmentYear,
+            taxRegimePreference,
+        }),
+      });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const result: Itr = await response.json();
-        setData(result);
-      } catch (err) {
-        setError(err instanceof Error ? err : new Error('An unknown error occurred'));
-      } finally {
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      const result: ITRDataPayload = await response.json();
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error('An unknown error occurred'));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (userId && assessmentYear) {
         fetchData();
     }
-    // Add dependencies: userId, assessmentYear
-    // If using a real API endpoint, dependencies might include an API client instance
-  }, [userId, assessmentYear]); // Re-fetch if userId or assessmentYear changes
+  }, [userId, assessmentYear, taxRegimePreference]);
 
-  return { data, isLoading, error };
+  return { data, isLoading, error, refetch: fetchData };
 } 

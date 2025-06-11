@@ -31,6 +31,11 @@ export const itr2StepsConfig: ITRViewerStepConfig[] = [
     associatedSchedules: ['ScheduleVIA', 'ScheduleCYLA', 'ScheduleBFLA', 'ScheduleCFL'],
   },
   {
+    id: 'taxRegimeSelection',
+    title: 'Tax Regime Selection',
+    associatedSchedules: [], // This is a UI-only step for now
+  },
+  {
     id: 'assetsLiabilities',
     title: 'Assets & Liabilities',
     associatedSchedules: ['ScheduleAL'],

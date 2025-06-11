@@ -132,7 +132,7 @@ export const calculateTaxForSlabs = (totalIncome: number, slabs: TaxSlab[], regi
     return tax;
 };
 
-export const calculateRebate87A = (totalIncome: number, tax: number, isNewRegime: boolean): number => {
+export const calculateRebate87A = (incomeForLimitCheck: number, taxPayableBeforeRebate: number, isNewRegime: boolean): number => {
     logger.info('\n--- Section 87A Rebate Calculation ---');
     let rebate = 0;
     
@@ -140,9 +140,11 @@ export const calculateRebate87A = (totalIncome: number, tax: number, isNewRegime
     const rebateIncomeLimit = isNewRegime ? 700000 : 500000;
     const maxRebateAmount = isNewRegime ? 25000 : 12500;
     
-    if (totalIncome <= rebateIncomeLimit) {
-        rebate = Math.min(tax, maxRebateAmount);
+    logger.info(`Checking for rebate eligibility with income: ₹${incomeForLimitCheck.toLocaleString('en-IN')}`);
+    if (incomeForLimitCheck <= rebateIncomeLimit) {
+        rebate = Math.min(taxPayableBeforeRebate, maxRebateAmount);
         logger.info(`Income eligible for 87A rebate (≤ ₹${rebateIncomeLimit.toLocaleString('en-IN')})`);
+        logger.info(`Tax payable before rebate: ₹${taxPayableBeforeRebate.toLocaleString('en-IN')}`);
         logger.info(`Rebate amount: ₹${rebate.toLocaleString('en-IN')}`);
     } else {
         logger.info(`Income not eligible for 87A rebate (> ₹${rebateIncomeLimit.toLocaleString('en-IN')})`);

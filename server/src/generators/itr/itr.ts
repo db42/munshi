@@ -1,6 +1,7 @@
 import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, ScheduleTDS2, ScheduleIT, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag } from '../../types/itr';
 import cloneDeep from 'lodash/cloneDeep';
-import { calculatePartBTTI, TaxRegimePreference } from './partBTTI';
+import { calculatePartBTTI } from './partBTTI';
+import { TaxRegimePreference, TaxRegimeComparison } from '../../types/tax.types';
 import { calculatePartBTI } from './partBTI';
 import { calculateScheduleCYLA } from './scheduleCYLA';
 import { calculateScheduleBFLA } from './calculateScheduleBFLA';
@@ -737,7 +738,8 @@ const mergeForeignTaxCredit = (existingPartBTTI: PartBTTI, foreignTaxCredit: num
 export const generateITR = async (
     userId: number,
     assessmentYear: string,
-): Promise<Itr> => {
+    taxRegimePreference: TaxRegimePreference = TaxRegimePreference.AUTO
+): Promise<{ itr: Itr; taxRegimeComparison: TaxRegimeComparison }> => {
     logger.info(`Starting ITR generation for user ${userId}, AY ${assessmentYear}`);
 
     // --- 1. Initialize Base ITR Structure ---
@@ -914,8 +916,8 @@ export const generateITR = async (
     logger.info('Calculated PartB-TI using post-exemption amounts.');
 
     // --- 7. Calculate PartB-TTI (Integrated with Schedule SI) ---
-    const {partBTTI, chosenRegimeName} = calculatePartBTTI(baseITR, TaxRegimePreference.AUTO, userInputData?.generalInfoAdditions?.bankDetails);
-    baseITR.PartA_GEN1.FilingStatus.OptOutNewTaxRegime = chosenRegimeName === 'OLD' ? TaxRescertifiedFlag.Y : TaxRescertifiedFlag.N;
+    const {partBTTI, chosenRegime, taxRegimeComparison} = calculatePartBTTI(baseITR, taxRegimePreference, userInputData?.generalInfoAdditions?.bankDetails);
+    baseITR.PartA_GEN1.FilingStatus.OptOutNewTaxRegime = chosenRegime === TaxRegimePreference.OLD ? TaxRescertifiedFlag.Y : TaxRescertifiedFlag.N;
 
     baseITR["PartB_TTI"] = partBTTI;
     logger.info('Calculated PartB-TTI with integrated special rates.');
@@ -960,7 +962,7 @@ export const generateITR = async (
     }
 
     logger.info(`ITR generation complete for user ${userId}, AY ${assessmentYear}`);
-    return finalITR;
+    return { itr: finalITR, taxRegimeComparison };
 };
 
 // --- Helper Functions ---

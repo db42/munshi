@@ -1,5 +1,7 @@
 // client/src/types/userInput.types.ts
 
+import { TaxRegimePreference } from './tax.types';
+
 // Base types
 interface Address {
     line1?: string;
@@ -107,6 +109,7 @@ export interface UserInputData {
     
     generalInfoAdditions?: {
         bankDetails?: BankAccount[];
+        taxRegimePreference?: TaxRegimePreference;
     };
     scheduleHPAdditions?: HousePropertyDetails[];
     scheduleCGAdditions?: {

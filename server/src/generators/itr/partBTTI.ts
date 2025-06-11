@@ -1,5 +1,6 @@
 // partBTTIProcessor.ts
 import { AssetOutIndiaFlag, BankAccountDtls, Itr2, PartBTI, PartBTTI, TaxRescertifiedFlag, BankDetailType, AccountType as ITR_AccountType } from '../../types/itr';
+import { TaxRegimePreference, TaxRegimeComparison } from '../../types/tax.types';
 import {
     logCalculation,
     TaxSlab,
@@ -17,15 +18,10 @@ import { BankAccount as UserInputBankAccount } from '../../types/userInput.types
 // Create a named logger instance for this module
 const logger: ILogger = getLogger('partBTTI');
 
-export enum TaxRegimePreference {
-    OLD = 'OLD',
-    NEW = 'NEW',
-    AUTO = 'AUTO'
-}
-
 export interface PartBTTIResult {
     partBTTI: PartBTTI;
-    chosenRegimeName: 'OLD' | 'NEW';
+    chosenRegime: TaxRegimePreference.OLD | TaxRegimePreference.NEW;
+    taxRegimeComparison: TaxRegimeComparison;
 }
 
 /**
@@ -48,7 +44,7 @@ export const calculatePartBTTI = (
     bankDetails?: UserInputBankAccount[] | undefined
 ): PartBTTIResult => {
     let regimeResult: PartBTTI;
-    let chosenRegimeName: 'OLD' | 'NEW';
+    let chosenRegime: TaxRegimePreference.OLD | TaxRegimePreference.NEW;
 
     // Calculate tax under both regimes and compare
     logger.info('\n=== Comparing Both Tax Regimes ===\n');
@@ -58,43 +54,44 @@ export const calculatePartBTTI = (
     
     logger.info('\nCalculating New Regime Tax:');
     const newRegimeResult = calculatePartBTTINewRegime(itr);
+
+    const oldRegimeTax = oldRegimeResult.ComputationOfTaxLiability.GrossTaxPayable;
+    const newRegimeTax = newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable;
     
     logger.info('\n=== Tax Regime Comparison Summary ===');
-    logCalculation('Old Regime - Total Tax', oldRegimeResult.ComputationOfTaxLiability.GrossTaxPayable);
-    logCalculation('New Regime - Total Tax', newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable);
+    logCalculation('Old Regime - Total Tax', oldRegimeTax);
+    logCalculation('New Regime - Total Tax', newRegimeTax);
 
     if (regimePreference === TaxRegimePreference.OLD) {
         logger.info('\nUsing Old Tax Regime as per preference');
         regimeResult = oldRegimeResult;
-        chosenRegimeName = 'OLD';
+        chosenRegime = TaxRegimePreference.OLD;
     } else if (regimePreference === TaxRegimePreference.NEW) {
         logger.info('\nUsing New Tax Regime as per preference');
         regimeResult = newRegimeResult;
-        chosenRegimeName = 'NEW';
+        chosenRegime = TaxRegimePreference.NEW;
     } else {
-        logger.info('\nBoth regimes result in same tax liability - Using New Regime as default');
         // Determine which regime is more beneficial
-        const taxDifference = 
-            oldRegimeResult.ComputationOfTaxLiability.GrossTaxPayable - 
-            newRegimeResult.ComputationOfTaxLiability.GrossTaxPayable;
-
-        if (taxDifference > 0) {
-            logger.info(`\nNew Regime is more beneficial - Saves ₹${taxDifference.toLocaleString('en-IN')}`);
+        if (newRegimeTax < oldRegimeTax) {
+            logger.info(`\nNew Regime is more beneficial - Saves ₹${(oldRegimeTax - newRegimeTax).toLocaleString('en-IN')}`);
             regimeResult = newRegimeResult;
-            chosenRegimeName = 'NEW';
-        } else if (taxDifference < 0) {
-            logger.info(`\nOld Regime is more beneficial - Saves ₹${Math.abs(taxDifference).toLocaleString('en-IN')}`);
-            regimeResult = oldRegimeResult;
-            chosenRegimeName = 'OLD';
+            chosenRegime = TaxRegimePreference.NEW;
         } else {
-            logger.info('\nBoth regimes result in same tax liability - Using New Regime as default');
-            regimeResult = newRegimeResult;
-            chosenRegimeName = 'NEW';
+            logger.info(`\nOld Regime is more beneficial or taxes are equal - Saves ₹${(newRegimeTax - oldRegimeTax).toLocaleString('en-IN')}`);
+            regimeResult = oldRegimeResult;
+            chosenRegime = TaxRegimePreference.OLD;
         }
     }
 
+    const taxRegimeComparison: TaxRegimeComparison = {
+        oldRegimeTax,
+        newRegimeTax,
+        savings: Math.abs(oldRegimeTax - newRegimeTax),
+        recommendation: newRegimeTax < oldRegimeTax ? TaxRegimePreference.NEW : TaxRegimePreference.OLD
+    };
+
     regimeResult.Refund.BankAccountDtls = getBankAccountDtls(bankDetails);
-    return { partBTTI: regimeResult, chosenRegimeName };
+    return { partBTTI: regimeResult, chosenRegime, taxRegimeComparison };
 };
 
 const getBankAccountDtls = (bankDetails?: UserInputBankAccount[] | undefined): BankAccountDtls => {
@@ -193,27 +190,28 @@ const calculateTaxAndPreparePartBTTI = (
     // Get pre-calculated tax on special rates from Schedule SI
     taxOnSpecialRates = itr.ScheduleSI?.TotSplRateIncTax || 0;
     logCalculation('Tax on Special Rates', taxOnSpecialRates);
+
+    const totalTaxBeforeRebate = taxOnRegularIncome + taxOnSpecialRates;
+    logCalculation('Total Tax before Rebate', totalTaxBeforeRebate);
     
-    // Apply Rebate under section 87A (ONLY on regular income tax)
-    rebate87A = calculateRebate87A(regularIncome, taxOnRegularIncome, isNewRegime);
-    logCalculation('Rebate 87A (on regular income only)', rebate87A);
+    // Apply Rebate under section 87A
+    rebate87A = calculateRebate87A(totalIncome, totalTaxBeforeRebate, isNewRegime);
+    logCalculation('Rebate 87A', rebate87A);
+
+    const taxAfterRebate = Math.max(0, totalTaxBeforeRebate - rebate87A);
+    logCalculation('Tax After Rebate', taxAfterRebate);
     
-    // Calculate total tax after rebate
-    const taxOnRegularIncomeAfterRebate = Math.max(0, taxOnRegularIncome - rebate87A);
-    const totalTaxBeforeSurcharge = taxOnRegularIncomeAfterRebate + taxOnSpecialRates;
-    logCalculation('Total Tax before Surcharge', totalTaxBeforeSurcharge);
-    
-    // Calculate Surcharge on total tax (regular + special)
-    const surchargeResult = calculateSurchargeWithCappedRates(itr, totalTaxBeforeSurcharge, totalIncome);
+    // Calculate Surcharge on tax after rebate
+    const surchargeResult = calculateSurchargeWithCappedRates(itr, taxAfterRebate, totalIncome);
     surcharge = surchargeResult.surcharge;
     logCalculation('Surcharge', surcharge);
     
-    // Calculate Health and Education Cess on total tax including surcharge
-    healthAndEducationCess = calculatePercentage(totalTaxBeforeSurcharge + surcharge, 0.04);
+    // Calculate Health and Education Cess on tax including surcharge
+    healthAndEducationCess = calculatePercentage(taxAfterRebate + surcharge, 0.04);
     logCalculation('Health and Education Cess', healthAndEducationCess);
     
     // Calculate tax liability before relief
-    const taxLiabilityBeforeRelief = totalTaxBeforeSurcharge + surcharge + healthAndEducationCess;
+    const taxLiabilityBeforeRelief = taxAfterRebate + surcharge + healthAndEducationCess;
     logCalculation('Tax Liability (before relief)', taxLiabilityBeforeRelief);
     
     // Process foreign tax credit from Schedule TR1
@@ -276,7 +274,7 @@ const calculateTaxAndPreparePartBTTI = (
             },
             
             Rebate87A: rebate87A,
-            TaxPayableOnRebate: totalTaxBeforeSurcharge,
+            TaxPayableOnRebate: totalTaxBeforeRebate,
             
             Surcharge25ofSI: 0, // Not currently used, placeholder
             SurchargeOnAboveCrore: surchargeResult.surcharge,

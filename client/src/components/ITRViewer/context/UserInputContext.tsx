@@ -8,7 +8,6 @@ interface UserInputContextType {
   isLoading: boolean;
   error: Error | null;
   saveUserInputData: (data: UserInputData) => Promise<void>;
-  updateUserInputData: (partialData: Partial<UserInputData>) => void;
 }
 
 const UserInputContext = createContext<UserInputContextType>({
@@ -16,7 +15,6 @@ const UserInputContext = createContext<UserInputContextType>({
   isLoading: false,
   error: null,
   saveUserInputData: async () => {},
-  updateUserInputData: () => {},
 });
 
 export const UserInputProvider: React.FC<{
@@ -62,18 +60,12 @@ export const UserInputProvider: React.FC<{
     }
   };
 
-  // Update user input data with partial data (merges with existing data)
-  const updateUserInputData = (partialData: Partial<UserInputData>) => {
-    setUserInput(prev => mergeUserInput(prev, partialData as UserInputData));
-  };
-
   return (
     <UserInputContext.Provider value={{
       userInput,
       isLoading,
       error,
       saveUserInputData,
-      updateUserInputData
     }}>
       {children}
     </UserInputContext.Provider>

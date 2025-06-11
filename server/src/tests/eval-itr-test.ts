@@ -19,7 +19,17 @@ interface ITRApiResponse {
 async function fetchGeneratedITR(): Promise<any> {
   try {
     console.log('Fetching generated ITR from API...');
-    const response = await fetch('http://localhost:3000/api/itr/123/2024-25');
+    const response = await fetch('http://localhost:3000/api/itr', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        userId: '123',
+        assessmentYear: '2024-25',
+        taxRegimePreference: 'AUTO',
+      }),
+    });
     
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
@@ -28,11 +38,11 @@ async function fetchGeneratedITR(): Promise<any> {
     const data = await response.json() as any;
     
     // The API returns the ITR data directly without a success wrapper
-    if (!data || !data.ITR) {
+    if (!data || !data.itr || !data.itr.ITR) {
       throw new Error('Invalid response: No ITR data found');
     }
     
-    return data;
+    return data.itr;
   } catch (error: any) {
     console.error('Error fetching ITR from API:', error.message);
     throw error;

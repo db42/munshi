@@ -4,13 +4,18 @@ import { itrGenerator } from '../generators/itr/itr';
 
 const router = express.Router();
 
-router.get('/:userId/:assessmentYear', async (req: express.Request, res: express.Response) => {
+router.post('/', async (req: express.Request, res: express.Response) => {
     try {
-        const { userId, assessmentYear } = req.params;
+        const { userId, assessmentYear, taxRegimePreference } = req.body;
+
+        if (!userId || !assessmentYear) {
+            return res.status(400).json({ error: 'userId and assessmentYear are required' });
+        }
         
         const itrData = await itrGenerator.generateITR(
             parseInt(userId),
-            assessmentYear
+            assessmentYear,
+            taxRegimePreference
         );
         
         res.json(itrData);
