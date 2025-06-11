@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { USEquityStatementData, CharlesSchwabRecord } from '../../../types/parsedDocuments';
+import type { USEquityStatementData, CharlesSchwabRecord } from '../../../types/parsedDocuments';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';

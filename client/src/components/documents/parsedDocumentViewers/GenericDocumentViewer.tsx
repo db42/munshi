@@ -1,7 +1,8 @@
 import React from 'react';
-import { DocumentType } from '../../../types/document';
+import type { DocumentType } from '../../../types/document';
 import JsonDataViewer from '../JsonDataViewer';
-import { GenericParsedData, getParsedDataType } from '../../../types/parsedDocuments';
+import type { GenericParsedData } from '../../../types/parsedDocuments';
+import { getParsedDataType } from '../../../types/parsedDocuments';
 
 interface GenericDocumentViewerProps {
   data: GenericParsedData;

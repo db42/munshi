@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useUserInput } from '../context/UserInputContext';
 import { useEditMode } from '../context/EditModeContext';
-import { BankAccount, UserInputData } from '../../../types/userInput.types';
+import type { BankAccount, UserInputData } from '../../../types/userInput.types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

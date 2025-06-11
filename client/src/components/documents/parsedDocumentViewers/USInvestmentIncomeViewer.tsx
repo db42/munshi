@@ -1,5 +1,5 @@
 import React from 'react';
-import { USInvestmentIncomeData, DividendIncome } from '../../../types/parsedDocuments';
+import type { USInvestmentIncomeData, DividendIncome } from '../../../types/parsedDocuments';
 import { formatCurrency, formatDate } from '../../../utils/formatters';
 
 // Enhance the DividendIncome type with the fields we need
