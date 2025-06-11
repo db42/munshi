@@ -1,4 +1,4 @@
-import { ErrorResponse } from '../types/document';
+import type { ErrorResponse } from '../types/document';
 
 /**
  * Format error message from API response

@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { UserInputData, UserItrInputRecord } from '../../../types/userInput.types';
+import type { UserInputData, UserItrInputRecord } from '../../../types/userInput.types';
 import { getUserItrInputRecord, saveUserInput, mergeUserInput } from '../../../api/userInput';
 import { useUser } from '../../../context/UserContext';
 

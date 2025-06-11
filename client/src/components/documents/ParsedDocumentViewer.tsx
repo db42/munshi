@@ -1,7 +1,7 @@
 import React from 'react';
-import { DocumentType } from '../../types/document';
+import type { DocumentType } from '../../types/document';
 import JsonDataViewer from './JsonDataViewer';
-import { 
+import type {
   ParsedDocumentData, 
   USEquityStatementData,
   USEquityCGStatementData,
