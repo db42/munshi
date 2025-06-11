@@ -1,8 +1,8 @@
 import React from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import AssessmentYearSwitcher from '@/components/AssessmentYearSwitcher';
+import AssessmentYearSwitcher from '@/components/assessment-year-switcher';
 import { useAssessmentYear } from '@/context/AssessmentYearContext';
-import { UserSwitcher } from '@/components/UserSwitcher';
+import { UserSwitcher } from '@/components/user-switcher';
 import {
   SidebarProvider,
   Sidebar,
