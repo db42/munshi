@@ -47,20 +47,20 @@
 Year 2025-26
 - [done] upload AIS
 - [done] fix dup entries in advance tax
-- [] upload form 16 once available
-- [] schedule AL (how to get entries from previous ITRs)
 - [done] support and upload 26AS since form-16 isn't available
-- [todo] review other sources income
-- [todo] support deductions in old tax regime
-- [todo optional] user can specify tax regime
+- [done] user can specify tax regime
+- [done] support deductions in old tax regime
 - [todo] get scheduleIT (self assessment) from AIS
 - [todo] support ITR-1
 - [todo] nps for new ITR
 - [todo] support personal info changes like DOB
 - [todo] auto senior citizen 50k interest deduction
 - [todo] donation
+- [todo] review other sources income
 - [] download ITR offline utility once available https://www.incometax.gov.in/iec/foportal/downloads/income-tax-returns 
 - [] pre-filled data from ITR
+- [] upload form 16 once available
+- [] schedule AL (how to get entries from previous ITRs)
 
 Phase 2
 - move to flash 2.5
