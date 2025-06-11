@@ -13,13 +13,14 @@ import { UserInputProvider, useUserInput } from '@/components/ITRViewer/context/
 
 // Import Step Components using correct relative paths
 import { PersonalInfoStep } from '@/components/ITRViewer/steps/PersonalInfoStep';
+import { TaxRegimeStep } from '@/components/ITRViewer/steps/TaxRegimeStep';
 import { IncomeDetailsStep } from '@/components/ITRViewer/steps/IncomeDetailsStep';
 import { CapitalGainsStep } from '@/components/ITRViewer/steps/CapitalGainsStep';
+import { DeductionsStep } from '@/components/ITRViewer/steps/DeductionsStep';
+import { LossesStep } from '@/components/ITRViewer/steps/LossesStep';
 import { ForeignAssetsIncomeStep } from '@/components/ITRViewer/steps/ForeignAssetsIncomeStep';
-import { DeductionsLossesStep } from '@/components/ITRViewer/steps/DeductionsLossesStep';
-import { TaxRegimeStep } from '@/components/ITRViewer/steps/TaxRegimeStep';
-import { TaxCalculationPaymentsStep } from '@/components/ITRViewer/steps/TaxCalculationPaymentsStep';
 import { AssetsLiabilitiesStep } from '@/components/ITRViewer/steps/AssetsLiabilitiesStep';
+import { TaxCalculationPaymentsStep } from '@/components/ITRViewer/steps/TaxCalculationPaymentsStep';
 import { SummaryConfirmationStep } from '@/components/ITRViewer/steps/SummaryConfirmationStep';
 import { useAssessmentYear } from '../context/AssessmentYearContext';
 import { useUser } from '../context/UserContext';
@@ -28,13 +29,14 @@ import { TaxRegimePreference, TaxRegimeComparison } from '../types/tax.types';
 // Map Step IDs to Components
 const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRViewerStepConfig, taxRegimeComparison?: TaxRegimeComparison }> } = {
   personalInfo: PersonalInfoStep,
+  taxRegimeSelection: TaxRegimeStep,
   incomeDetails: IncomeDetailsStep,
   capitalGains: CapitalGainsStep,
+  deductions: DeductionsStep,
+  losses: LossesStep,
   foreignAssetsIncome: ForeignAssetsIncomeStep,
-  deductionsLosses: DeductionsLossesStep,
-  taxRegimeSelection: TaxRegimeStep,
-  taxCalculationPayments: TaxCalculationPaymentsStep,
   assetsLiabilities: AssetsLiabilitiesStep,
+  taxCalculationPayments: TaxCalculationPaymentsStep,
   summaryConfirmation: SummaryConfirmationStep,
 };
 

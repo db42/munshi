@@ -20,6 +20,8 @@ interface StepProps {
 export const TaxCalculationPaymentsStep: React.FC<StepProps> = ({ itrData, config }) => {
   const partBTI = itrData.ITR?.ITR2?.["PartB-TI"];
   const partBTTI = itrData.ITR?.ITR2?.PartB_TTI;
+  const isNewRegime = itrData.ITR?.ITR2?.PartA_GEN1.FilingStatus.OptOutNewTaxRegime === 'N';
+  const scheduleVIA = itrData.ITR?.ITR2?.ScheduleVIA;
   const scheduleTDS1 = itrData.ITR?.ITR2?.ScheduleTDS1;
   const scheduleTDS2 = itrData.ITR?.ITR2?.ScheduleTDS2;
   const scheduleIT = itrData.ITR?.ITR2?.ScheduleIT;
@@ -135,7 +137,7 @@ export const TaxCalculationPaymentsStep: React.FC<StepProps> = ({ itrData, confi
 
         {/* Tab Contents */}
         <TabsContent value="income-computation" className="mt-0">
-          {partBTI && <IncomeComputationTab partBTI={partBTI} />}
+          {partBTI && <IncomeComputationTab partBTI={partBTI} isNewRegime={isNewRegime} scheduleVIA={scheduleVIA} />}
         </TabsContent>
         
         <TabsContent value="tax-calculation" className="mt-0">

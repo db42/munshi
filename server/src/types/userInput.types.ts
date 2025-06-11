@@ -47,31 +47,6 @@ interface OtherSourceIncomeEntry {
     taxPaidOutsideIndia?: number;
 }
 
-interface Section80CDetails {
-    ppf?: number;
-    lic?: number;
-    elss?: number;
-    nsc?: number;
-    tuitionFees?: number;
-    // Add other 80C items...
-}
-
-interface Section80DDetails {
-    premiumSelfFamily?: number;
-    premiumParents?: number;
-    preventiveHealthCheckupSelf?: number;
-    preventiveHealthCheckupParents?: number;
-    // Add flags for senior citizens if needed for logic
-}
-
-interface Section80GDonation {
-    doneeName: string;
-    panDonee: string;
-    addressDonee?: Address;
-    amount: number;
-    eligiblePercentage?: '100%' | '50%' | string; // Or codes
-}
-
 interface SelfAssessmentTaxPayment {
     bsrCode: string;
     dateDeposit: string; // YYYY-MM-DD
@@ -100,6 +75,16 @@ interface ForeignAssetEntry {
     // Add other fields specific to asset types
 }
 
+export interface Chapter6ADeductions {
+    section80C_investments?: number;
+    section80D_premium?: number;
+    section80E_interest?: number;
+    section80TTA_interest?: number;
+    section80TTB_interest?: number;
+    nps_additional_contribution_80CCD1B?: number;
+    nps_contribution_80CCD1?: number;
+}
+
 // Main User Input Data Structure
 export interface UserInputData {
     inputSchemaVersion?: string; // e.g., "1.0"
@@ -114,13 +99,6 @@ export interface UserInputData {
         longTerm?: CapitalGainsEntry[];
     };
     scheduleOSAdditions?: OtherSourceIncomeEntry[];
-    chapterVIAAdditions?: {
-        section80C?: Section80CDetails;
-        section80D?: Section80DDetails;
-        section80G?: Section80GDonation[];
-        section80TTA?: { savingsInterest?: number };
-        // Add other VIA sections
-    };
     taxesPaidAdditions?: {
         selfAssessmentTax?: SelfAssessmentTaxPayment[];
     };
@@ -128,6 +106,7 @@ export interface UserInputData {
         lossesToCarryForward?: CarryForwardLossEntry[];
     };
     scheduleFAAdditions?: ForeignAssetEntry[];
+    chapter6aDeductions?: Chapter6ADeductions;
     // scheduleALAdditions?: { ... }; // Define if needed
 }
 

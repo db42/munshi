@@ -10,7 +10,10 @@ import {
     calculateRebate87A,
     NEW_REGIME_SLABS,
     OLD_REGIME_SLABS,
-    createEmptyPartBTTI
+    OLD_REGIME_SLABS_SENIOR_CITIZEN,
+    OLD_REGIME_SLABS_SUPER_SENIOR_CITIZEN,
+    createEmptyPartBTTI,
+    getOldRegimeSlabs
 } from './taxUtils';
 import { getLogger, ILogger } from '../../utils/logger';
 import { BankAccount as UserInputBankAccount } from '../../types/userInput.types';
@@ -174,8 +177,34 @@ const calculateTaxAndPreparePartBTTI = (
         return createEmptyPartBTTI();
     }
     
+    // Determine the correct total income based on the tax regime
+    let totalIncomeForRegime: number;
+    if (isNewRegime) {
+        // For the new regime, most Chapter VI-A deductions are disallowed.
+        // We start with Gross Total Income and subtract only the allowed deductions.
+        const grossTotalIncome = partBTI.GrossTotalIncome || 0;
+
+        // Currently, only 80CCD(2) (employer's contribution) is handled here. 
+        // This can be expanded. The check for `DeductUndChapVIA` and its properties 
+        // prevents errors if they don't exist.
+        const ded80CCD2 = itr.ScheduleVIA?.DeductUndChapVIA?.Section80CCDEmployer || 0;
+        
+        // Other deductions like 80CCH (Agnipath) could be added here if they become available
+        // in the ScheduleVIA structure.
+        const allowedDeductions = ded80CCD2;
+        
+        totalIncomeForRegime = Math.max(0, grossTotalIncome - allowedDeductions);
+
+        logCalculation('New Regime: Gross Total Income', grossTotalIncome);
+        logCalculation('New Regime: Allowed Deductions (80CCD(2))', allowedDeductions);
+    } else {
+        // The old regime uses the `TotalIncome` from PartB-TI, which has all Chapter VI-A 
+        // deductions subtracted.
+        totalIncomeForRegime = partBTI.TotalIncome || 0;
+    }
+
     // Get separated income components
-    const totalIncome = partBTI.TotalIncome || 0;
+    const totalIncome = totalIncomeForRegime;
     const specialRateIncome = itr.ScheduleSI?.TotSplRateInc || 0;
     const regularIncome = Math.max(0, totalIncome - specialRateIncome);
     
@@ -355,5 +384,6 @@ const calculatePartBTTINewRegime = (itr: Itr2): PartBTTI => {
  * @returns The calculated PartB_TTI section
  */
 const calculatePartBTTIOldRegime = (itr: Itr2): PartBTTI => {
-    return calculateTaxAndPreparePartBTTI(itr, false, OLD_REGIME_SLABS, 'Old Regime');
+    const slabs = getOldRegimeSlabs(itr);
+    return calculateTaxAndPreparePartBTTI(itr, false, slabs, 'Old Regime');
 };

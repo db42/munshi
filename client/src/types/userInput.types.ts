@@ -103,6 +103,18 @@ interface ForeignAssetEntry {
     // Add other fields specific to asset types
 }
 
+// REMOVED detailed deduction interfaces like Section80CDetails, Section80DDetails etc.
+
+export interface Chapter6ADeductions {
+    section80C_investments?: number;
+    section80D_premium?: number;
+    section80E_interest?: number;
+    section80TTA_interest?: number;
+    section80TTB_interest?: number;
+    nps_additional_contribution_80CCD1B?: number;
+    nps_contribution_80CCD1?: number;
+}
+
 // Main user input data interface
 export interface UserInputData {
     inputSchemaVersion?: string;
@@ -117,13 +129,10 @@ export interface UserInputData {
         longTerm?: CapitalGainsEntry[];
     };
     scheduleOSAdditions?: OtherSourceIncomeEntry[];
-    chapterVIAAdditions?: {
-        section80C?: Section80CDetails;
-        section80D?: Section80DDetails;
-        section80G?: Section80GDonation[];
-        section80TTA?: { savingsInterest?: number };
-        // Add other VIA sections
-    };
+    
+    // REPLACED chapterVIAAdditions with chapter6aDeductions
+    chapter6aDeductions?: Chapter6ADeductions;
+
     taxesPaidAdditions?: {
         selfAssessmentTax?: SelfAssessmentTaxPayment[];
     };

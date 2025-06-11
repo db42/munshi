@@ -55,6 +55,10 @@ Year 2025-26
 - [todo optional] user can specify tax regime
 - [todo] get scheduleIT (self assessment) from AIS
 - [todo] support ITR-1
+- [todo] nps for new ITR
+- [todo] support personal info changes like DOB
+- [todo] auto senior citizen 50k interest deduction
+- [todo] donation
 - [] download ITR offline utility once available https://www.incometax.gov.in/iec/foportal/downloads/income-tax-returns 
 - [] pre-filled data from ITR
 

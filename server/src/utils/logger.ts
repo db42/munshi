@@ -32,8 +32,9 @@ const loggerConfig: Record<string, LogLevel> = {
   'currencyConverter': 'none',
   'parserTypes': 'none',
   'equityPriceUtils': 'none',
-  'partBTTI': 'none',
+  // 'partBTTI': 'none',
   'calculateScheduleBFLA': 'none',
+  'form26ASToITR': 'none',
 };
 
 const getLogLevel = (name: string): LogLevel => {

@@ -7,6 +7,8 @@ import { processScheduleS } from './scheduleS';
 import { processScheduleTDS1 } from './scheduleTDS1';
 import { initializeVerification } from './initializers';
 import { ParseResult } from '../utils/parserTypes';
+import { processScheduleVIAFromForm16 } from './scheduleVIA';
+import { ScheduleVIA } from '../types/itr';
 
 /**
  * Interface for ITR sections generated from Form 16 data
@@ -17,6 +19,7 @@ export interface Form16ITRSections {
   partAGEN1: PartAGEN1;
   scheduleS: ScheduleS;
   scheduleTDS1: ScheduleTDS1;
+  scheduleVIA?: ScheduleVIA;
   verification: Verification;
 }
 
@@ -29,6 +32,7 @@ export interface Form16ITRSections {
  * - PartAGEN1: General information including filing status and personal info
  * - ScheduleS: Salary income details from Form 16
  * - ScheduleTDS1: Tax Deduction Schedule 1 details from Form 16
+ * - ScheduleVIA: Deductions under Chapter VI-A from Form 16
  * - Verification: Required verification section
  * 
  * Note: PartB_TI and PartB_TTI are no longer generated here.
@@ -45,6 +49,7 @@ export const convertForm16ToITR = (form16: Form16): ParseResult<Form16ITRSection
             partAGEN1: processPartAGEN1(form16),
             scheduleS: processScheduleS(form16),
             scheduleTDS1: processScheduleTDS1(form16),
+            scheduleVIA: processScheduleVIAFromForm16(form16),
             verification: initializeVerification(form16)
         };
 

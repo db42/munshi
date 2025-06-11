@@ -1,4 +1,4 @@
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, ScheduleTDS2, ScheduleIT, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag } from '../../types/itr';
+import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, ScheduleTDS2, ScheduleIT, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag, ScheduleVIA } from '../../types/itr';
 import cloneDeep from 'lodash/cloneDeep';
 import { calculatePartBTTI } from './partBTTI';
 import { TaxRegimePreference, TaxRegimeComparison } from '../../types/tax.types';
@@ -22,6 +22,7 @@ import {
     getCharlesSchwabSections,
     getUSInvestmentIncomeSections
 } from './documentHelpers';
+import { mergeScheduleVIA } from '../../document-processors/scheduleVIA';
 
 // Create a named logger instance for this module
 const logger: ILogger = getLogger('itr');
@@ -67,7 +68,41 @@ function mergeScheduleS(sources: {
   form26AS?: ScheduleS;
   ais?: ScheduleS;
 }): ScheduleS | undefined {
-  return sources.form16 || sources.form26AS || sources.ais;
+  // The primary source is Form 16 as it's the most detailed.
+  if (sources.form16) {
+    return sources.form16;
+  }
+
+  // Fallback to Form 26AS or AIS if Form 16 is not available.
+  const scheduleS = sources.form26AS || sources.ais;
+
+  // If we have a Schedule S from a fallback source and it has salary income,
+  // we should apply the standard deduction, as it's often missing from these sources.
+  if (scheduleS && scheduleS.TotalGrossSalary > 0) {
+    // Standard deduction is ₹50,000 or the total salary, whichever is less.
+    const standardDeduction = Math.min(scheduleS.TotalGrossSalary, 50000);
+
+    // Create a new copy to avoid mutating the original object.
+    const updatedScheduleS = cloneDeep(scheduleS);
+
+    // Apply the standard deduction.
+    updatedScheduleS.DeductionUnderSection16ia = standardDeduction;
+
+    // The total deduction under section 16 should also be updated.
+    // For now, we assume standard deduction is the only one. This could be expanded.
+    updatedScheduleS.DeductionUS16 = standardDeduction;
+
+    // Recalculate the net salary.
+    updatedScheduleS.NetSalary = scheduleS.TotalGrossSalary - standardDeduction;
+    
+    // The final income under this head is the same as the net salary.
+    updatedScheduleS.TotIncUnderHeadSalaries = updatedScheduleS.NetSalary;
+
+    return updatedScheduleS;
+  }
+
+  // If no salary income or no schedule, return the original.
+  return scheduleS;
 }
 
 function mergeScheduleTDS1(sources: {
@@ -785,6 +820,8 @@ export const generateITR = async (
     if (mergedCreationInfo) baseITR.CreationInfo = mergedCreationInfo;
     if (mergedFormITR2) baseITR.Form_ITR2 = mergedFormITR2;
     if (mergedPartAGEN1) baseITR.PartA_GEN1 = mergedPartAGEN1;
+    // TODO:
+    // baseITR.PartA_GEN1.PersonalInfo.DOB = "1960-01-20";
     if (mergedVerification) baseITR.Verification = mergedVerification;
 
     // --- 3. Merge Core Tax Sections Using Clean Priority/Accumulation Logic ---
@@ -849,6 +886,11 @@ export const generateITR = async (
         userInput: undefined // FSI not supported in user input yet
     });
 
+    const mergedScheduleVIA = mergeScheduleVIA({
+        form16: form16Sections?.scheduleVIA,
+        userInput: userInputSections?.scheduleVIA
+    });
+
     // TODO1: Note: For now, we skip additional ScheduleOS merge due to complex type requirements
     // The main ScheduleOS merge already handles most cases
     // TODO2: mergeForeignTaxCredit
@@ -860,6 +902,7 @@ export const generateITR = async (
     if (mergedScheduleTCS) baseITR.ScheduleTCS = mergedScheduleTCS;
     if (mergedScheduleIT) baseITR.ScheduleIT = mergedScheduleIT;
     if (mergedScheduleOS) baseITR.ScheduleOS = mergedScheduleOS;
+    if (mergedScheduleVIA) baseITR.ScheduleVIA = mergedScheduleVIA;
 
     // Add Schedule CFL from user input if available
     if (userInputSections?.scheduleCFL) {
@@ -919,7 +962,7 @@ export const generateITR = async (
     const {partBTTI, chosenRegime, taxRegimeComparison} = calculatePartBTTI(baseITR, taxRegimePreference, userInputData?.generalInfoAdditions?.bankDetails);
     baseITR.PartA_GEN1.FilingStatus.OptOutNewTaxRegime = chosenRegime === TaxRegimePreference.OLD ? TaxRescertifiedFlag.Y : TaxRescertifiedFlag.N;
 
-    baseITR["PartB_TTI"] = partBTTI;
+    baseITR.PartB_TTI = partBTTI;
     logger.info('Calculated PartB-TTI with integrated special rates.');
 
     // --- 8. Calculate Schedule AMTC ---

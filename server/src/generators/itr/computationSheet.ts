@@ -1,6 +1,6 @@
 import { Itr2 } from '../../types/itr';
 import { getLogger, ILogger } from '../../utils/logger';
-import { NEW_REGIME_SLABS, OLD_REGIME_SLABS, getSlabCalculationBreakdownText, getSlabTax } from './taxUtils';
+import { NEW_REGIME_SLABS, OLD_REGIME_SLABS, getSlabCalculationBreakdownText, getSlabTax, getOldRegimeSlabs } from './taxUtils';
 
 // Create a named logger instance for this module
 const logger: ILogger = getLogger('computationSheet');
@@ -26,6 +26,8 @@ export const generateComputationSheet = (itr: Itr2): string => {
     const ptti = itr.PartB_TTI;
     const pti = itr['PartB-TI'];
     const si = itr.ScheduleSI;
+    const isNewRegime = itr.PartA_GEN1.FilingStatus.OptOutNewTaxRegime === 'N';
+    const regimeName = isNewRegime ? 'New' : 'Old';
 
     if (!ptti || !pti) {
         logger.warn('Could not generate computation sheet because PartB_TTI or PartB-TI is missing.');
@@ -37,6 +39,7 @@ export const generateComputationSheet = (itr: Itr2): string => {
     // Header
     sheet.push(divider(80, '='));
     sheet.push('COMPUTATION OF INCOME AND TAX'.padStart(55));
+    sheet.push(`(${regimeName} Tax Regime)`.padStart(51));
     sheet.push(`For Assessment Year ${itr.Form_ITR2.AssessmentYear}-${(parseInt(itr.Form_ITR2.AssessmentYear, 10) + 1).toString().substring(2)}`.padStart(55));
     sheet.push(divider(80, '='));
     sheet.push('');
@@ -60,17 +63,29 @@ export const generateComputationSheet = (itr: Itr2): string => {
     sheet.push(`   GROSS TOTAL INCOME (GTI)`.padEnd(60) + formatCurrency(pti.GrossTotalIncome));
     sheet.push(divider(80));
     
-    // Deductions
-    sheet.push(`Less: Deductions under Chapter VI-A`.padEnd(60) + formatCurrency(pti.DeductionsUnderScheduleVIA));
-    sheet.push(divider(80));
+    // Deductions & Total Income for Regime
+    let totalIncomeForRegime = 0;
+    if (isNewRegime) {
+        const ded80CCD2 = itr.ScheduleVIA?.DeductUndChapVIA?.Section80CCDEmployer || 0;
+        totalIncomeForRegime = (pti.GrossTotalIncome ?? 0) - ded80CCD2;
+        sheet.push(`Less: Deductions under Chapter VI-A`.padEnd(60));
+        sheet.push(`   - Section 80CCD(2)`.padEnd(59) + formatCurrency(ded80CCD2));
+        sheet.push(`   (Other deductions are not available in the New Regime)`.padEnd(59));
+        sheet.push(divider(80));
+    } else {
+        totalIncomeForRegime = pti.TotalIncome;
+        sheet.push(`Less: Deductions under Chapter VI-A`.padEnd(60) + formatCurrency(pti.DeductionsUnderScheduleVIA));
+        sheet.push(divider(80));
+    }
 
     // Total Income
-    sheet.push(`   TOTAL INCOME`.padEnd(60) + formatCurrency(pti.TotalIncome));
+    sheet.push(`   TOTAL INCOME`.padEnd(60) + formatCurrency(totalIncomeForRegime));
     sheet.push(divider(80, '='));
     sheet.push('');
 
     // Part B: Computation of Tax Liability
     sheet.push('PART B: COMPUTATION OF TAX LIABILITY');
+    sheet.push(`(${regimeName} Tax Regime)`.padStart(51));
     sheet.push(divider(80));
 
     // Tax on Special Rate Income
@@ -86,20 +101,13 @@ export const generateComputationSheet = (itr: Itr2): string => {
     }
 
     // Tax on Regular Income
-    const regularIncome = pti.TotalIncome - (si?.TotSplRateInc ?? 0);
+    const regularIncome = totalIncomeForRegime - (si?.TotSplRateInc ?? 0);
     const taxOnRegularIncome = ptti.ComputationOfTaxLiability.TaxPayableOnTI.TaxAtNormalRatesOnAggrInc;
     sheet.push(`   Tax on Regular Income of ${formatCurrency(regularIncome, 0)} (at slab rates)`.padEnd(60) + formatCurrency(taxOnRegularIncome));
 
     // Determine which regime was used by silently calculating tax with both slab sets
-    const taxUnderOldRegime = getSlabTax(regularIncome, OLD_REGIME_SLABS);
-    const taxUnderNewRegime = getSlabTax(regularIncome, NEW_REGIME_SLABS);
-    
-    let breakdown: string[] = [];
-    if (Math.round(taxUnderNewRegime) === Math.round(taxOnRegularIncome)) {
-        breakdown = getSlabCalculationBreakdownText(regularIncome, NEW_REGIME_SLABS, 'New Regime');
-    } else if (Math.round(taxUnderOldRegime) === Math.round(taxOnRegularIncome)) {
-        breakdown = getSlabCalculationBreakdownText(regularIncome, OLD_REGIME_SLABS, 'Old Regime');
-    }
+    const slabs = isNewRegime ? NEW_REGIME_SLABS : getOldRegimeSlabs(itr);
+    const breakdown = getSlabCalculationBreakdownText(regularIncome, slabs, `${regimeName} Regime`);
     sheet.push(...breakdown);
 
     sheet.push('');

@@ -16,6 +16,17 @@ export const itr2StepsConfig: ITRViewerStepConfig[] = [
     id: 'capitalGains',
     title: 'Capital Gains',
     associatedSchedules: ['ScheduleCG'],
+    isConditional: true,
+  },
+  {
+    id: 'deductions',
+    title: 'Deductions',
+    isConditional: false,
+  },
+  {
+    id: 'losses',
+    title: 'Losses',
+    isConditional: false,
   },
   {
     id: 'foreignAssetsIncome',
@@ -24,11 +35,6 @@ export const itr2StepsConfig: ITRViewerStepConfig[] = [
     isConditional: true,
     // TODO: Define the actual condition field path in ITRData later
     // e.g., conditionField: 'ITR.ITR2.ScheduleFA.TotalForeignAssetsFlag' 
-  },
-  {
-    id: 'deductionsLosses',
-    title: 'Deductions & Losses',
-    associatedSchedules: ['ScheduleVIA', 'ScheduleCYLA', 'ScheduleBFLA', 'ScheduleCFL'],
   },
   {
     id: 'taxRegimeSelection',

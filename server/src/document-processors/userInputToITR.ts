@@ -2,6 +2,8 @@ import { UserInputData } from '../types/userInput.types';
 import { ScheduleCFL, ScheduleIT, TaxPayment } from '../types/itr';
 import { getLogger, ILogger } from '../utils/logger';
 import { ParseResult } from '../utils/parserTypes';
+import { ScheduleVIA } from '../types/itr';
+import { processScheduleVIAFromUserInput } from './scheduleVIA';
 
 const logger: ILogger = getLogger('userInputToITRProcessor');
 
@@ -9,6 +11,7 @@ const logger: ILogger = getLogger('userInputToITRProcessor');
 export interface UserInputITRSections {
     scheduleCFL?: ScheduleCFL;
     scheduleIT?: ScheduleIT;
+    scheduleVIA?: ScheduleVIA;
     // Add other potential sections like scheduleFA, taxesPaid, chapterVIA etc. later
 }
 
@@ -142,6 +145,9 @@ export const convertUserInputToITRSections = (
         generatedSections.scheduleIT = scheduleIT;
         logger.info('Transformed user input Self-Assessment Tax payments.');
     }
+
+    // Process Schedule VIA
+    generatedSections.scheduleVIA = processScheduleVIAFromUserInput(inputData.chapter6aDeductions || {});
 
     // Add processors for other user input sections (scheduleFAAdditions, etc.) here in the future
 

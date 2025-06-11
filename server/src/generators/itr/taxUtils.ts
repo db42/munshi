@@ -25,6 +25,19 @@ export const OLD_REGIME_SLABS: TaxSlab[] = [
   { threshold: Infinity, rate: 0.30 }
 ];
 
+export const OLD_REGIME_SLABS_SENIOR_CITIZEN: TaxSlab[] = [
+  { threshold: 300000, rate: 0 },
+  { threshold: 500000, rate: 0.05 },
+  { threshold: 1000000, rate: 0.20 },
+  { threshold: Infinity, rate: 0.30 }
+];
+
+export const OLD_REGIME_SLABS_SUPER_SENIOR_CITIZEN: TaxSlab[] = [
+  { threshold: 500000, rate: 0 },
+  { threshold: 1000000, rate: 0.20 },
+  { threshold: Infinity, rate: 0.30 }
+];
+
 export const calculatePercentage = (amount: number, percentage: number): number => {
   return amount * percentage;
 };
@@ -215,6 +228,43 @@ export const getSlabCalculationBreakdownText = (totalIncome: number, slabs: TaxS
 
     breakdown.push("   └──────────────────────────────────┴──────────────────────┴──────────────────────┘");
     return breakdown;
+};
+
+export const getOldRegimeSlabs = (itr: Itr2): TaxSlab[] => {
+    const dob = itr.PartA_GEN1?.PersonalInfo?.DOB;
+    if (!dob) {
+        // Default to standard slabs if DOB is not available
+        logger.warn('DOB not found in ITR data, using standard tax slabs for old regime.');
+        return OLD_REGIME_SLABS;
+    }
+
+    const getAge = (dobString: string): number => {
+        const dobDate = new Date(dobString);
+        // A person is considered to have attained an age on the day before their birthday.
+        // For tax purposes, we check their age on April 1st of the Assessment Year.
+        // A person turning 60/80 on April 1st is considered to have reached that age for the preceding FY.
+        const asOnDate = new Date('2024-04-01');
+        let age = asOnDate.getFullYear() - dobDate.getFullYear();
+        const monthDiff = asOnDate.getMonth() - dobDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && asOnDate.getDate() < dobDate.getDate())) {
+            age--;
+        }
+        return age;
+    };
+
+    const age = getAge(dob);
+    logger.info(`Taxpayer age calculated as ${age} for determining senior citizen status.`);
+
+    if (age >= 80) {
+        logger.info('Applying Super Senior Citizen tax slabs.');
+        return OLD_REGIME_SLABS_SUPER_SENIOR_CITIZEN;
+    } else if (age >= 60) {
+        logger.info('Applying Senior Citizen tax slabs.');
+        return OLD_REGIME_SLABS_SENIOR_CITIZEN;
+    } else {
+        logger.info('Applying standard tax slabs.');
+        return OLD_REGIME_SLABS;
+    }
 };
 
 export const createEmptyPartBTTI = () => {
