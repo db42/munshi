@@ -1,13 +1,8 @@
-# Typescript guidelines
-1. Use optional property over nullable property. See examples:
-
-Optional property (date?: Date)
-
-Nullable property (date: Date | null)
-
-2. how to define functions
-
-
+---
+description: 
+globs: 
+alwaysApply: false
+---
 # Product guidelines
 ## Data viewer
 

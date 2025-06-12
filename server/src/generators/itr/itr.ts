@@ -1,4 +1,5 @@
-import { Itr2, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, PartBTTI, Itr, ScheduleTDS2, ScheduleIT, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, TaxRescertifiedFlag, ScheduleVIA } from '../../types/itr';
+import { type Itr } from '../../types/common-itr';
+import { type Itr2, type PartBTTI, ScheduleCGFor23, ScheduleFA, ScheduleOS, ScheduleTR1, ScheduleFSI, ScheduleTDS2, ScheduleIT, ScheduleS, ScheduleTDS1, ScheduleTCS, CreationInfo, FormITR2, PartAGEN1, Verification, ScheduleVIA, ResidentialStatus, StateCode, CountryCode, Status, Capacity, AssetOutIndiaFlag, TaxRescertifiedFlag } from '../../types/itr';
 import cloneDeep from 'lodash/cloneDeep';
 import { calculatePartBTTI } from './partBTTI';
 import { TaxRegimePreference, TaxRegimeComparison } from '../../types/tax.types';
@@ -23,6 +24,10 @@ import {
     getUSInvestmentIncomeSections
 } from './documentHelpers';
 import { mergeScheduleVIA } from '../../document-processors/scheduleVIA';
+import { isEligibleForITR1 } from './itrEligibility';
+import { transformITR2toITR1 } from './transformITR';
+import { Itr1 } from '../../types/itr-1';
+import { type ITRClass } from '../../types/common-itr';
 
 // Create a named logger instance for this module
 const logger: ILogger = getLogger('itr');
@@ -974,45 +979,69 @@ export const generateITR = async (
         logger.info('AMT not applicable, skipping Schedule AMTC calculation.');
     }
 
-    // --- 9. Final ITR Object ---
-    let finalITR: Itr = {
-        ITR: {
-            ITR2: baseITR as Itr2
-        }
-    };
-
-    // --- 10. Round all numbers in the final ITR object ---
-    logger.info('Rounding numbers in the final ITR object.');
-    finalITR = roundNumbersInObject(finalITR); // Apply rounding
-
-    // --- 11. Generate and log the final computation sheet ---
-    if (finalITR.ITR?.ITR2) {
-        const computationSheet = generateComputationSheet(finalITR.ITR.ITR2);
-        logger.info(`\n\n${computationSheet}\n\n`);
+    // Post-process Schedule CG - This must happen after all other calculations
+    if (baseITR.ScheduleCGFor23) {
+        baseITR.ScheduleCGFor23 = postProcessScheduleCG(baseITR.ScheduleCGFor23);
     }
 
-    //validate the ITR
-    try {
-        validateITR(finalITR);
-        logger.info('ITR validation successful.');
-    } catch (error: any) {
-        // Log the validation error details if it's a ValidationError
-        if (error instanceof ValidationError) {
-            // logger.error('ITR validation failed:', error.errors);
-        } else {
-            // logger.error('ITR validation failed with an unexpected error:', error);
+    const itr2: Itr2 = baseITR as Itr2;
+    let finalITR: Itr;
+
+    // --- ITR-1/ITR-2 Decision Logic ---
+    if (isEligibleForITR1(itr2)) {
+        logger.info('User is eligible for ITR-1. Transforming data...');
+        const itr1: Itr1 = transformITR2toITR1(itr2);
+        finalITR = {
+            ITR: {
+                ITR1: itr1
+            }
+        };
+    } else {
+        logger.info('User is not eligible for ITR-1. Finalizing as ITR-2.');
+        finalITR = {
+            ITR: {
+                ITR2: itr2
+            }
+        };
+    }
+    // --- End of Decision Logic ---
+
+    logger.info('Rounding numbers in the final ITR object.');
+    finalITR = roundNumbersInObject(finalITR);
+    
+    // Generate computation sheet and validate only if it's an ITR-2.
+    // The current implementation of these functions is specific to ITR-2's structure.
+    if (finalITR.ITR && finalITR.ITR.ITR2) {
+        // Generate computation sheet (for debugging and verification)
+        const computationSheet = generateComputationSheet(finalITR.ITR.ITR2);
+        logger.info(`Computation sheet generated for user ${userId}, AY ${assessmentYear}.`);
+        // Note: The computation sheet is not returned in the final response for now.
+
+        // Validate the final ITR object against the schema
+        try {
+            validateITR(finalITR as Itr);
+            logger.info('ITR-2 validation successful.');
+        } catch (error: any) {
+            if (error instanceof ValidationError) {
+                logger.warn('ITR-2 validation failed.', { errors: error.errors });
+            } else {
+                logger.error('An unexpected error occurred during ITR-2 validation.', { error });
+            }
+            // Decide how to handle validation errors. For now, we'll log and continue.
         }
+    } else if (finalITR.ITR && finalITR.ITR.ITR1) {
+        logger.info('Skipping computation sheet generation and validation for ITR-1.');
     }
 
     logger.info(`ITR generation complete for user ${userId}, AY ${assessmentYear}`);
-    return { itr: finalITR, taxRegimeComparison };
+    return { itr: finalITR as Itr, taxRegimeComparison };
 };
 
 // --- Helper Functions ---
 
 function initializeBaseITR2(assessmentYear: string): Partial<Itr2> {
     logger.debug('Initializing base ITR-2 structure.');
-    // Creates a basic ITR-2 structure 
+    // Creates a basic ITR-2 structure with default values for all mandatory fields.
     return {
         Form_ITR2: {
             FormName: "ITR-2",

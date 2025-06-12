@@ -3,9 +3,18 @@ description:
 globs: 
 alwaysApply: true
 ---
-Use more tools e.g. command line tools
-
-Typescript guidance:
+## Typescript guidance:
 - avoid using 'any'
 - avoid mutating an argument within function
 - avoid passing by reference
+- ALWAYS uses import type foo from 'bar' or import { type foo } from 'bar' when importing types.
+- Use optional property over nullable property. See examples:
+
+Optional property (date?: Date)
+
+Nullable property (date: Date | null)
+
+## Making changes
+- Use more tools e.g. command line tools
+- for any type errors, make sure to read the whole type before attempting the fix
+- for any change in server/, run `npm run build` to verify any tsc errors

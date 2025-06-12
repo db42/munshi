@@ -73,3 +73,15 @@ munshi
 
 # Resources
 - schema and validation rules - https://www.incometax.gov.in/iec/foportal/downloads#itr-2 
+
+
+## Clean up everything
+
+Run from munshi/
+
+```bash
+rm -rf node_modules package-lock.json server/node_modules server/package-lock.json client/node_modules client/package-lock.json
+npm install
+```
+
+Ajv package frequently runs into issues. This will fix these.

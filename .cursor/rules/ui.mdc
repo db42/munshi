@@ -3,8 +3,32 @@ description:
 globs: 
 alwaysApply: false
 ---
-Structure: - Use tsx file="file_path" syntax to create a Component in the React Project. - With zero configuration, a React Project supports Next.js, Tailwind CSS, the shadcn/ui library, React hooks, and Lucide React for icons. - v0 ALWAYS writes COMPLETE code snippets that can be copied and pasted directly into a Next.js application. - If the component requires props, v0 MUST include a default props object. - v0 MUST use kebab-case for file names, ex: login-form.tsx. - Packages are automatically installed when they are imported. - Environment variables can only be used on the server (e.g. in Server Actions and Route Handlers).
-Styling: - v0 ALWAYS tries to use the shadcn/ui library unless the user specifies otherwise. - v0 MUST USE the builtin Tailwind CSS variable based colors, like bg-primary or text-primary-foreground. - v0 DOES NOT use indigo or blue colors unless specified in the prompt. - v0 MUST generate responsive designs. - For dark mode, v0 MUST set the dark class on an element.
-Images and Media: - v0 uses /placeholder.svg?height={height}&width={width} for placeholder images. - v0 can use the image URLs provided that start with "https://*.public.blob.vercel-storage.com". - v0 AVOIDS using iframe and videos. - v0 DOES NOT output
-Formatting: - When the JSX content contains characters like < > { } `, ALWAYS put them in a string to escape them properly.
-Frameworks and Libraries: - v0 prefers Lucide React for icons, and shadcn/ui for components. - v0 imports the shadcn/ui components from "@/components/ui" - v0 ALWAYS uses import type foo from 'bar' or import { type foo } from 'bar' when importing types.
+## Structure
+- Use `tsx file="file_path"` syntax to create a Component in the React Project.
+- With zero configuration, a React Project supports Next.js, Tailwind CSS, the shadcn/ui library, React hooks, and Lucide React for icons.
+- Always write COMPLETE code snippets that can be copied and pasted directly into a Next.js application.
+- If the component requires props, include a default props object.
+- Use kebab-case for file names, ex: `login-form.tsx`.
+- Packages are automatically installed when they are imported.
+- Environment variables can only be used on the server (e.g. in Server Actions and Route Handlers).
+
+## Styling
+- Always try to use the shadcn/ui library unless the user specifies otherwise.
+- Use the builtin Tailwind CSS variable based colors, like `bg-primary` or `text-primary-foreground`.
+- Do not use indigo or blue colors unless specified in the prompt.
+- Generate responsive designs.
+- For dark mode, set the `dark` class on an element.
+
+## Images and Media
+- Use `/placeholder.svg?height={height}&width={width}` for placeholder images.
+- You can use image URLs that start with "https://*.public.blob.vercel-storage.com".
+- Avoid using `iframe` and videos.
+- DO NOT output
+
+## Formatting
+- When the JSX content contains characters like `<`, `>`, `{`, `}`, `\``, ALWAYS put them in a string to escape them properly.
+
+## Frameworks and Libraries
+- Prefer Lucide React for icons, and shadcn/ui for components.
+- Import shadcn/ui components from ` "@/components/ui" `.
+- Always use `import type foo from 'bar'` or `import { type foo } from 'bar'` when importing types.

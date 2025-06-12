@@ -4,7 +4,9 @@
     "description": "Backend server for Munshi tax filing application",
     "main": "dist/index.js",
     "scripts": {
-        "generate-itr-types": "ts-node src/scripts/generate-itr-types.ts",
+        "types:generate": "ts-node src/scripts/generate-itr-types.ts",
+        "types:post-process": "ts-node src/scripts/post-process-types.ts",
+        "types:all": "npm run types:generate && npm run types:post-process",
         "db:init": "npx ts-node src/scripts/setupDb.ts",
         "start": "npm run db:init && node dist/index.js",
         "dev": "npm run db:init && nodemon",
@@ -25,7 +27,6 @@
         "@types/uuid": "^10.0.0",
         "ajv": "^8.17.1",
         "ajv-draft-04": "^1.0.0",
-        "ajv-formats": "^3.0.1",
         "axios": "^1.6.0",
         "cors": "^2.8.5",
         "csv-parse": "^5.6.0",
@@ -59,6 +60,7 @@
         "prettier": "^2.8.7",
         "ts-jest": "^29.1.0",
         "ts-node": "^10.9.1",
+        "ts-morph": "^22.0.0",
         "typescript": "^5.4.5"
     }
 }

@@ -232,4 +232,3 @@ psql -U dushyant.bansal -h localhost -p 5432 -d munshi
 \dt
 SELECT * FROM documents;
 ```
-

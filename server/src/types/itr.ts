@@ -1,3 +1,5 @@
+import type { Itr } from "./common-itr";
+
 // To parse this data:
 //
 //   import { Convert, Itr } from "./file";
@@ -7,23 +9,11 @@
 // These functions will throw an error if the JSON doesn't
 // match the expected interface, even if the JSON is valid.
 
-export interface Itr {
-    ITR?: ITRClass;
-}
-
-/**
- * This is root node. Only ITR 2 is Mandatory. Irrespective of Individual or bulk IT returns
- * filed, will form the starting point and base structure for all returns JSON generation.
- */
-export interface ITRClass {
-    ITR2: Itr2;
-}
-
 export interface Itr2 {
     CreationInfo:       CreationInfo;
     Form_ITR2:          FormITR2;
     PartA_GEN1:         PartAGEN1;
-    "PartB-TI":          PartBTI;
+    "PartB-TI":         PartBTI;
     PartB_TTI:          PartBTTI;
     Schedule112A?:      Schedule112A;
     Schedule115AD?:     Schedule115AD;
@@ -37,10 +27,10 @@ export interface Itr2 {
     ScheduleAL?:        ScheduleAL;
     ScheduleAMT?:       ScheduleAMT;
     ScheduleAMTC?:      ScheduleAMTC;
-    ScheduleBFLA?:       ScheduleBFLA;
+    ScheduleBFLA:       ScheduleBFLA;
     ScheduleCFL?:       ScheduleCFL;
     ScheduleCGFor23?:   ScheduleCGFor23;
-    ScheduleCYLA?:       ScheduleCYLA;
+    ScheduleCYLA:       ScheduleCYLA;
     ScheduleEI?:        ScheduleEI;
     ScheduleESOP?:      ScheduleESOP;
     ScheduleFA?:        ScheduleFA;
@@ -10261,4 +10251,3 @@ const typeMap: any = {
         "S",
     ],
 };
-
