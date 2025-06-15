@@ -18,3 +18,4 @@ Nullable property (date: Date | null)
 - Use more tools e.g. command line tools
 - for any type errors, make sure to read the whole type before attempting the fix
 - for any change in server/, run `npm run build` to verify any tsc errors
+- If following a todo file for a task, Pick 1 step at a time. complet it. let me review it. once i say okay, then you can update the todo file first and move to the next step. follow this always

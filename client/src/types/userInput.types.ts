@@ -1,5 +1,4 @@
-// client/src/types/userInput.types.ts
-
+// server/src/types/userInput.types.ts
 import { TaxRegimePreference } from './tax.types';
 
 // Base types
@@ -15,8 +14,8 @@ interface Address {
 export interface BankAccount {
     ifsc: string;
     accountNumber: string;
-    accountType: 'SB' | 'CA'; // Refined to SB/CA, map to 'Savings'/'Current' in UI
-    bankName: string; // Added mandatory bankName
+    accountType: 'SB' | 'CA'; // Refined for better type safety, add other specific types if needed
+    bankName: string;
     isPrimary?: boolean;
 }
 
@@ -48,33 +47,14 @@ interface OtherSourceIncomeEntry {
     taxPaidOutsideIndia?: number;
 }
 
-interface Section80CDetails {
-    ppf?: number;
-    lic?: number;
-    elss?: number;
-    nsc?: number;
-    tuitionFees?: number;
-    // Add other 80C items...
-}
-
-interface Section80DDetails {
-    premiumSelfFamily?: number;
-    premiumParents?: number;
-    preventiveHealthCheckupSelf?: number;
-    preventiveHealthCheckupParents?: number;
-    // Add flags for senior citizens if needed for logic
-}
-
-interface Section80GDonation {
-    doneeName: string;
-    panDonee: string;
-    addressDonee?: Address;
+interface SelfAssessmentTaxPayment {
+    bsrCode: string;
+    dateDeposit: string; // YYYY-MM-DD
+    challanSerialNo: string;
     amount: number;
-    eligiblePercentage?: '100%' | '50%' | string; // Or codes
 }
 
-// Entry for carry-forward losses
-export interface CarryForwardLossEntry {
+interface CarryForwardLossEntry {
     lossYearAY: string; // YYYY-YY
     dateOfFiling?: string; // YYYY-MM-DD
     housePropertyLossCF?: number;
@@ -82,14 +62,6 @@ export interface CarryForwardLossEntry {
     longTermCapitalLossCF?: number;
     businessLossCF?: number;
     // Add other loss types
-}
-
-// Self-assessment tax payment entry
-export interface SelfAssessmentTaxPayment {
-    bsrCode: string;
-    dateDeposit: string; // YYYY-MM-DD
-    challanSerialNo: string;
-    amount: number;
 }
 
 interface ForeignAssetEntry {
@@ -103,8 +75,6 @@ interface ForeignAssetEntry {
     // Add other fields specific to asset types
 }
 
-// REMOVED detailed deduction interfaces like Section80CDetails, Section80DDetails etc.
-
 export interface Chapter6ADeductions {
     section80C_investments?: number;
     section80D_premium?: number;
@@ -115,10 +85,10 @@ export interface Chapter6ADeductions {
     nps_contribution_80CCD1?: number;
 }
 
-// Main user input data interface
+// Main User Input Data Structure
 export interface UserInputData {
-    inputSchemaVersion?: string;
-    
+    inputSchemaVersion?: string; // e.g., "1.0"
+
     generalInfoAdditions?: {
         bankDetails?: BankAccount[];
         taxRegimePreference?: TaxRegimePreference;
@@ -129,10 +99,6 @@ export interface UserInputData {
         longTerm?: CapitalGainsEntry[];
     };
     scheduleOSAdditions?: OtherSourceIncomeEntry[];
-    
-    // REPLACED chapterVIAAdditions with chapter6aDeductions
-    chapter6aDeductions?: Chapter6ADeductions;
-
     taxesPaidAdditions?: {
         selfAssessmentTax?: SelfAssessmentTaxPayment[];
     };
@@ -140,6 +106,7 @@ export interface UserInputData {
         lossesToCarryForward?: CarryForwardLossEntry[];
     };
     scheduleFAAdditions?: ForeignAssetEntry[];
+    chapter6aDeductions?: Chapter6ADeductions;
     // scheduleALAdditions?: { ... }; // Define if needed
 }
 

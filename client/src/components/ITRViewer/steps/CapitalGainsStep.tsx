@@ -1,5 +1,6 @@
 import React from 'react';
-import { Itr } from '../../../types/itr';
+import type { Itr1 } from '../../../types/itr-1';
+import type { Itr2, ShortTermCapGainFor23, LongTermCapGain23 } from '../../../types/itr';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ITRViewerStepConfig } from '../types';
@@ -10,29 +11,15 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatAmount } from '../../../utils/formatters';
 
-interface CapitalGainsStepProps {
-    itrData: Itr;
-    config: ITRViewerStepConfig;
-}
+// Helper to determine if a section has data (avoid null rows)
+const hasData = (section: any): boolean => {
+    return section !== undefined && section !== null && (
+        (section.FullConsideration && parseFloat(section.FullConsideration) !== 0) ||
+        (section.BalanceCG && parseFloat(section.BalanceCG) !== 0)
+    );
+};
 
-export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, config }) => {
-    const cgData = itrData.ITR?.ITR2?.ScheduleCGFor23;
-    const shortTermGains = cgData?.ShortTermCapGainFor23;
-    const longTermGains = cgData?.LongTermCapGain23;
-    
-    // Get total capital gains from Part B-TI
-    const totalCapitalGains = itrData.ITR?.ITR2?.["PartB-TI"]?.CapGain?.TotalCapGains || 0;
-    const shortTermTotal = itrData.ITR?.ITR2?.["PartB-TI"]?.CapGain?.ShortTerm?.TotalShortTerm || 0;
-    const longTermTotal = itrData.ITR?.ITR2?.["PartB-TI"]?.CapGain?.LongTerm?.TotalLongTerm || 0;
-
-    // Helper to determine if a section has data (avoid null rows)
-    const hasData = (section: any): boolean => {
-        return section !== undefined && section !== null && (
-            (section.FullConsideration && parseFloat(section.FullConsideration) !== 0) ||
-            (section.BalanceCG && parseFloat(section.BalanceCG) !== 0)
-        );
-    };
-
+const ShortTermGainsTab: React.FC<{ shortTermGains: ShortTermCapGainFor23 | undefined, shortTermTotal: number }> = ({ shortTermGains, shortTermTotal }) => {
     const renderSTCGTable = (gainType: any, title: string, rate: string) => {
         if (!gainType || !hasData(gainType)) return null;
         
@@ -60,7 +47,67 @@ export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, con
             </TableRow>
         );
     };
+    
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                    Short Term Capital Gains (STCG)
+                    <Badge variant={parseFloat(String(shortTermTotal)) >= 0 ? "default" : "destructive"}>
+                        {formatAmount(shortTermTotal)}
+                    </Badge>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {shortTermGains ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Asset Type / Section</TableHead>
+                                <TableHead className="text-right">Full Consideration</TableHead>
+                                <TableHead className="text-right">Cost of Acquisition</TableHead>
+                                <TableHead className="text-right">Cost of Improvement</TableHead>
+                                <TableHead className="text-right">Expenditure</TableHead>
+                                <TableHead className="text-right">Loss u/s 94</TableHead>
+                                <TableHead className="text-right">Net Gain/Loss</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {shortTermGains?.EquityMFonSTT?.map((item, index) => (
+                                renderSTCGTable(item.EquityMFonSTTDtls, `Equity/MF (STT Paid - ${item.MFSectionCode || "15%"})`, "15%")
+                            ))}
+                            {renderSTCGTable(shortTermGains?.SaleOnOtherAssets, 'Other Assets', 'App Rate')}
+                            {renderSTCGTable(shortTermGains?.NRISecur115AD, 'NRI Securities 115AD', '30%')}
+                            {/* Property doesn't exist in the type definition - commenting out to fix linter error */}
+                            {/* {renderSTCGTable(shortTermGains?.SaleOfEquitySharePTI, 'Equity Share Pass-Through', '15%')} */}
 
+                            <TableRow className="bg-slate-100 font-medium">
+                                <TableCell>Total STCG</TableCell>
+                                <TableCell colSpan={5}></TableCell>
+                                <TableCell className="text-right">
+                                    {parseFloat(String(shortTermGains?.TotalSTCG || 0)) >= 0 ? 
+                                        formatAmount(shortTermGains?.TotalSTCG) : 
+                                        <span className="text-red-500">{formatAmount(shortTermGains?.TotalSTCG)}</span>
+                                    }
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <Alert variant="default" className="bg-amber-50">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>No Short Term Capital Gains</AlertTitle>
+                        <AlertDescription>
+                            No short term capital gains data found in this return.
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+const LongTermGainsTab: React.FC<{ longTermGains: LongTermCapGain23 | undefined, longTermTotal: number }> = ({ longTermGains, longTermTotal }) => {
     const renderLTCGTable = (gainType: any, title: string, rate: string) => {
         if (!gainType || !hasData(gainType)) return null;
         
@@ -90,6 +137,95 @@ export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, con
             </TableRow>
         );
     };
+
+    return (
+        <Card>
+            <CardHeader className="pb-3">
+                <CardTitle className="text-lg flex items-center justify-between">
+                    Long Term Capital Gains (LTCG)
+                    <Badge variant={parseFloat(String(longTermTotal)) >= 0 ? "default" : "destructive"}>
+                        {formatAmount(longTermTotal)}
+                    </Badge>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {longTermGains ? (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Asset Type / Section</TableHead>
+                                <TableHead className="text-right">Full Consideration</TableHead>
+                                <TableHead className="text-right">Cost (Indexed?)</TableHead>
+                                <TableHead className="text-right">Improvement Cost</TableHead>
+                                <TableHead className="text-right">Expenditure</TableHead>
+                                <TableHead className="text-right">Exemption</TableHead>
+                                <TableHead className="text-right">Net Gain/Loss</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {longTermGains?.SaleofLandBuild?.SaleofLandBuildDtls?.map((item, index) => (
+                                renderLTCGTable(item, `Land/Building ${index + 1}`, "20%")
+                            ))}
+                            {renderLTCGTable(longTermGains?.SaleofBondsDebntr, 'Bonds/Debentures', '10% / 20%')}
+                            {renderLTCGTable(longTermGains?.SaleOfEquityShareUs112A, 'Equity Share 112A', '10% (>1L)')}
+                            {renderLTCGTable(longTermGains?.SaleofAssetNA, 'Other Assets', '20%')}
+                            {/* Property doesn't exist in the type definition - commenting out to fix linter error */}
+                            {/* {renderLTCGTable(longTermGains?.SaleOfEquitySharePTI, 'Equity Share Pass-Through', '10%')} */}
+
+                            <TableRow className="bg-slate-100 font-medium">
+                                <TableCell>Total LTCG</TableCell>
+                                <TableCell colSpan={5}></TableCell>
+                                <TableCell className="text-right">
+                                    {parseFloat(String(longTermGains?.TotalLTCG || 0)) >= 0 ? 
+                                        formatAmount(longTermGains?.TotalLTCG) : 
+                                        <span className="text-red-500">{formatAmount(longTermGains?.TotalLTCG)}</span>
+                                    }
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                ) : (
+                    <Alert variant="default" className="bg-amber-50">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>No Long Term Capital Gains</AlertTitle>
+                        <AlertDescription>
+                            No long term capital gains data found in this return.
+                        </AlertDescription>
+                    </Alert>
+                )}
+            </CardContent>
+        </Card>
+    );
+};
+
+interface CapitalGainsStepProps {
+    itrData: Itr1 | Itr2;
+    config: ITRViewerStepConfig;
+}
+
+export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, config }) => {
+    // This component is for ITR-2 only. ITR-1 does not have a comprehensive capital gains section.
+    if (!('ScheduleCGFor23' in itrData)) {
+        return (
+            <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Not Applicable for ITR-1</AlertTitle>
+                <AlertDescription>
+                    Capital gains are not reported in this section for ITR-1 forms.
+                </AlertDescription>
+            </Alert>
+        );
+    }
+    
+    // After the guard, TypeScript knows itrData is Itr2
+    const cgData = itrData.ScheduleCGFor23;
+    const shortTermGains = cgData?.ShortTermCapGainFor23;
+    const longTermGains = cgData?.LongTermCapGain23;
+    
+    // Get total capital gains from Part B-TI
+    const totalCapitalGains = itrData["PartB-TI"]?.CapGain?.TotalCapGains || 0;
+    const shortTermTotal = itrData["PartB-TI"]?.CapGain?.ShortTerm?.TotalShortTerm || 0;
+    const longTermTotal = itrData["PartB-TI"]?.CapGain?.LongTerm?.TotalLongTerm || 0;
 
     // Check if we have any capital gains data
     const hasCapitalGains = cgData && (
@@ -165,121 +301,12 @@ export const CapitalGainsStep: React.FC<CapitalGainsStepProps> = ({ itrData, con
 
                 {/* Short Term Capital Gains Tab */}
                 <TabsContent value="short-term" className="mt-0">
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-lg flex items-center justify-between">
-                                Short Term Capital Gains (STCG)
-                                <Badge variant={parseFloat(String(shortTermTotal)) >= 0 ? "default" : "destructive"}>
-                                    {formatAmount(shortTermTotal)}
-                                </Badge>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {shortTermGains ? (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Asset Type / Section</TableHead>
-                                            <TableHead className="text-right">Full Consideration</TableHead>
-                                            <TableHead className="text-right">Cost of Acquisition</TableHead>
-                                            <TableHead className="text-right">Cost of Improvement</TableHead>
-                                            <TableHead className="text-right">Expenditure</TableHead>
-                                            <TableHead className="text-right">Loss u/s 94</TableHead>
-                                            <TableHead className="text-right">Net Gain/Loss</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {shortTermGains?.EquityMFonSTT?.map((item, index) => (
-                                            renderSTCGTable(item.EquityMFonSTTDtls, `Equity/MF (STT Paid - ${item.MFSectionCode || "15%"})`, "15%")
-                                        ))}
-                                        {renderSTCGTable(shortTermGains?.SaleOnOtherAssets, 'Other Assets', 'App Rate')}
-                                        {renderSTCGTable(shortTermGains?.NRISecur115AD, 'NRI Securities 115AD', '30%')}
-                                        {/* Property doesn't exist in the type definition - commenting out to fix linter error */}
-                                        {/* {renderSTCGTable(shortTermGains?.SaleOfEquitySharePTI, 'Equity Share Pass-Through', '15%')} */}
-
-                                        <TableRow className="bg-slate-100 font-medium">
-                                            <TableCell>Total STCG</TableCell>
-                                            <TableCell colSpan={5}></TableCell>
-                                            <TableCell className="text-right">
-                                                {parseFloat(String(shortTermGains?.TotalSTCG || 0)) >= 0 ? 
-                                                    formatAmount(shortTermGains?.TotalSTCG) : 
-                                                    <span className="text-red-500">{formatAmount(shortTermGains?.TotalSTCG)}</span>
-                                                }
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            ) : (
-                                <Alert variant="default" className="bg-amber-50">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertTitle>No Short Term Capital Gains</AlertTitle>
-                                    <AlertDescription>
-                                        No short term capital gains data found in this return.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                        </CardContent>
-                    </Card>
+                    <ShortTermGainsTab shortTermGains={shortTermGains} shortTermTotal={shortTermTotal} />
                 </TabsContent>
 
                 {/* Long Term Capital Gains Tab */}
                 <TabsContent value="long-term" className="mt-0">
-                    <Card>
-                        <CardHeader className="pb-3">
-                            <CardTitle className="text-lg flex items-center justify-between">
-                                Long Term Capital Gains (LTCG)
-                                <Badge variant={parseFloat(String(longTermTotal)) >= 0 ? "default" : "destructive"}>
-                                    {formatAmount(longTermTotal)}
-                                </Badge>
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            {longTermGains ? (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Asset Type / Section</TableHead>
-                                            <TableHead className="text-right">Full Consideration</TableHead>
-                                            <TableHead className="text-right">Cost (Indexed?)</TableHead>
-                                            <TableHead className="text-right">Improvement Cost</TableHead>
-                                            <TableHead className="text-right">Expenditure</TableHead>
-                                            <TableHead className="text-right">Exemption</TableHead>
-                                            <TableHead className="text-right">Net Gain/Loss</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {longTermGains?.SaleofLandBuild?.SaleofLandBuildDtls?.map((item, index) => (
-                                            renderLTCGTable(item, `Land/Building ${index + 1}`, "20%")
-                                        ))}
-                                        {renderLTCGTable(longTermGains?.SaleofBondsDebntr, 'Bonds/Debentures', '10% / 20%')}
-                                        {renderLTCGTable(longTermGains?.SaleOfEquityShareUs112A, 'Equity Share 112A', '10% (>1L)')}
-                                        {renderLTCGTable(longTermGains?.SaleofAssetNA, 'Other Assets', '20%')}
-                                        {/* Property doesn't exist in the type definition - commenting out to fix linter error */}
-                                        {/* {renderLTCGTable(longTermGains?.SaleOfEquitySharePTI, 'Equity Share Pass-Through', '10%')} */}
-
-                                        <TableRow className="bg-slate-100 font-medium">
-                                            <TableCell>Total LTCG</TableCell>
-                                            <TableCell colSpan={5}></TableCell>
-                                            <TableCell className="text-right">
-                                                {parseFloat(String(longTermGains?.TotalLTCG || 0)) >= 0 ? 
-                                                    formatAmount(longTermGains?.TotalLTCG) : 
-                                                    <span className="text-red-500">{formatAmount(longTermGains?.TotalLTCG)}</span>
-                                                }
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                            ) : (
-                                <Alert variant="default" className="bg-amber-50">
-                                    <AlertCircle className="h-4 w-4" />
-                                    <AlertTitle>No Long Term Capital Gains</AlertTitle>
-                                    <AlertDescription>
-                                        No long term capital gains data found in this return.
-                                    </AlertDescription>
-                                </Alert>
-                            )}
-                        </CardContent>
-                    </Card>
+                    <LongTermGainsTab longTermGains={longTermGains} longTermTotal={longTermTotal} />
                 </TabsContent>
             </Tabs>
 

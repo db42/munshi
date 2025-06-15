@@ -1,8 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useITRData } from '@/components/ITRViewer/useITRData';
+import { itr1StepsConfig } from '@/components/ITRViewer/config/itr-1-config';
 import { itr2StepsConfig } from '@/components/ITRViewer/config/itr-2-config';
-import { ITRViewerStepConfig } from '@/components/ITRViewer/types';
-import { Itr } from '../types/itr';
+import { type ITRViewerStepConfig } from '@/components/ITRViewer/types';
+import { type Itr2 } from '../types/itr';
+import { type Itr1 } from '../types/itr-1';
 // Import UI components using correct relative paths
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,10 +26,10 @@ import { TaxCalculationPaymentsStep } from '@/components/ITRViewer/steps/TaxCalc
 import { SummaryConfirmationStep } from '@/components/ITRViewer/steps/SummaryConfirmationStep';
 import { useAssessmentYear } from '../context/AssessmentYearContext';
 import { useUser } from '../context/UserContext';
-import { TaxRegimePreference, TaxRegimeComparison } from '../types/tax.types';
+import { TaxRegimePreference, type TaxRegimeComparison } from '../types/tax.types';
 
 // Map Step IDs to Components
-const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRViewerStepConfig, taxRegimeComparison?: TaxRegimeComparison }> } = {
+const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr1 | Itr2; config: ITRViewerStepConfig, taxRegimeComparison?: TaxRegimeComparison }> } = {
   personalInfo: PersonalInfoStep,
   taxRegimeSelection: TaxRegimeStep,
   incomeDetails: IncomeDetailsStep,
@@ -38,6 +40,47 @@ const stepComponentMap: { [key: string]: React.FC<{ itrData: Itr; config: ITRVie
   assetsLiabilities: AssetsLiabilitiesStep,
   taxCalculationPayments: TaxCalculationPaymentsStep,
   summaryConfirmation: SummaryConfirmationStep,
+};
+
+const getITRViewDetails = (
+  itrData:
+    | {
+        itr?: { ITR?: { ITR1?: Itr1; ITR2?: Itr2 } };
+        taxRegimeComparison?: TaxRegimeComparison;
+      }
+    | undefined
+    | null,
+) => {
+  if (!itrData?.itr?.ITR) {
+    return { itrType: null, itrObject: null, steps: [] };
+  }
+
+  const { ITR } = itrData.itr;
+
+  if (ITR && 'ITR1' in ITR && ITR.ITR1) {
+    const itr1 = ITR.ITR1;
+    return {
+      itrType: 'ITR-1' as const,
+      itrObject: itr1,
+      steps: itr1StepsConfig,
+    };
+  }
+
+  if (ITR && 'ITR2' in ITR && ITR.ITR2) {
+    const itr2 = ITR.ITR2;
+    const visibleSteps = itr2StepsConfig.filter(step => {
+      if (!step.isConditional) return true;
+      // TODO: Replace with actual condition check based on itr2 data
+      return !!itr2;
+    });
+    return {
+      itrType: 'ITR-2' as const,
+      itrObject: itr2,
+      steps: visibleSteps,
+    };
+  }
+
+  return { itrType: null, itrObject: null, steps: [] };
 };
 
 const ITRViewerContent: React.FC = () => {
@@ -52,19 +95,10 @@ const ITRViewerContent: React.FC = () => {
   const { data: itrData, isLoading, error } = useITRData(String(userId), assessmentYear, taxRegimePreference);
   const [currentStepIndex, setCurrentStepIndex] = useState<number>(0);
 
-  const allStepsConfig = itr2StepsConfig;
+  const { itrType, itrObject, steps } = getITRViewDetails(itrData);
 
-  const visibleSteps = useMemo(() => {
-    if (!itrData?.itr) return [];
-    return allStepsConfig.filter(step => {
-      if (!step.isConditional) return true;
-      // TODO: Replace with actual condition check
-      return !!itrData.itr;
-    });
-  }, [allStepsConfig, itrData]);
-
-  const currentStepConfig = visibleSteps[currentStepIndex];
-  const totalVisibleSteps = visibleSteps.length;
+  const currentStepConfig = steps[currentStepIndex];
+  const totalVisibleSteps = steps.length;
   const CurrentStepComponent = currentStepConfig ? stepComponentMap[currentStepConfig.id] : null;
 
   const handleStepClick = (index: number) => {
@@ -88,14 +122,14 @@ const ITRViewerContent: React.FC = () => {
     // TODO: Use Alert component?
     return <div>Error loading ITR Data: {error.message}</div>;
   }
-  if (!itrData || !itrData.itr || !currentStepConfig || totalVisibleSteps === 0) {
+  if (!itrData || !itrObject || !currentStepConfig || totalVisibleSteps === 0) {
     return <div>No ITR Data found or steps not configured correctly.</div>;
   }
 
   return (
     <Card className="max-w-4xl mx-auto my-8">
       <CardHeader className="border-b pb-4">
-        <CardTitle className="text-2xl">Income Tax Return (ITR-2)</CardTitle>
+        <CardTitle className="text-2xl">Income Tax Return ({itrType})</CardTitle>
         <CardDescription>Assessment Year {assessmentYear}</CardDescription>
       </CardHeader>
 
@@ -111,7 +145,7 @@ const ITRViewerContent: React.FC = () => {
         <Progress value={((currentStepIndex + 1) / totalVisibleSteps) * 100} className="h-2" />
 
         <div className="flex flex-wrap gap-2 mt-4 mb-4 border-b pb-4">
-          {visibleSteps.map((step, index) => (
+          {steps.map((step, index) => (
             <Button
               key={step.id}
               variant={index === currentStepIndex ? "default" : "outline"}
@@ -127,9 +161,9 @@ const ITRViewerContent: React.FC = () => {
 
       <CardContent className="pt-0 pb-6 px-6">
         {CurrentStepComponent ? (
-          <CurrentStepComponent 
-            itrData={itrData.itr} 
-            config={currentStepConfig} 
+          <CurrentStepComponent
+            itrData={itrObject}
+            config={currentStepConfig}
             taxRegimeComparison={itrData.taxRegimeComparison}
           />
         ) : (

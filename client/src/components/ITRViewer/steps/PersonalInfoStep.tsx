@@ -1,6 +1,7 @@
 import React from 'react';
-import { Address, Itr, PersonalInfo } from '../../../types/itr';
-import { ITRViewerStepConfig } from '../types';
+import type { Itr1 } from '../../../types/itr-1';
+import type { Itr2, Address, PersonalInfo } from '../../../types/itr';
+import type { ITRViewerStepConfig } from '../types';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { BankAccountForm } from '../forms/BankAccountForm';
@@ -10,17 +11,21 @@ import { Button } from '@/components/ui/button';
 import { Edit, List } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
-export interface StepProps {
-  itrData: Itr;
-  config: ITRViewerStepConfig;
-}
+const getPersonalInfo = (itrData: Itr1 | Itr2): PersonalInfo | undefined => {
+  if ('Form_ITR1' in itrData && itrData.PersonalInfo) { // This is Itr1
+    return itrData.PersonalInfo;
+  } else if ('Form_ITR2' in itrData && itrData.PartA_GEN1) { // This is Itr2
+    return itrData.PartA_GEN1.PersonalInfo;
+  }
+  return undefined;
+};
 
-export const PersonalInfoStep: React.FC<StepProps> = ({ itrData, config }) => {
-  // TODO: Extract and display relevant data from itrData based on config.associatedSchedules (e.g., PartA)
-  console.log('Rendering PersonalInfoStep with data:', itrData, 'and config:', config);
+// No longer using a separate StepProps interface. Props are defined directly on the component.
+// The key change is that itrData is now a union type: Itr1 | Itr2.
+export const PersonalInfoStep: React.FC<{ itrData: Itr1 | Itr2, config: ITRViewerStepConfig }> = ({ itrData, config }) => {
+  const personalInfo: PersonalInfo | undefined = getPersonalInfo(itrData);
 
-  // Example paths - adjust these based on your actual itrData structure
-  const personalInfo: PersonalInfo | undefined = itrData.ITR?.ITR2?.PartA_GEN1?.PersonalInfo;
+  // The address is derived from the normalized personalInfo object.
   const address: Address | undefined = personalInfo?.Address;
 
   const { activeEditSection, setActiveEditSection } = useEditMode();
@@ -31,9 +36,6 @@ export const PersonalInfoStep: React.FC<StepProps> = ({ itrData, config }) => {
 
   const handleToggleBankEdit = () => {
     if (isBankSectionInEdit) {
-      // Note: BankAccountForm handles saving and setHasUnsavedChanges.
-      // If there are unsaved changes, the global EditModeToggleButton might prompt before switching sections/modes.
-      // Or, rely on user to save/cancel within the form before clicking this button.
       setActiveEditSection(null);
     } else {
       setActiveEditSection('bankAccounts');

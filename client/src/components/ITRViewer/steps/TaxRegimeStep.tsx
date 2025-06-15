@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { ITRViewerStepConfig } from '../types';
-import { Itr } from '../../../types/itr';
-import { TaxRegimePreference, TaxRegimeComparison } from '../../../types/tax.types';
+import type { ITRViewerStepConfig } from '../types';
+import type { Itr1 } from '../../../types/itr-1';
+import type { Itr2 } from '../../../types/itr';
+import { TaxRegimePreference, type TaxRegimeComparison } from '../../../types/tax.types';
 import { Calculator, AlertCircle } from 'lucide-react';
 import { useUserInput } from '../context/UserInputContext';
 
 interface TaxRegimeStepProps {
-  itrData: Itr;
+  itrData: Itr1 | Itr2;
   config: ITRViewerStepConfig;
   taxRegimeComparison?: TaxRegimeComparison;
 }

@@ -50,15 +50,15 @@ Year 2025-26
 - [done] support and upload 26AS since form-16 isn't available
 - [done] user can specify tax regime
 - [done] support deductions in old tax regime
-- [todo] remove VIA related sections from itr for itr-2
-- [todo] get scheduleIT (self assessment) from AIS
 - [todo] support ITR-1
+- [todo] remove VIA related sections from itr for itr-2
 - [todo] nps for new ITR
 - [todo] support personal info changes like DOB
 - [todo] auto senior citizen 50k interest deduction
 - [todo] donation
 - [todo] review other sources income
 - [todo] validation for both ITR
+- [todo] get scheduleIT (self assessment) from AIS
 - [] download ITR offline utility once available https://www.incometax.gov.in/iec/foportal/downloads/income-tax-returns 
 - [] pre-filled data from ITR
 - [] upload form 16 once available
