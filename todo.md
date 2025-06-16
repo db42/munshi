@@ -50,7 +50,7 @@ Year 2025-26
 - [done] support and upload 26AS since form-16 isn't available
 - [done] user can specify tax regime
 - [done] support deductions in old tax regime
-- [todo] support ITR-1
+- [done] support ITR-1
 - [todo] remove VIA related sections from itr for itr-2
 - [todo] nps for new ITR
 - [todo] support personal info changes like DOB

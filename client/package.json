@@ -68,19 +68,26 @@
         "build": "tsc && vite build",
         "serve": "vite preview",
         "lint": "eslint .",
-        "format": "prettier --write \"src/**/*.{ts,tsx}\""
+        "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+        "test": "vitest",
+        "test:ui": "vitest --ui"
     },
     "devDependencies": {
+        "@testing-library/jest-dom": "^6.6.3",
+        "@testing-library/react": "^16.3.0",
         "@types/deep-diff": "^1.0.5",
         "@typescript-eslint/eslint-plugin": "^8.0.0-alpha.22",
         "@typescript-eslint/parser": "^8.0.0-alpha.22",
         "@vitejs/plugin-react": "^4.2.1",
+        "@vitest/ui": "^3.2.3",
         "autoprefixer": "^10.4.13",
         "eslint": "^9.0.0",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.7",
+        "jsdom": "^26.1.0",
         "postcss": "^8.4.38",
         "prettier": "^2.8.7",
-        "vite": "^6.3.5"
+        "vite": "^6.3.5",
+        "vitest": "^3.2.3"
     }
 }
