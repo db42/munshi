@@ -18,8 +18,8 @@ This table summarizes the component used for each step in the ITR-1 and ITR-2 vi
 | `losses` | N/A | `LossesStep` (ITR-2 only) | ⏳ To Do |
 | `foreignAssetsIncome` | N/A | `ForeignAssetsIncomeStep` (ITR-2 only)| ⏳ To Do |
 | `assetsLiabilities`| N/A | `AssetsLiabilitiesStep` (ITR-2 only)| ⏳ To Do |
-| `taxCalculationPayments`| `TaxCalculationPaymentsStep` (Shared)| `TaxCalculationPaymentsStep` (Shared)| ⏳ To Do |
-| `summaryConfirmation`| `SummaryConfirmationStep` (Shared) | `SummaryConfirmationStep` (Shared)| ⏳ To Do |
+| `taxCalculationPayments`| `TaxCalculationPaymentsStep` (Shared)| `TaxCalculationPaymentsStep` (Shared)| ✅ Done |
+| `summaryConfirmation`| `SummaryConfirmationStep` (Shared) | `SummaryConfirmationStep` (Shared)| ✅ Done |
 
 ---
 
@@ -37,21 +37,12 @@ This table summarizes the component used for each step in the ITR-1 and ITR-2 vi
 - [x] **Adapt `IncomeDetailsStep.tsx`:** Updated for ITR-2 and created `ITR1IncomeDetailsStep.tsx` for ITR-1.
 - [x] **Adapt `DeductionsStep.tsx`:** Updated for ITR-2 and created `ITR1DeductionsStep.tsx` for ITR-1.
 - [x] **Adapt `CapitalGainsStep.tsx`:** Refactored for clarity and updated to be ITR-2 specific.
+- [x] **Adapt Shared `TaxCalculationPaymentsStep.tsx`:**
+    - [x] Updated props to accept `itrData: Itr1 | Itr2`.
+    - [x] Implemented the view-only "Data Access Pattern" to create a normalized view model from either `Itr1` or `Itr2` data.
+    - [x] Updated the JSX to render data from the new view model.
 
 ### Remaining Tasks ⏳
-
-- Review staged changes - Dushyant
-
-- [ ] Implement ITR1IncomeDetailsStep properly.
-- [ ] support user input in ITR1DeductionsStep. see DeductionsStep for reference.
-
-- [ ] **Adapt Shared `TaxCalculationPaymentsStep.tsx`:**
-    - [ ] Update props to accept `itrData: Itr1 | Itr2`.
-    - [ ] Implement the view-only "Data Access Pattern" to create a normalized view model from either `Itr1` or `Itr2` data.
-    - [ ] Update the JSX to render data from the new view model.
-
-- [ ] **Adapt Shared `SummaryConfirmationStep.tsx`:**
-    - [ ] Apply the same data adapter pattern as above.
 
 - [ ] **Update ITR-2 Only Components:**
     - [ ] **`LossesStep.tsx`**: Update props to accept `Itr1 | Itr2` and add a type guard to ensure it only renders for ITR-2.

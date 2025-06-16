@@ -1,6 +1,7 @@
 import React from 'react';
-import { ITRViewerStepConfig } from '../types';
-import { Itr } from '../../../types/itr';
+import type { ITRViewerStepConfig } from '../types';
+import type { Itr1 } from '../../../types/itr-1';
+import type { Itr2 } from '../../../types/itr';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -9,14 +10,29 @@ import { AlertCircle } from 'lucide-react';
 import { formatCurrencyINR } from '../../../utils/formatters';
 
 interface StepProps {
-  itrData: Itr;
+  itrData: Itr1 | Itr2;
   config: ITRViewerStepConfig;
 }
 
 export const ForeignAssetsIncomeStep: React.FC<StepProps> = ({ itrData, config }) => {
+  // --- Type Guard ---
+  if (!('ScheduleFA' in itrData)) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Not Applicable for ITR-1</AlertTitle>
+        <AlertDescription>
+          Foreign asset and income schedules are not part of the ITR-1 return.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const itr2Data = itrData; // We know it's Itr2 now
+
   // Extract data from itrData
-  const scheduleFA = itrData.ITR?.ITR2?.ScheduleFA || {};
-  const scheduleFSI = itrData.ITR?.ITR2?.ScheduleFSI || { ScheduleFSIDtls: [] };
+  const scheduleFA = itr2Data.ScheduleFA || {};
+  const scheduleFSI = itr2Data.ScheduleFSI || { ScheduleFSIDtls: [] };
 
   // Check if any foreign assets data exists
   const hasForeignBankAccounts = (scheduleFA.DetailsForiegnBank?.length ?? 0) > 0;

@@ -1,91 +1,34 @@
 import React, { useState } from 'react';
 import _ from 'lodash';
-import { ITRViewerStepConfig } from '../types';
-import { Itr } from '../../../types/itr';
+import type { ITRViewerStepConfig } from '../types';
+import type { Itr1 } from '../../../types/itr-1';
+import type { Itr2, PartBTI, PartBTTI, ScheduleVIA, ScheduleTDS1, ScheduleTDS2, ScheduleIT, ScheduleTCS } from '../../../types/itr';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Calculator, Receipt, Edit, PenTool, AlertCircle, CreditCard } from 'lucide-react';
 import { useEditMode } from '../context/EditModeContext';
 import { Button } from '@/components/ui/button';
-import { IncomeComputationTab } from './tabs/IncomeComputationTab';
-import { TaxCalculationTab } from './tabs/TaxCalculationTab';
+import { IncomeComputationTab, createIncomeComputationViewModel } from './tabs/IncomeComputationTab';
+import { TaxCalculationTab, createTaxCalculationTabViewModel } from './tabs/TaxCalculationTab';
 import { TaxPaymentsTab } from './tabs/TaxPaymentsTab';
 import { EditTaxPaymentTab } from './tabs/EditTaxPaymentTab';
 
 interface StepProps {
-  itrData: Itr;
+  itrData: Itr1 | Itr2;
   config: ITRViewerStepConfig;
 }
 
 export const TaxCalculationPaymentsStep: React.FC<StepProps> = ({ itrData, config }) => {
-  const partBTI = itrData.ITR?.ITR2?.["PartB-TI"];
-  const partBTTI = itrData.ITR?.ITR2?.PartB_TTI;
-  const isNewRegime = itrData.ITR?.ITR2?.PartA_GEN1.FilingStatus.OptOutNewTaxRegime === 'N';
-  const scheduleVIA = itrData.ITR?.ITR2?.ScheduleVIA;
-  const scheduleTDS1 = itrData.ITR?.ITR2?.ScheduleTDS1;
-  const scheduleTDS2 = itrData.ITR?.ITR2?.ScheduleTDS2;
-  const scheduleIT = itrData.ITR?.ITR2?.ScheduleIT;
-  const scheduleTCS = itrData.ITR?.ITR2?.ScheduleTCS;
-
+  const taxCalculationStepViewModel = createTaxCalculationTabViewModel(itrData);
+  const incomeComputationStepViewModel = createIncomeComputationViewModel(itrData);
+  
   const { isEditMode, toggleEditMode } = useEditMode();
 
-  const taxPaymentsArray = Array.isArray(scheduleIT?.TaxPayment) 
-    ? scheduleIT.TaxPayment 
-    : scheduleIT?.TaxPayment ? [scheduleIT.TaxPayment] : [];
-
-
-  const scheduleTDS1Array = Array.isArray(scheduleTDS1) ? scheduleTDS1 : (scheduleTDS1 ? [scheduleTDS1] : []);
-  const scheduleTDS2Array = Array.isArray(scheduleTDS2) ? scheduleTDS2 : (scheduleTDS2 ? [scheduleTDS2] : []);
-  const scheduleTCSArray = Array.isArray(scheduleTCS) ? scheduleTCS : (scheduleTCS ? [scheduleTCS] : []);
-
-  const hasTDS = scheduleTDS1Array.length > 0 || scheduleTDS2Array.length > 0;
-  const hasTCS = scheduleTCSArray.length > 0;
-  const hasAnyScheduleITPayments = taxPaymentsArray.length > 0;
-  
-  const hasTaxPaymentsData = hasTDS || hasAnyScheduleITPayments || hasTCS;
-
-  const showIncomeComputationTab = !_.isNil(partBTI);
-  const showTaxCalculationTab = !_.isNil(partBTTI);
-  const showTaxPaymentsDisplayTab = hasTaxPaymentsData;
-  const showEditTaxPaymentTab = isEditMode;
-
   // Initialize the active tab based on available data and mode
-  let initialTab = "income-computation";
-  if (isEditMode) {
-    initialTab = "edit-tax-payment";
-  } else if (showIncomeComputationTab) {
-    initialTab = "income-computation";
-  } else if (showTaxCalculationTab) {
-    initialTab = "tax-calculation";
-  } else if (showTaxPaymentsDisplayTab) {
-    initialTab = "tax-payments-display";
-  }
+  const initialTab = isEditMode ? "edit-tax-payment" : "income-computation";
 
   const [activeTab, setActiveTab] = useState(initialTab);
 
-  const noDataAndNotInEditMode = !showIncomeComputationTab && !showTaxCalculationTab && !hasTaxPaymentsData && !isEditMode;
-
-  if (noDataAndNotInEditMode) {
-    return (
-      <div className="space-y-4">
-         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-semibold tracking-tight">{config.title}</h2>
-          <Button onClick={toggleEditMode} variant={"outline"} size="sm">
-            <Edit className="h-4 w-4 mr-2" />
-            {"Enter Tax Payments"}
-          </Button>
-        </div>
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Data Available</AlertTitle>
-          <AlertDescription>
-            There is no income computation, tax calculation, or tax payment data to display. You can enter tax payment details.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-  
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -101,7 +44,6 @@ export const TaxCalculationPaymentsStep: React.FC<StepProps> = ({ itrData, confi
           <TabsTrigger 
             value="income-computation" 
             className="flex items-center"
-            disabled={!partBTI}
           >
             <Calculator className="h-4 w-4 mr-2" />
             Income Computation
@@ -110,7 +52,6 @@ export const TaxCalculationPaymentsStep: React.FC<StepProps> = ({ itrData, confi
           <TabsTrigger 
             value="tax-calculation" 
             className="flex items-center"
-            disabled={!partBTTI}
           >
             <CreditCard className="h-4 w-4 mr-2" />
             Tax Calculation
@@ -119,7 +60,6 @@ export const TaxCalculationPaymentsStep: React.FC<StepProps> = ({ itrData, confi
           <TabsTrigger 
             value="tax-payments-display" 
             className="flex items-center"
-            disabled={!hasTaxPaymentsData}
           >
             <Receipt className="h-4 w-4 mr-2" />
             Tax Payments Summary
@@ -137,15 +77,21 @@ export const TaxCalculationPaymentsStep: React.FC<StepProps> = ({ itrData, confi
 
         {/* Tab Contents */}
         <TabsContent value="income-computation" className="mt-0">
-          {partBTI && <IncomeComputationTab partBTI={partBTI} isNewRegime={isNewRegime} scheduleVIA={scheduleVIA} />}
+          {incomeComputationStepViewModel && (
+            <IncomeComputationTab
+              viewModel={incomeComputationStepViewModel}
+            />
+          )}
         </TabsContent>
         
         <TabsContent value="tax-calculation" className="mt-0">
-          {partBTTI && <TaxCalculationTab partBTTI={partBTTI} />}
+          {taxCalculationStepViewModel && (
+            <TaxCalculationTab viewModel={taxCalculationStepViewModel} />
+          )}
         </TabsContent>
         
         <TabsContent value="tax-payments-display" className="mt-0">
-          {itrData && <TaxPaymentsTab itrData={itrData} />}
+          {<TaxPaymentsTab itrData={itrData} />}
         </TabsContent>
         
         <TabsContent value="edit-tax-payment" className="mt-0">

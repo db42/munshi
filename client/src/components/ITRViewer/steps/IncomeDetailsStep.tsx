@@ -1,10 +1,7 @@
 import React from 'react';
 import type { ITRViewerStepConfig } from '../types';
-import { Input } from '@/components/ui/input'; 
-import { Label } from '@/components/ui/label'; 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Building, Home, Coffee } from 'lucide-react';
-import { getNestedValue } from '../../../utils/helpers';
 import type { Itr1 } from '../../../types/itr-1';
 import type { Itr2, Salaries, PropertyDetails, ScheduleOS } from '../../../types/itr';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

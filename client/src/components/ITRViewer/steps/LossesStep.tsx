@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ITRViewerStepConfig } from '../types';
-import { Itr, ScheduleCFL, ScheduleCYLA, ScheduleBFLA } from '../../../types/itr';
+import type { ITRViewerStepConfig } from '../types';
+import type { Itr1 } from '../../../types/itr-1';
+import type { Itr2, ScheduleCFL, ScheduleCYLA, ScheduleBFLA } from '../../../types/itr';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
@@ -14,7 +15,7 @@ import { useUserInput } from '../context/UserInputContext';
 import { CarryForwardLossForm } from '../forms/CarryForwardLossForm';
 
 interface StepProps {
-  itrData: Itr;
+  itrData: Itr1 | Itr2;
   config: ITRViewerStepConfig;
 }
 
@@ -296,9 +297,22 @@ const EditCFLTab = () => {
 
 
 export const LossesStep: React.FC<StepProps> = ({ itrData, config }) => {
-  const scheduleCYLA = itrData.ITR?.ITR2?.ScheduleCYLA;
-  const scheduleBFLA = itrData.ITR?.ITR2?.ScheduleBFLA;
-  const scheduleCFL = itrData.ITR?.ITR2?.ScheduleCFL;
+  // --- Type Guard ---
+  if (!('ScheduleCFL' in itrData)) {
+    return (
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Not Applicable for ITR-1</AlertTitle>
+        <AlertDescription>
+          Detailed loss adjustment schedules (CYLA, BFLA, CFL) are not part of the ITR-1 return.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const scheduleCYLA = (itrData as Itr2).ScheduleCYLA;
+  const scheduleBFLA = (itrData as Itr2).ScheduleBFLA;
+  const scheduleCFL = (itrData as Itr2).ScheduleCFL;
   
   const hasLossAdjustments = !_.isNil(scheduleCYLA) || !_.isNil(scheduleBFLA) || !_.isNil(scheduleCFL);
   

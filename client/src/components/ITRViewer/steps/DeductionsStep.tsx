@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { ITRViewerStepConfig } from '../types';
-import { Itr } from '../../../types/common-itr';
-import { PartBTI, DeductUndChapVIA } from '../../../types/itr';
+import type { ITRViewerStepConfig } from '../types';
+import type { Itr1 } from '../../../types/itr-1';
+import type { Itr2, DeductUndChapVIA } from '../../../types/itr';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
@@ -14,10 +14,10 @@ import { useEditMode } from '../context/EditModeContext';
 import { useUserInput } from '../context/UserInputContext';
 import { Chapter6ADeductionsForm } from '../forms/Chapter6ADeductionsForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Chapter6ADeductions } from '../../../types/userInput.types';
+import type { Chapter6ADeductions } from '../../../types/userInput.types';
 
 interface StepProps {
-  itrData: Itr;
+  itrData: Itr1 | Itr2;
   config: ITRViewerStepConfig;
 }
 
@@ -66,9 +66,9 @@ export const DeductionsStep: React.FC<StepProps> = ({ itrData, config }) => {
   
   let deductionsUnderScheduleVIA: DeductUndChapVIA | undefined;
   if ('Form_ITR1' in itrData) {
-    deductionsUnderScheduleVIA = itrData.ITR?.ITR1?.ITR1_IncomeDeductions?.DeductUndChapVIA;
-  } else if ('Form_ITR2' in itrData) {
-    deductionsUnderScheduleVIA = itrData.ITR?.ITR2?.ScheduleVIA?.DeductUndChapVIA;
+    deductionsUnderScheduleVIA = itrData.ITR1_IncomeDeductions?.DeductUndChapVIA;
+  } else {
+    deductionsUnderScheduleVIA = itrData.ScheduleVIA?.DeductUndChapVIA;
   }
   const hasDeductions = deductionsUnderScheduleVIA != null;
   
@@ -106,7 +106,7 @@ export const DeductionsStep: React.FC<StepProps> = ({ itrData, config }) => {
           <AlertTitle>Deductions under Chapter VI-A</AlertTitle>
           <AlertDescription>
             Review your tax deductions as reported in your ITR.
-            {hasDeductions && (
+            {hasDeductions && deductionsUnderScheduleVIA && (
               <div className="mt-2 font-medium">
                 Total Deductions: {formatAmount(deductionsUnderScheduleVIA.TotalChapVIADeductions)}
               </div>
@@ -114,7 +114,7 @@ export const DeductionsStep: React.FC<StepProps> = ({ itrData, config }) => {
           </AlertDescription>
         </Alert>
         
-        {hasDeductions && (
+        {hasDeductions && deductionsUnderScheduleVIA && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center justify-between">

@@ -5,54 +5,113 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { formatAmount, formatDate } from '../../../../utils/formatters';
-import { Itr, ScheduleTDS1, TDSonSalary, ScheduleTDS2, TDSOthThanSalaryDtls, ScheduleIT, TaxPayment, ScheduleTCS, Tc } from '../../../../types/itr';
-import _ from 'lodash';
+import { formatAmount, formatDate } from '@/utils/formatters';
+import type { Itr1 } from '@/types/itr-1';
+import type { Itr2, TDSonSalary, TDSOthThanSalaryDtls, TaxPayment, Tc } from '@/types/itr';
+
+interface TaxPaymentViewModel {
+  tdsOnSalary: TDSonSalary[];
+  tdsOnOtherIncome: TDSOthThanSalaryDtls[];
+  advanceTax: TaxPayment[];
+  selfAssessmentTax: TaxPayment[];
+  tcs: Tc[];
+  otherTaxPayments: TaxPayment[];
+  totals: {
+    tdsOnSalary: number;
+    tdsOnOtherIncome: number;
+    tcs: number;
+    advanceSelfAssessmentTax: number;
+    grandTotal: number;
+  };
+  hasTaxPayments: boolean;
+}
+
+const createTaxPaymentsViewModel = (itrData: Itr1 | Itr2): TaxPaymentViewModel => {
+  const isItr1 = (data: Itr1 | Itr2): data is Itr1 => 'ITR1_IncomeDeductions' in data;
+
+  let tdsOnSalary: TDSonSalary[] = [];
+  let tdsOnOtherIncome: TDSOthThanSalaryDtls[] = [];
+  let taxPayments: TaxPayment[] = [];
+  let tcs: Tc[] = [];
+
+  if (isItr1(itrData)) {
+    tdsOnSalary = itrData.TDSonSalaries?.TDSonSalary || [];
+    tdsOnOtherIncome = (itrData.TDSonOthThanSals?.TDSonOthThanSal || []).map(item => ({
+        // This is a mapping from Itr1's TDSonOthThanSal to Itr2's TDSOthThanSalaryDtls
+        TANOfDeductor: item.EmployerOrDeductorOrCollectDetl.TAN,
+        GrossAmount: item.AmtForTaxDeduct,
+        TaxDeductCreditDtls: {
+          TaxClaimedTDS: item.ClaimOutOfTotTDSOnAmtPaid,
+        },
+        // Below are required fields for TDSOthThanSalaryDtls, providing default values
+        AmtCarriedFwd: 0,
+        TDSCreditName: 'S', 
+      } as TDSOthThanSalaryDtls
+    ));
+    taxPayments = itrData.TaxPayments?.TaxPayment || [];
+    tcs = itrData.ScheduleTCS?.TCS || [];
+  } else {
+    tdsOnSalary = itrData.ScheduleTDS1?.TDSonSalary || [];
+    tdsOnOtherIncome = itrData.ScheduleTDS2?.TDSOthThanSalaryDtls || [];
+    taxPayments = itrData.ScheduleIT?.TaxPayment || [];
+    tcs = itrData.ScheduleTCS?.TCS || [];
+  }
+
+  const advanceTax = taxPayments.filter(p => p.SrlNoOfChaln === 2801);
+  const selfAssessmentTax = taxPayments.filter(p => p.SrlNoOfChaln === 2802);
+  const otherTaxPayments = taxPayments.filter(p => p.SrlNoOfChaln !== 2801 && p.SrlNoOfChaln !== 2802);
+  
+  const totalTDSOnSalary = tdsOnSalary.reduce((sum, tds) => sum + (tds.TotalTDSSal || 0), 0);
+  const totalTDSOnOtherIncome = tdsOnOtherIncome.reduce((sum, tds) => sum + (tds.TaxDeductCreditDtls?.TaxClaimedTDS || 0), 0);
+  const totalTCS = tcs.reduce((sum, tcsItem) => sum + (tcsItem.TCSClaimedThisYearDtls?.TCSAmtCollOwnHand || 0), 0);
+  const totalAdvanceSelfAssessmentTax = taxPayments.reduce((sum, payment) => sum + (payment.Amt || 0), 0);
+  const grandTotal = totalTDSOnSalary + totalTDSOnOtherIncome + totalTCS + totalAdvanceSelfAssessmentTax;
+  
+  const hasTaxPayments = tdsOnSalary.length > 0 || tdsOnOtherIncome.length > 0 || taxPayments.length > 0 || tcs.length > 0;
+
+  return {
+    tdsOnSalary,
+    tdsOnOtherIncome,
+    advanceTax,
+    selfAssessmentTax,
+    tcs,
+    otherTaxPayments,
+    totals: {
+      tdsOnSalary: totalTDSOnSalary,
+      tdsOnOtherIncome: totalTDSOnOtherIncome,
+      tcs: totalTCS,
+      advanceSelfAssessmentTax: totalAdvanceSelfAssessmentTax,
+      grandTotal,
+    },
+    hasTaxPayments,
+  };
+};
+
 
 interface TaxPaymentsTabProps {
-  itrData: Itr;
+  itrData: Itr1 | Itr2;
 }
 
 export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
-  const scheduleTDS1Data = itrData.ITR?.ITR2?.ScheduleTDS1; // TDS on Salary (Form 16)
-  const scheduleTDS2Data = itrData.ITR?.ITR2?.ScheduleTDS2; // TDS on Income Other than Salary (Form 16A/26AS)
-  const scheduleITData = itrData.ITR?.ITR2?.ScheduleIT; // Advance Tax and Self-Assessment Tax Payments
-  const scheduleTCSData = itrData.ITR?.ITR2?.ScheduleTCS; // Tax Collected at Source (TCS)
+  const viewModel = createTaxPaymentsViewModel(itrData);
 
-  // Ensure we handle arrays correctly
-  const taxPaymentsArray: TaxPayment[] = scheduleITData?.TaxPayment || [];
-
-  // Process tax payment types 
-  const advanceTaxPayments = taxPaymentsArray.filter(p => p.SrlNoOfChaln === 2801);
-  const selfAssessmentTaxPayments = taxPaymentsArray.filter(p => p.SrlNoOfChaln === 2802);
+  const {
+    tdsOnSalary,
+    tdsOnOtherIncome,
+    advanceTax,
+    selfAssessmentTax,
+    tcs,
+    otherTaxPayments,
+    totals,
+    hasTaxPayments,
+  } = viewModel;
   
-  // Handle payments without explicit type
-  const allOtherTaxPayments = taxPaymentsArray.filter(p => 
-    p.SrlNoOfChaln !== 2801 && 
-    p.SrlNoOfChaln !== 2802
-  );
+  const hasTDS1 = tdsOnSalary.length > 0;
+  const hasTDS2 = tdsOnOtherIncome.length > 0;
+  const hasOtherTaxPayments = otherTaxPayments.length > 0;
+  const hasTCS = tcs.length > 0;
+  const hasAnyScheduleITPayments = advanceTax.length > 0 || selfAssessmentTax.length > 0 || otherTaxPayments.length > 0;
 
-  // Normalize arrays for different data types
-  const tdsOnSalaryDetailsArray: TDSonSalary[] = scheduleTDS1Data?.TDSonSalary || [];
-
-  const scheduleTDS2Array: TDSOthThanSalaryDtls[] = scheduleTDS2Data?.TDSOthThanSalaryDtls || [];
-    
-  const scheduleTCSArray: Tc[] = scheduleTCSData?.TCS || [];
-
-  // Check if we have data for each section
-  const hasTDS1 = tdsOnSalaryDetailsArray.length > 0;
-  const hasTDS2 = scheduleTDS2Array.length > 0;
-  const hasOtherTaxPayments = allOtherTaxPayments.length > 0;
-  const hasTCS = scheduleTCSArray.length > 0;
-  const hasAnyScheduleITPayments = taxPaymentsArray.length > 0;
-  const hasTaxPayments = hasTDS1 || hasTDS2 || hasAnyScheduleITPayments || hasTCS;
-
-  // Calculate totals
-  const totalTDSOnSalary = tdsOnSalaryDetailsArray.reduce((sum, tds) => sum + (tds.TotalTDSSal || 0), 0);
-  const totalTDSOnOtherIncome = scheduleTDS2Array.reduce((sum, tds) => sum + (tds.TaxDeductCreditDtls?.TaxClaimedTDS || 0), 0);
-  const totalTCS = scheduleTCSArray.reduce((sum, tcs) => sum + (tcs.TCSClaimedThisYearDtls?.TCSAmtCollOwnHand || 0), 0);
-  const totalAdvanceSelfAssessmentTax = taxPaymentsArray.reduce((sum, payment) => sum + (payment.Amt || 0), 0);
-  const grandTotal = totalTDSOnSalary + totalTDSOnOtherIncome + totalTCS + totalAdvanceSelfAssessmentTax;
 
   if (!hasTaxPayments) {
     return (
@@ -77,35 +136,35 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {totalTDSOnSalary > 0 && (
+            {totals.tdsOnSalary > 0 && (
               <div className="text-center p-3 bg-blue-50 rounded-lg">
                 <p className="text-sm text-gray-600">TDS on Salary</p>
-                <p className="text-lg font-semibold text-blue-700">{formatAmount(totalTDSOnSalary)}</p>
+                <p className="text-lg font-semibold text-blue-700">{formatAmount(totals.tdsOnSalary)}</p>
               </div>
             )}
-            {totalTDSOnOtherIncome > 0 && (
+            {totals.tdsOnOtherIncome > 0 && (
               <div className="text-center p-3 bg-green-50 rounded-lg">
                 <p className="text-sm text-gray-600">TDS on Other Income</p>
-                <p className="text-lg font-semibold text-green-700">{formatAmount(totalTDSOnOtherIncome)}</p>
+                <p className="text-lg font-semibold text-green-700">{formatAmount(totals.tdsOnOtherIncome)}</p>
               </div>
             )}
-            {totalTCS > 0 && (
+            {totals.tcs > 0 && (
               <div className="text-center p-3 bg-purple-50 rounded-lg">
                 <p className="text-sm text-gray-600">TCS</p>
-                <p className="text-lg font-semibold text-purple-700">{formatAmount(totalTCS)}</p>
+                <p className="text-lg font-semibold text-purple-700">{formatAmount(totals.tcs)}</p>
               </div>
             )}
-            {totalAdvanceSelfAssessmentTax > 0 && (
+            {totals.advanceSelfAssessmentTax > 0 && (
               <div className="text-center p-3 bg-orange-50 rounded-lg">
                 <p className="text-sm text-gray-600">Advance/Self-Assessment</p>
-                <p className="text-lg font-semibold text-orange-700">{formatAmount(totalAdvanceSelfAssessmentTax)}</p>
+                <p className="text-lg font-semibold text-orange-700">{formatAmount(totals.advanceSelfAssessmentTax)}</p>
               </div>
             )}
           </div>
           <Separator className="my-4" />
           <div className="text-center p-4 bg-gray-50 rounded-lg">
             <p className="text-sm text-gray-600">Total Tax Payments</p>
-            <p className="text-2xl font-bold text-gray-900">{formatAmount(grandTotal)}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatAmount(totals.grandTotal)}</p>
           </div>
         </CardContent>
       </Card>
@@ -118,7 +177,7 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
           {hasTDS1 && (
             <>
               <h3 className="text-md font-semibold mb-2">TDS on Salary (Form 16)</h3>
-              {tdsOnSalaryDetailsArray?.map((tdsDetail, index) => (
+              {tdsOnSalary?.map((tdsDetail, index) => (
                 <div key={index} className="mb-4 p-3 border rounded-md">
                   <p><strong>Employer:</strong> {tdsDetail.EmployerOrDeductorOrCollectDetl?.EmployerOrDeductorOrCollecterName || "-"}</p>
                   <p><strong>TAN:</strong> {tdsDetail.EmployerOrDeductorOrCollectDetl?.TAN || "-"}</p>
@@ -142,7 +201,7 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scheduleTDS2Array?.map((tds, index) => (
+                  {tdsOnOtherIncome?.map((tds, index) => (
                     <TableRow key={index}>
                       <TableCell>{tds.TANOfDeductor || "-"}</TableCell>
                       <TableCell>-</TableCell>
@@ -169,12 +228,12 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {scheduleTCSArray?.map((tcs, index) => (
+                  {tcs?.map((tcsItem, index) => (
                     <TableRow key={index}>
-                      <TableCell>{tcs.EmployerOrDeductorOrCollectTAN || "-"}</TableCell>
+                      <TableCell>{tcsItem.EmployerOrDeductorOrCollectTAN || "-"}</TableCell>
                       <TableCell>{"-"}</TableCell>
                       <TableCell className="text-right">{"-"}</TableCell>
-                      <TableCell className="text-right">{formatAmount(tcs.TCSClaimedThisYearDtls?.TCSAmtCollOwnHand)}</TableCell>
+                      <TableCell className="text-right">{formatAmount(tcsItem.TCSClaimedThisYearDtls?.TCSAmtCollOwnHand)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -197,7 +256,7 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {advanceTaxPayments.map((payment: TaxPayment, index: number) => (
+                  {advanceTax.map((payment: TaxPayment, index: number) => (
                     <TableRow key={`adv-${index}`}>
                       <TableCell><Badge variant="outline">Advance Tax</Badge></TableCell>
                       <TableCell>{payment.BSRCode || "-"}</TableCell>
@@ -206,7 +265,7 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
                       <TableCell className="text-right">{formatAmount(payment.Amt)}</TableCell>
                     </TableRow>
                   ))}
-                  {selfAssessmentTaxPayments.map((payment: TaxPayment, index: number) => (
+                  {selfAssessmentTax.map((payment: TaxPayment, index: number) => (
                     <TableRow key={`sa-${index}`}>
                       <TableCell><Badge>Self-Assessment</Badge></TableCell>
                       <TableCell>{payment.BSRCode || "-"}</TableCell>
@@ -216,7 +275,7 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
                     </TableRow>
                   ))}
                   {/* Show other tax payments if any */}
-                  {hasOtherTaxPayments && allOtherTaxPayments.map((payment: TaxPayment, index: number) => (
+                  {hasOtherTaxPayments && otherTaxPayments.map((payment: TaxPayment, index: number) => (
                     <TableRow key={`misc-${index}`}>
                       <TableCell><Badge variant="secondary">Tax Payment</Badge></TableCell> 
                       <TableCell>{payment.BSRCode || "-"}</TableCell>
@@ -233,4 +292,4 @@ export const TaxPaymentsTab: React.FC<TaxPaymentsTabProps> = ({ itrData }) => {
       </Card>
     </>
   );
-}; 
+};
