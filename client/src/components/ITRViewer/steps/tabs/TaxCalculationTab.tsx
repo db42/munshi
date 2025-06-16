@@ -154,14 +154,14 @@ export const TaxCalculationTab: React.FC<TaxCalculationTabProps> = ({ viewModel 
               </TableRow>
             )}
             
-            <Separator className="my-2" />
+            <TableRow><TableCell colSpan={2} className='p-0'><Separator className="my-2" /></TableCell></TableRow>
             
             <TableRow className="bg-slate-100 font-semibold">
               <TableCell>Total Tax Payable</TableCell>
               <TableCell className="text-right">{formatAmount(totalTaxPayable)}</TableCell>
             </TableRow>
 
-            <Separator className="my-2" />
+            <TableRow><TableCell colSpan={2} className='p-0'><Separator className="my-2" /></TableCell></TableRow>
 
             {!_.isNil(totalTaxesPaid) && (
               <TableRow>
@@ -170,7 +170,7 @@ export const TaxCalculationTab: React.FC<TaxCalculationTabProps> = ({ viewModel 
               </TableRow>
             )}
 
-            <Separator className="my-2" />
+            <TableRow><TableCell colSpan={2} className='p-0'><Separator className="my-2" /></TableCell></TableRow>
 
             {amountPayableToTaxAuth > 0 ? (
               <TableRow className="bg-red-50 text-red-700 font-semibold">

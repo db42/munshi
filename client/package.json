@@ -69,12 +69,14 @@
         "serve": "vite preview",
         "lint": "eslint .",
         "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-        "test": "vitest",
+        "test": "vitest run",
+        "test:watch": "vitest",
         "test:ui": "vitest --ui"
     },
     "devDependencies": {
         "@testing-library/jest-dom": "^6.6.3",
         "@testing-library/react": "^16.3.0",
+        "@testing-library/user-event": "^14.6.1",
         "@types/deep-diff": "^1.0.5",
         "@typescript-eslint/eslint-plugin": "^8.0.0-alpha.22",
         "@typescript-eslint/parser": "^8.0.0-alpha.22",

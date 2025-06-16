@@ -9,6 +9,7 @@ alwaysApply: true
 - avoid passing by reference
 - ALWAYS uses import type foo from 'bar' or import { type foo } from 'bar' when importing types.
 - Use optional property over nullable property. See examples:
+- don't modify any component to match the test result!
 
 Optional property (date?: Date)
 

@@ -189,7 +189,7 @@ export const IncomeComputationTab: React.FC<IncomeComputationTabProps> = ({ view
               )
             )}
             
-            <Separator className="my-2" />
+            <TableRow><TableCell colSpan={2} className='p-0'><Separator className="my-2" /></TableCell></TableRow>
             
             {/* Total Income */}
             <TableRow className="bg-slate-100 font-semibold">

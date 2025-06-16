@@ -134,95 +134,96 @@ export const DeductionsStep: React.FC<StepProps> = ({ itrData, config }) => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deductionsUnderScheduleVIA.Section80C && (
+                  {deductionsUnderScheduleVIA.Section80C ? (
                     <TableRow>
                       <TableCell>80C</TableCell>
                       <TableCell>Life Insurance, PPF, NSC, etc.</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80C)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80CCC && (
+                  {deductionsUnderScheduleVIA.Section80CCC ? (
                     <TableRow>
                       <TableCell>80CCC</TableCell>
                       <TableCell>Contribution to pension scheme</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80CCC)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80CCD1B && (
+                  {deductionsUnderScheduleVIA.Section80CCD1B ? (
                     <TableRow>
                       <TableCell>80CCD(1B)</TableCell>
                       <TableCell>Additional contribution to NPS</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80CCD1B)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80D && (
+                  {deductionsUnderScheduleVIA.Section80D ? (
                     <TableRow>
                       <TableCell>80D</TableCell>
                       <TableCell>Medical Insurance Premium</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80D)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80G && (
+                  {deductionsUnderScheduleVIA.Section80G ? (
                     <TableRow>
                       <TableCell>80G</TableCell>
                       <TableCell>Donations to charitable institutions</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80G)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80E && (
+                  {deductionsUnderScheduleVIA.Section80E ? (
                     <TableRow>
                       <TableCell>80E</TableCell>
                       <TableCell>Interest on education loan</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80E)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80EEA && (
+                  {deductionsUnderScheduleVIA.Section80EEA ? (
                     <TableRow>
                       <TableCell>80EEA</TableCell>
                       <TableCell>Interest on loan for affordable housing</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80EEA)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80GG && (
+                  {deductionsUnderScheduleVIA.Section80GG ? (
                     <TableRow>
                       <TableCell>80GG</TableCell>
                       <TableCell>Rent paid when HRA not received</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80GG)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80TTA && (
+                  {deductionsUnderScheduleVIA.Section80TTA ? (
                     <TableRow>
                       <TableCell>80TTA</TableCell>
                       <TableCell>Interest on savings account</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80TTA)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80TTB && (
+                  {deductionsUnderScheduleVIA.Section80TTB ? (
                     <TableRow>
                       <TableCell>80TTB</TableCell>
                       <TableCell>Interest income for senior citizens</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80TTB)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  {deductionsUnderScheduleVIA.Section80U && (
+                  {deductionsUnderScheduleVIA.Section80U ? (
                     <TableRow>
                       <TableCell>80U</TableCell>
                       <TableCell>Deduction for person with disability</TableCell>
                       <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.Section80U)}</TableCell>
                     </TableRow>
-                  )}
+                  ) : null}
                   
-                  <Separator className="my-2" />
+                  <TableRow><TableCell colSpan={3} className='p-0'><Separator className="my-2" /></TableCell></TableRow>
+                  
                   <TableRow className="bg-slate-100 font-semibold">
                     <TableCell colSpan={2}>Total Deductions under Chapter VI-A</TableCell>
                     <TableCell className="text-right">{formatAmount(deductionsUnderScheduleVIA.TotalChapVIADeductions)}</TableCell>
